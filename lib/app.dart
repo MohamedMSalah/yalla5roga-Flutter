@@ -6,14 +6,20 @@ import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/di/app_dependencies.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/core/localization/locale_provider.dart';
-import 'package:yalla_5roga/core/responsive/responsive.dart';
 import 'package:yalla_5roga/core/theme/app_theme.dart';
 import 'package:yalla_5roga/core/theme/theme_provider.dart';
+import 'package:yalla_5roga/core/utils/app_permissions.dart';
+import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
+import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
+import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
+import 'package:yalla_5roga/features/setting/presentation/providers/settings_provider.dart';
+import 'package:yalla_5roga/features/shell/presentation/providers/shell_provider.dart';
 import 'package:yalla_5roga/features/shell/presentation/pages/main_shell.dart';
 import 'package:yalla_5roga/features/splash/presentation/pages/splash_page.dart';
 
@@ -33,6 +39,11 @@ class App extends StatelessWidget {
         ChangeNotifierProvider<OutingChatProvider>.value(value: deps.outingChat),
         ChangeNotifierProvider<OutingsProvider>.value(value: deps.outings),
         ChangeNotifierProvider<SavedOutingsProvider>.value(value: deps.savedOutings),
+        ChangeNotifierProvider<ShellProvider>.value(value: deps.shell),
+        ChangeNotifierProvider<GroupsProvider>.value(value: deps.groups),
+        ChangeNotifierProvider<DiscoverProvider>.value(value: deps.discover),
+        ChangeNotifierProvider<SettingsProvider>.value(value: deps.settings),
+        Provider<GeocodingRepository>.value(value: deps.geocoding),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, theme, locale, _) {
@@ -64,7 +75,9 @@ class App extends StatelessWidget {
                   data: theme.copyWith(
                     textTheme: theme.textTheme.apply(fontSizeFactor: Responsive.scale),
                   ),
-                  child: child ?? const SizedBox.shrink(),
+                  child: _NotificationPermissionGate(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               );
             },
@@ -73,4 +86,27 @@ class App extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NotificationPermissionGate extends StatefulWidget {
+  const _NotificationPermissionGate({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_NotificationPermissionGate> createState() => _NotificationPermissionGateState();
+}
+
+class _NotificationPermissionGateState extends State<_NotificationPermissionGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await AppPermissions.promptNotificationsOnLaunch(context.l10n);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

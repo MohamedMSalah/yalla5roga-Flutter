@@ -7,14 +7,16 @@ import 'package:yalla_5roga/features/outings/presentation/providers/outings_prov
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_list_tile.dart';
 
 class OutingItems extends StatelessWidget {
-  const OutingItems({super.key, this.limit});
+  const OutingItems({super.key, this.limit, this.filtered = false});
 
   final int? limit;
+  final bool filtered;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final outings = context.watch<OutingsProvider>().outings;
+    final provider = context.watch<OutingsProvider>();
+    final outings = filtered ? provider.filtered : provider.outings;
     final items = limit == null ? outings : outings.take(limit!).toList();
 
     return Column(

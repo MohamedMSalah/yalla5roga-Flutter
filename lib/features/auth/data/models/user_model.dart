@@ -1,3 +1,4 @@
+import 'package:yalla_5roga/core/network/api_payload.dart';
 import 'package:yalla_5roga/features/auth/domain/entities/user.dart';
 
 class UserModel extends User {
@@ -12,12 +13,12 @@ class UserModel extends User {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
-      email: json['email'] as String?,
-      token: json['token'] as String?,
-      imageUrl: json['imageUrl'] as String?,
+      id: apiString(json['id']) ?? '',
+      name: apiString(json['name']) ?? '',
+      phone: apiString(json['phone']) ?? '',
+      email: apiString(json['email']),
+      token: apiString(json['token']) ?? apiString(json['accessToken']),
+      imageUrl: apiString(json['imageUrl']) ?? apiString(json['avatar']),
     );
   }
 

@@ -13,7 +13,6 @@ import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/avatar_stack.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/outing_chat_page.dart';
-import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_going_sheet.dart';
 
@@ -29,6 +28,7 @@ class EventPage extends StatelessWidget {
     final saved = context.watch<SavedOutingsProvider>().isSaved(event.id);
 
     return Scaffold(
+      // AppPageBar — outing title + bookmark AppIconButton
       appBar: AppPageBar(
         title: event.title,
         trailing: AppIconButton(
@@ -43,6 +43,7 @@ class EventPage extends StatelessWidget {
         child: ListView(
           padding: Responsive.pagePadding(),
           children: [
+            // AppNetworkImage — cover photo
             AppNetworkImage(url: event.image, width: double.infinity, height: 220.h, radius: 24.r),
             Responsive.spaceMd.gapH,
             Text(
@@ -54,6 +55,7 @@ class EventPage extends StatelessWidget {
               spacing: 8.w,
               runSpacing: 8.h,
               children: [
+                // AppBadge — confirmed / birthday / wedding
                 AppBadge(label: l10n.confirmed, color: AppColors.emerald500, textColor: Colors.white),
                 if (event.occasion == OutingOccasion.birthday)
                   AppBadge(label: l10n.birthday, color: AppColors.brand50, textColor: AppColors.brand700),
@@ -76,6 +78,7 @@ class EventPage extends StatelessWidget {
               ],
             ),
             Responsive.spaceMd.gapH,
+            // AvatarStack + AppBadge — who's going (opens OutingGoingSheet)
             GestureDetector(
               onTap: () => OutingGoingSheet.show(event),
               child: Container(
@@ -101,20 +104,15 @@ class EventPage extends StatelessWidget {
               ),
             ),
             Responsive.spaceLg.gapH,
-            CustomButton(
-              label: l10n.viewLocation,
-              icon: Icons.near_me_outlined,
-              onPressed: () => _openLocation(context),
-            ),
+            // CustomButton — open maps
+            _MapsButton(event: event),
             Responsive.spaceSm.gapH,
+            // CustomButton — OutingChatPage
             CustomButton(
               label: l10n.outingChat,
               icon: Icons.chat_bubble_outline,
               variant: AppButtonVariant.outlined,
-              onPressed: () {
-                context.read<OutingChatProvider>().markRead(event.id);
-                Get.to(() => OutingChatPage(event: event));
-              },
+              onPressed: () => Get.to(() => OutingChatPage(event: event)),
             ),
           ],
         ),
@@ -127,16 +125,41 @@ class EventPage extends StatelessWidget {
     if (!context.mounted) return;
     AppSnackBar.show(added ? context.l10n.outingSaved : context.l10n.outingRemoved);
   }
+}
 
-  Future<void> _openLocation(BuildContext context) async {
-    final location = event.location;
+class _MapsButton extends StatefulWidget {
+  const _MapsButton({required this.event});
+
+  final HeroSlide event;
+
+  @override
+  State<_MapsButton> createState() => _MapsButtonState();
+}
+
+class _MapsButtonState extends State<_MapsButton> {
+  var _opening = false;
+
+  Future<void> _open() async {
+    if (_opening) return;
+    setState(() => _opening = true);
+    final location = widget.event.location;
     final opened = await AppLauncher.openMaps(
       latitude: location?.latitude,
       longitude: location?.longitude,
-      query: location?.label ?? event.meta.split('·').first.trim(),
+      query: location?.label ?? widget.event.meta.split('·').first.trim(),
     );
-    if (!opened && context.mounted) {
-      AppSnackBar.show(context.l10n.couldNotOpenLink);
-    }
+    if (!mounted) return;
+    setState(() => _opening = false);
+    if (!opened) AppSnackBar.show(context.l10n.couldNotOpenLink);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomButton(
+      label: context.l10n.viewLocation,
+      icon: Icons.near_me_outlined,
+      isLoading: _opening,
+      onPressed: _open,
+    );
   }
 }

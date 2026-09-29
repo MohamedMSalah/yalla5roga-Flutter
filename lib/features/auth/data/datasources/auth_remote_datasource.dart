@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:yalla_5roga/core/constants/api_constants.dart';
 import 'package:yalla_5roga/core/error/exceptions.dart';
 import 'package:yalla_5roga/core/network/api_client.dart';
+import 'package:yalla_5roga/core/network/api_payload.dart';
 import 'package:yalla_5roga/features/auth/data/models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
@@ -46,11 +47,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> _postUser(String path, Map<String, dynamic> data) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(path, data: data);
-      final body = response.data ?? {};
-      final payload = body['data'] is Map<String, dynamic>
-          ? body['data'] as Map<String, dynamic>
-          : body;
-      return UserModel.fromJson(payload);
+      return UserModel.fromJson(apiPayload(response.data));
     } on DioException catch (error) {
       if (error.error is AppException) {
         throw error.error as AppException;

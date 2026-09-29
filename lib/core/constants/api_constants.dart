@@ -11,4 +11,13 @@ class ApiConstants {
 
   static const String login = '/auth/login';
   static const String register = '/auth/register';
+  static const String unreadCounts = '/me/unread-counts';
+  static const String notifications = '/notifications';
+  static const String notificationsRead = '/notifications/read';
+
+  static String notificationRead(String id) => '/notifications/$id/read';
+
+  static String outingChatRead(String outingId) => '/outings/$outingId/chat/read';
+
+  static String groupRead(String groupId) => '/groups/$groupId/read';
 }

@@ -8,18 +8,20 @@ class SegmentedTabs extends StatelessWidget {
     required this.labels,
     required this.index,
     required this.onChanged,
+    this.children = const [],
     this.badges = const {},
   });
 
   final List<String> labels;
   final int index;
   final ValueChanged<int> onChanged;
+  final List<Widget> children;
   final Map<int, String> badges;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    return Container(
+    final tabs = Container(
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
         color: palette.surfaceSoft,
@@ -82,6 +84,18 @@ class SegmentedTabs extends StatelessWidget {
             ),
         ],
       ),
+    );
+
+    if (children.isEmpty) return tabs;
+
+    final selected = index.clamp(0, children.length - 1);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        tabs,
+        Responsive.spaceLg.gapH,
+        children[selected],
+      ],
     );
   }
 }

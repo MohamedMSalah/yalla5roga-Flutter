@@ -47,7 +47,7 @@ class OutingListTile extends StatelessWidget {
                 ? details
                 : GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: details),
           ),
-          if (trailing != null) ...[8.gapW, trailing!] else Icon(Icons.chevron_right, color: context.palette.border, size: 20.w),
+          if (trailing != null) ...[8.gapW, trailing!] else Icon(context.chevronForward, color: context.palette.border, size: 20.w),
         ],
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/error/exceptions.dart';
 import 'package:yalla_5roga/core/error/failures.dart';
 import 'package:yalla_5roga/core/network/network_info.dart';
@@ -31,7 +32,7 @@ class AuthRepositoryImpl implements AuthRepository {
         name: 'Ahmed Hassan',
         phone: phone,
         email: 'ahmed@example.com',
-        token: 'demo-token',
+        token: AppConstants.demoToken,
         imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
       ),
     );
@@ -49,7 +50,7 @@ class AuthRepositoryImpl implements AuthRepository {
         id: 'demo-user',
         name: name,
         phone: phone,
-        token: 'demo-token',
+        token: AppConstants.demoToken,
         imageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
       ),
     );
@@ -97,8 +98,8 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     } on AuthException catch (error) {
       return Left(AuthFailure(error.message));
-    } on AppException {
-      // Preview fallback while the backend is not ready.
+    } catch (_) {
+      // Preview fallback while the backend is not ready (non-auth errors / parse issues).
     }
 
     await local.cacheUser(fallback);

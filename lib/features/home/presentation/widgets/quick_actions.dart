@@ -10,6 +10,7 @@ import 'package:yalla_5roga/core/utils/app_launcher.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/icon_circle.dart';
+import 'package:yalla_5roga/core/widgets/marquee_text.dart';
 
 class QuickActions extends StatelessWidget {
   const QuickActions({super.key});
@@ -30,16 +31,13 @@ class QuickActions extends StatelessWidget {
       _Action(l10n.discover, Icons.explore_outlined, const Color(0xFFD97706), const Color(0xFFFEF3C7), context.palette.surface, () {
         Get.to(() => const DiscoverPage());
       }),
-      _Action(l10n.invite, Icons.person_add_alt_1_outlined, const Color(0xFF059669), const Color(0xFFD1FAE5), context.palette.surface, () {
-        _shareInvite(context, l10n);
-      }),
     ];
 
     return Column(
       children: [
         Row(
           children: [
-            for (final action in actions.take(3))
+            for (final action in actions)
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 3.w),
@@ -49,16 +47,38 @@ class QuickActions extends StatelessWidget {
           ],
         ),
         8.gapH,
-        Row(
-          children: [
-            for (final action in actions.skip(3))
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 3.w),
-                  child: _ActionTile(action: action),
+        GestureDetector(
+          onTap: () => _shareInvite(context, l10n),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD1FAE5),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: context.palette.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconCircle(
+                  icon: Icons.person_add_alt_1_outlined,
+                  size: 36,
+                  radius: 12,
+                  background: const Color(0xFF059669),
+                  foreground: Colors.white,
                 ),
-              ),
-          ],
+                10.gapW,
+                Text(
+                  l10n.inviteFriends,
+                  style: TextStyle(
+                    fontSize: Responsive.fontSm,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF047857),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -84,7 +104,7 @@ class _ActionTile extends StatelessWidget {
     return GestureDetector(
       onTap: action.onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
+        padding: EdgeInsets.fromLTRB(6.w, 12.h, 6.w, 12.h),
         decoration: BoxDecoration(
           color: action.cardColor,
           borderRadius: BorderRadius.circular(16.r),
@@ -97,17 +117,17 @@ class _ActionTile extends StatelessWidget {
             IconCircle(
               icon: action.icon,
               size: 36,
-              radius: 12,
+              radius: 12.r,
               background: action.highlighted ? action.foreground : action.background,
               foreground: action.highlighted ? Colors.white : action.foreground,
             ),
             Responsive.spaceSm.gapH,
-            Text(
-              action.label,
-              textAlign: TextAlign.center,
+            MarqueeText(
+              text: action.label,
               style: TextStyle(
                 fontSize: Responsive.fontCaption,
                 fontWeight: FontWeight.w800,
+                height: 1.2,
                 color: action.highlighted ? context.palette.brandStrong : context.palette.textSecondary,
               ),
             ),

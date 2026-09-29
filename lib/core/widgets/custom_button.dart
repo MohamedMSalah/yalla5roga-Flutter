@@ -87,7 +87,7 @@ class CustomButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final child = isLoading
-        ? LoadingIndicator(size: _iconSize, strokeWidth: 2.2)
+        ? LoadingIndicator(size: _iconSize, strokeWidth: 2.2, color: _foreground)
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,

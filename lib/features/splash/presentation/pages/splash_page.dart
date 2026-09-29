@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:yalla_5roga/core/constants/asset_constants.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/features/auth/presentation/pages/auth_page.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
-import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
-import 'package:yalla_5roga/core/widgets/language_toggle_button.dart';
+import 'package:yalla_5roga/core/widgets/language_choice.dart';
 import 'package:yalla_5roga/features/splash/presentation/widgets/splash_preview.dart';
 
 class SplashPage extends StatelessWidget {
@@ -35,6 +36,7 @@ class SplashPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // LanguageChoice — English / العربية (same as Settings)
                   Row(
                     children: [
                       Container(
@@ -44,7 +46,7 @@ class SplashPage extends StatelessWidget {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12.r),
                         ),
-                        child: Icon(Icons.auto_awesome, color: AppColors.brand600, size: 20.w),
+                        child: SvgPicture.asset(AssetConstants.logo, width: 20.w, height: 20.w),
                       ),
                       Responsive.spaceSm.gapW,
                       Text(
@@ -56,10 +58,11 @@ class SplashPage extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      const LanguageToggleButton(onBrand: true),
+                      const LanguageChoice(onBrand: true),
                     ],
                   ),
                   28.gapH,
+                  // SplashPreview — sample outing card
                   const SplashPreview(),
                   const Spacer(),
                   Container(
@@ -94,12 +97,12 @@ class SplashPage extends StatelessWidget {
                     style: TextStyle(color: AppColors.brand100, height: 1.5, fontSize: Responsive.fontBody),
                   ),
                   Responsive.spaceLg.gapH,
+                  // CustomButton — Get started → AuthPage
                   CustomButton(
                     label: l10n.getStarted,
                     icon: Icons.arrow_forward,
                     variant: AppButtonVariant.light,
                     onPressed: () {
-                      AppSnackBar.show(l10n.appName);
                       Get.to(() => const AuthPage());
                     },
                   ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/demo/demo_data.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
+import 'package:yalla_5roga/core/utils/app_launcher.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
@@ -99,7 +101,7 @@ class FeaturedGroupCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    AppBadge(label: l10n.votedCount(5, 8)),
+                    AppBadge(label: l10n.votedCount(group.people.isEmpty ? 0 : group.people.length - 1, group.people.length)),
                   ],
                 ),
                 12.gapH,
@@ -117,7 +119,13 @@ class FeaturedGroupCard extends StatelessWidget {
                     ),
                     Responsive.spaceSm.gapW,
                     IconButton.filled(
-                      onPressed: () => AppSnackBar.show(l10n.share),
+                      onPressed: () async {
+                        // TODO: share a real group invite link from the API.
+                        final opened = await AppLauncher.shareOnWhatsApp(
+                          l10n.inviteDownloadMessage(AppConstants.downloadUrl),
+                        );
+                        if (!opened && context.mounted) AppSnackBar.show(l10n.share);
+                      },
                       style: IconButton.styleFrom(
                         backgroundColor: context.palette.surfaceMuted,
                         foregroundColor: context.palette.textMuted,

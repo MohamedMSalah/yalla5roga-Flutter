@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/loading_indicator.dart';
 
 class AppIconButton extends StatelessWidget {
   const AppIconButton({
@@ -11,6 +12,7 @@ class AppIconButton extends StatelessWidget {
     this.foreground,
     this.badge,
     this.size = 40,
+    this.isLoading = false,
   });
 
   final IconData icon;
@@ -19,16 +21,18 @@ class AppIconButton extends StatelessWidget {
   final Color? foreground;
   final String? badge;
   final double size;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
     final side = size.w;
+    final iconColor = foreground ?? palette.textSecondary;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         InkWell(
-          onTap: onTap,
+          onTap: isLoading ? null : onTap,
           borderRadius: BorderRadius.circular(12.r),
           child: Container(
             width: side,
@@ -39,7 +43,9 @@ class AppIconButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: palette.border),
             ),
-            child: Icon(icon, size: Responsive.iconMd, color: foreground ?? palette.textSecondary),
+            child: isLoading
+                ? LoadingIndicator(size: Responsive.iconMd * 0.7, strokeWidth: 2.2, color: iconColor)
+                : Icon(icon, size: Responsive.iconMd, color: iconColor),
           ),
         ),
         if (badge != null)

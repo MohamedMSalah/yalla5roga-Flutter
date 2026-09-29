@@ -48,7 +48,7 @@ class SuggestedPlaceTile extends StatelessWidget {
                 ),
                 Responsive.spaceXs.gapH,
                 Text(
-                  place.localizedArea(l10n),
+                  '${place.localizedArea(l10n)} · ${l10n.priceLevelLabel(place.priceLevel.name)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

@@ -1,26 +1,164 @@
 import 'package:flutter/foundation.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
+import 'package:yalla_5roga/features/notifications/domain/repositories/notifications_repository.dart';
+import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
+import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
 class NotificationsProvider extends ChangeNotifier {
-  NotificationsProvider() {
-    _items = List.of(DemoData.notifications);
-  }
+  NotificationsProvider({
+    required this.repository,
+    required this.unreadCounts,
+  });
 
-  late List<DemoNotificationItem> _items;
+  final NotificationsRepository repository;
+  final UnreadCountsRepository unreadCounts;
 
-  List<DemoNotificationItem> get items => List.unmodifiable(_items);
+  var _items = <NotificationItem>[];
+  int _unreadCount = 0;
+  int _filter = 0;
+  var _isLoading = false;
+  var _isUpdating = false;
+  var _hasLoaded = false;
+  String? _errorMessage;
+  var _epoch = 0;
 
-  int get unreadCount => _items.where((item) => item.unread).length;
+  List<NotificationItem> get items => List.unmodifiable(_items);
 
-  void markAllRead() {
-    _items = _items.map((item) => item.copyWith(unread: false)).toList();
+  int get filter => _filter;
+
+  int get unreadCount => _unreadCount;
+
+  int get unreadNotificationCount => _unreadCount;
+
+  bool get isLoading => _isLoading;
+
+  bool get isUpdating => _isUpdating;
+
+  bool get hasLoaded => _hasLoaded;
+
+  bool get isInitialLoading => !_hasLoaded;
+
+  String? get errorMessage => _errorMessage;
+
+  List<NotificationItem> get visible => _filter == 0
+      ? items
+      : _items.where((item) => item.unread).toList();
+
+  void setFilter(int value) {
+    if (_filter == value) return;
+    _filter = value;
     notifyListeners();
   }
 
-  void markRead(String id) {
-    _items = _items
-        .map((item) => item.id == id ? item.copyWith(unread: false) : item)
-        .toList();
+  void applyCounts(UnreadCounts counts) {
+    _unreadCount = counts.unreadNotificationCount;
+    _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<void> refresh() async {
+    final token = ++_epoch;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final countsResult = await unreadCounts.fetchCounts();
+    if (token != _epoch) {
+      _finishInitialLoad();
+      return;
+    }
+    countsResult.fold<void>(
+      (failure) {
+        _errorMessage = failure.message;
+      },
+      (counts) {
+        _unreadCount = counts.unreadNotificationCount;
+      },
+    );
+
+    final feedResult = await repository.getNotifications();
+    if (token != _epoch) {
+      _finishInitialLoad();
+      return;
+    }
+    feedResult.fold<void>(
+      (failure) {
+        _errorMessage = failure.message;
+      },
+      (feed) {
+        _items = feed.items;
+        _unreadCount = feed.unreadCount;
+        _errorMessage = null;
+      },
+    );
+
+    _finishInitialLoad();
+  }
+
+  void _finishInitialLoad() {
+    _isLoading = false;
+    _hasLoaded = true;
+    notifyListeners();
+  }
+
+  Future<bool> markAllRead() {
+    _epoch++;
+    return _runUpdate(() async {
+      final result = await repository.markAllRead();
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (count) {
+          _unreadCount = count;
+          _items = [for (final item in _items) item.copyWith(unread: false)];
+          return true;
+        },
+      );
+    });
+  }
+
+  Future<bool> markRead(String id) {
+    _epoch++;
+    return _runUpdate(() async {
+      final result = await repository.markRead(id);
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (count) {
+          _unreadCount = count;
+          _items = [
+            for (final item in _items)
+              if (item.id == id) item.copyWith(unread: false) else item,
+          ];
+          return true;
+        },
+      );
+    });
+  }
+
+  void clear() {
+    _epoch++;
+    _items = [];
+    _unreadCount = 0;
+    _filter = 0;
+    _isLoading = false;
+    _isUpdating = false;
+    _hasLoaded = false;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  Future<bool> _runUpdate(Future<bool> Function() action) async {
+    _isUpdating = true;
+    _errorMessage = null;
+    notifyListeners();
+    final success = await action();
+    _isUpdating = false;
+    notifyListeners();
+    return success;
   }
 }

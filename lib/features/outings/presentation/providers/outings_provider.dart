@@ -1,60 +1,68 @@
 import 'package:flutter/foundation.dart';
 import 'package:yalla_5roga/core/demo/demo_data.dart';
 
-class OutingPlace {
-  const OutingPlace({
-    required this.name,
-    required this.area,
-    this.latitude,
-    this.longitude,
-  });
-
-  final String name;
-  final String area;
-  final double? latitude;
-  final double? longitude;
-
-  bool get hasCoordinates => latitude != null && longitude != null;
-
-  OutingLocation toLocation() => OutingLocation(
-        name: name,
-        area: area,
-        latitude: latitude,
-        longitude: longitude,
-      );
-
-  @override
-  bool operator ==(Object other) {
-    return other is OutingPlace && other.name == name && other.area == area;
-  }
-
-  @override
-  int get hashCode => Object.hash(name, area);
-}
-
 class OutingsProvider extends ChangeNotifier {
   OutingsProvider() {
     _outings = List.of(DemoData.heroSlides);
   }
 
   late List<HeroSlide> _outings;
+  int _filter = 0;
+  int _featuredIndex = 0;
+  int _voteIndex = 0;
 
-  static const places = [
-    OutingPlace(name: 'ZED Park', area: 'New Cairo', latitude: 30.0215, longitude: 31.4952),
-    OutingPlace(name: 'The Brunch Room', area: 'Maadi', latitude: 29.9602, longitude: 31.2589),
-    OutingPlace(name: "Lucille's", area: 'Zamalek', latitude: 30.0616, longitude: 31.2197),
-    OutingPlace(name: 'The Tap East', area: 'Heliopolis', latitude: 30.0917, longitude: 31.3244),
-    OutingPlace(name: 'Cairo Festival City', area: 'New Cairo', latitude: 30.0285, longitude: 31.4073),
+  static const voteOptions = [
+    VoteOption('brunch-room', 3, 60),
+    VoteOption('lucilles', 2, 40),
   ];
+
+  static List<OutingPlace> get places => DemoData.catalogPlaces;
 
   List<HeroSlide> get outings => List.unmodifiable(_outings);
 
+  List<HeroSlide> get filtered {
+    final status = OutingStatus.values[_filter.clamp(0, OutingStatus.values.length - 1)];
+    return [for (final outing in _outings) if (outing.status == status) outing];
+  }
+
+  int get filter => _filter;
+
+  int get featuredIndex => _featuredIndex;
+
+  int get voteIndex => _voteIndex;
+
   List<HeroSlide> forGroup(String groupId) {
     return _outings.where((outing) => outing.groupId == groupId).toList();
+  }
+
+  void setFilter(int value) {
+    if (_filter == value) return;
+    _filter = value;
+    notifyListeners();
+  }
+
+  void setFeaturedIndex(int value) {
+    if (_featuredIndex == value) return;
+    _featuredIndex = value;
+    notifyListeners();
+  }
+
+  void selectVote(int value) {
+    if (_voteIndex == value) return;
+    _voteIndex = value;
+    notifyListeners();
   }
 
   void add(HeroSlide outing) {
     _outings = [outing, ..._outings];
     notifyListeners();
   }
+}
+
+class VoteOption {
+  const VoteOption(this.placeId, this.votes, this.percent);
+
+  final String placeId;
+  final int votes;
+  final int percent;
 }

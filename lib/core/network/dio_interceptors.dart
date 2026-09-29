@@ -9,11 +9,16 @@ class AuthInterceptor extends Interceptor {
 
   final SharedPreferences _prefs;
 
+  /// Flip to true after POST /auth/firebase returns an app JWT.
+  static const attachBackendJwt = false;
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    final token = _prefs.getString(AppConstants.tokenKey);
-    if (token != null && token.isNotEmpty) {
-      options.headers['Authorization'] = 'Bearer $token';
+    if (attachBackendJwt) {
+      final token = _prefs.getString(AppConstants.tokenKey);
+      if (token != null && token.isNotEmpty && token != AppConstants.demoToken) {
+        options.headers['Authorization'] = 'Bearer $token';
+      }
     }
     handler.next(options);
   }

@@ -18,7 +18,6 @@ class FeaturedOutingCard extends StatefulWidget {
 
 class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
   final _controller = PageController();
-  int _index = 0;
 
   @override
   void dispose() {
@@ -30,6 +29,7 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final slides = context.watch<OutingsProvider>().outings;
+    final index = context.watch<OutingsProvider>().featuredIndex;
     if (slides.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -41,7 +41,7 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
             child: PageView.builder(
               controller: _controller,
               itemCount: slides.length,
-              onPageChanged: (index) => setState(() => _index = index),
+              onPageChanged: context.read<OutingsProvider>().setFeaturedIndex,
               itemBuilder: (context, index) {
                 final slide = slides[index];
                 return GestureDetector(
@@ -138,10 +138,10 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 margin: EdgeInsets.symmetric(horizontal: 3.w),
-                width: (i == _index ? 20 : 6).w,
+                width: (i == index ? 20 : 6).w,
                 height: 6.h,
                 decoration: BoxDecoration(
-                  color: i == _index ? AppColors.brand600 : context.palette.border,
+                  color: i == index ? AppColors.brand600 : context.palette.border,
                   borderRadius: BorderRadius.circular(999.r),
                 ),
               ),

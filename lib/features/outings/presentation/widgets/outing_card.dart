@@ -95,8 +95,8 @@ class OutingCard extends StatelessWidget {
                           decoration: BoxDecoration(color: context.palette.surface, borderRadius: BorderRadius.circular(12.r)),
                           child: Column(
                             children: [
-                              Text('SEP', style: TextStyle(color: AppColors.rose500, fontSize: Responsive.fontXs, fontWeight: FontWeight.w800)),
-                              Text('19', style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
+                              Text(slide.calendarMonth, style: TextStyle(color: AppColors.rose500, fontSize: Responsive.fontXs, fontWeight: FontWeight.w800)),
+                              Text(slide.calendarDay, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
                             ],
                           ),
                         ),
@@ -133,7 +133,10 @@ class OutingCard extends StatelessWidget {
                         child: CustomButton(
                           label: l10n.viewPlan,
                           icon: Icons.near_me_outlined,
-                          onPressed: () => Get.to(() => EventPage(event: slide)),
+                          onPressed: () {
+                            // TODO: open GET /outings/{id} when outing CRUD exists.
+                            Get.to(() => EventPage(event: slide));
+                          },
                         ),
                       ),
                       Responsive.spaceSm.gapW,
@@ -145,7 +148,7 @@ class OutingCard extends StatelessWidget {
                             children: [
                               IconButton.filled(
                                 onPressed: () {
-                                  chat.markRead(slide.id);
+                                  // TODO: open GET /outings/{id}/chat when chat history is API-backed.
                                   Get.to(() => OutingChatPage(event: slide));
                                 },
                                 style: IconButton.styleFrom(backgroundColor: AppColors.brand50, foregroundColor: AppColors.brand600),

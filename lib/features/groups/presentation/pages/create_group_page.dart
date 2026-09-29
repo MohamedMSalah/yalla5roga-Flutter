@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
@@ -11,7 +11,9 @@ import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/custom_textfield.dart';
 import 'package:yalla_5roga/core/widgets/image_source_sheet.dart';
 import 'package:yalla_5roga/core/widgets/phone_text_field.dart';
-import 'package:yalla_5roga/features/groups/presentation/pages/group_page.dart';
+import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
+import 'package:yalla_5roga/features/groups/presentation/pages/group_details_page.dart';
+import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 
 class CreateGroupPage extends StatefulWidget {
   const CreateGroupPage({super.key});
@@ -24,8 +26,15 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  String? _image;
-  final _phones = <String>[];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<GroupsProvider>().resetCreate();
+    });
+  }
 
   @override
   void dispose() {
@@ -37,68 +46,46 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   Future<void> _pickImage() async {
     final path = await ImageSourceSheet.pick(title: context.l10n.changeGroupImage);
     if (path == null || !mounted) return;
-    setState(() => _image = path);
+    context.read<GroupsProvider>().setCreateImage(path);
   }
 
   void _addPhone() {
-    final l10n = context.l10n;
-    final error = Validators.phone(_phoneController.text, l10n);
+    final error = context.read<GroupsProvider>().addCreatePhone(_phoneController.text, context.l10n);
     if (error != null) {
       AppSnackBar.show(error);
       return;
     }
-    final phone = Validators.normalizePhone(_phoneController.text);
-    if (_phones.contains(phone)) {
-      AppSnackBar.show(l10n.phoneAlreadyAdded);
-      return;
-    }
-    setState(() {
-      _phones.add(phone);
-      _phoneController.clear();
-    });
+    _phoneController.clear();
   }
 
   void _create() {
     if (!_formKey.currentState!.validate()) return;
-    if (_image == null) {
-      AppSnackBar.show(context.l10n.uploadPhoto);
+    final groups = context.read<GroupsProvider>();
+    final user = context.read<AuthProvider>().user;
+    final l10n = context.l10n;
+    final group = groups.createGroup(
+      _nameController.text.trim(),
+      ownerName: user?.name ?? l10n.demoUserName,
+      ownerAvatar: user?.imageUrl,
+    );
+    if (group == null) {
+      AppSnackBar.show(context.l10n.photoRequired);
       return;
     }
-    final people = [
-      const DemoMember(
-        id: 'ahmed',
-        name: 'Ahmed',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-        role: GroupRole.owner,
-      ),
-      for (final phone in _phones)
-        DemoMember(
-          id: phone,
-          name: phone,
-          avatar: DemoData.avatars[phone.hashCode.abs() % DemoData.avatars.length],
-        ),
-    ];
-    final group = DemoGroup(
-      id: 'new-${DateTime.now().millisecondsSinceEpoch}',
-      name: _nameController.text.trim(),
-      members: people.length,
-      outings: 0,
-      preview: '',
-      avatars: people.map((person) => person.avatar).toList(),
-      image: _image!,
-      people: people,
-      myRole: GroupRole.owner,
-    );
     AppSnackBar.show(context.l10n.groupCreated);
-    Get.off(() => GroupPage(group: group));
+    Get.off(() => GroupDetailsPage(groupId: group.id));
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final palette = context.palette;
+    final groups = context.watch<GroupsProvider>();
+    final image = groups.createImage;
+    final phones = groups.createPhones;
 
     return Scaffold(
+      // AppPageBar — create group
       appBar: AppPageBar(
         title: l10n.createGroup,
         backIcon: Icons.close,
@@ -115,7 +102,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   children: [
                     GestureDetector(
                       onTap: _pickImage,
-                      child: _image == null
+                      child: image == null
                           ? Container(
                               height: 160.h,
                               alignment: Alignment.center,
@@ -135,7 +122,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                             )
                           : Stack(
                               children: [
-                                AppNetworkImage(url: _image!, width: double.infinity, height: 160.h, radius: 22.r),
+                                AppNetworkImage(url: image, width: double.infinity, height: 160.h, radius: 22.r),
                                 Positioned(
                                   right: 12.w,
                                   bottom: 12.h,
@@ -177,16 +164,16 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       variant: AppButtonVariant.outlined,
                       onPressed: _addPhone,
                     ),
-                    if (_phones.isNotEmpty) ...[
+                    if (phones.isNotEmpty) ...[
                       Responsive.spaceMd.gapH,
                       Wrap(
                         spacing: 8.w,
                         runSpacing: 8.h,
                         children: [
-                          for (final phone in _phones)
+                          for (final phone in phones)
                             Chip(
                               label: Text(phone, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.sp)),
-                              onDeleted: () => setState(() => _phones.remove(phone)),
+                              onDeleted: () => groups.removeCreatePhone(phone),
                               backgroundColor: palette.surfaceMuted,
                             ),
                         ],

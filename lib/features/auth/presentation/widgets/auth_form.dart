@@ -13,9 +13,7 @@ import 'package:yalla_5roga/core/widgets/phone_text_field.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
 
 class AuthForm extends StatefulWidget {
-  const AuthForm({super.key, required this.isLogin});
-
-  final bool isLogin;
+  const AuthForm({super.key});
 
   @override
   State<AuthForm> createState() => _AuthFormState();
@@ -26,8 +24,6 @@ class _AuthFormState extends State<AuthForm> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
-  bool _showOtp = false;
-  bool _agreeTerms = true;
 
   @override
   void initState() {
@@ -45,70 +41,85 @@ class _AuthFormState extends State<AuthForm> {
   }
 
   void _onPhoneChanged() {
-    final valid = Validators.isValidEgyptianPhone(_phoneController.text);
-    if (valid == _showOtp) return;
-
-    setState(() {
-      _showOtp = valid;
-      if (!valid) _otpController.clear();
-    });
-
-    if (valid && mounted) {
-      final phone = Validators.normalizePhone(_phoneController.text);
-      AppSnackBar.show(context.l10n.otpSent(phone));
-    }
+    final auth = context.read<AuthProvider>();
+    if (!auth.otpSent) return;
+    if (Validators.isValidEgyptianPhone(_phoneController.text)) return;
+    _otpController.clear();
+    auth.resetOtp();
   }
 
-  void _resendOtp() {
-    if (!_showOtp) return;
+  Future<void> _resendOtp() async {
+    final auth = context.read<AuthProvider>();
     final phone = Validators.normalizePhone(_phoneController.text);
+    final ok = await auth.resendOtp(phone);
+    if (!mounted) return;
+    if (!ok) {
+      AppSnackBar.show(auth.errorMessage ?? context.l10n.otpSendFailed);
+      return;
+    }
+    AppSnackBar.show(context.l10n.otpSent(phone));
+  }
+
+  Future<void> _sendOtp() async {
+    if (!_formKey.currentState!.validate()) return;
+    final auth = context.read<AuthProvider>();
+    if (!auth.isLogin && !auth.agreeTerms) {
+      AppSnackBar.show(context.l10n.termsRequired);
+      return;
+    }
+    final phone = Validators.normalizePhone(_phoneController.text);
+    _otpController.clear();
+    final ok = await auth.sendOtp(phone);
+    if (!mounted) return;
+    if (!ok) {
+      AppSnackBar.show(auth.errorMessage ?? context.l10n.otpSendFailed);
+      return;
+    }
     AppSnackBar.show(context.l10n.otpSent(phone));
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final l10n = context.l10n;
-    if (!widget.isLogin && !_agreeTerms) {
+    final auth = context.read<AuthProvider>();
+    if (!auth.isLogin && !auth.agreeTerms) {
       AppSnackBar.show(l10n.termsRequired);
       return;
     }
 
-    final auth = context.read<AuthProvider>();
-    final phone = Validators.normalizePhone(_phoneController.text);
     final otp = _otpController.text.trim();
-    final success = widget.isLogin
-        ? await auth.login(phone: phone, password: otp)
-        : await auth.register(
-            name: _nameController.text.trim(),
-            phone: phone,
-            password: otp,
-          );
+    final ok = await auth.verifyOtp(
+      smsCode: otp,
+      name: auth.isLogin ? null : _nameController.text.trim(),
+    );
 
     if (!mounted) return;
-    if (!success) {
-      AppSnackBar.show(auth.errorMessage ?? (widget.isLogin ? l10n.loginFailed : l10n.registerFailed));
+    if (!ok) {
+      AppSnackBar.show(auth.errorMessage ?? (auth.isLogin ? l10n.loginFailed : l10n.registerFailed));
       return;
     }
-
-    AppSnackBar.show(
-      widget.isLogin
-          ? l10n.welcomeBackName(auth.user?.name ?? '')
-          : l10n.accountCreated,
-    );
     Get.offAll(() => const MainShell());
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final isLoading = context.watch<AuthProvider>().isLoading;
+    final auth = context.watch<AuthProvider>();
+    final isLogin = auth.isLogin;
+    final otpSent = auth.otpSent;
+
+    if (!otpSent && _otpController.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _otpController.clear();
+      });
+    }
 
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!widget.isLogin) ...[
+          if (!isLogin) ...[
             CustomTextField(
               controller: _nameController,
               label: l10n.name,
@@ -123,7 +134,7 @@ class _AuthFormState extends State<AuthForm> {
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOut,
             alignment: Alignment.topCenter,
-            child: _showOtp
+            child: otpSent
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -131,10 +142,10 @@ class _AuthFormState extends State<AuthForm> {
                       OtpInput(
                         controller: _otpController,
                         label: l10n.otp,
+                        length: Validators.otpLength,
                         validator: (value) => Validators.otp(value, l10n),
-                        onCompleted: (_) => _submit(),
                         action: TextButton(
-                          onPressed: _resendOtp,
+                          onPressed: auth.isLoading ? null : _resendOtp,
                           style: TextButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,
@@ -154,14 +165,14 @@ class _AuthFormState extends State<AuthForm> {
                   )
                 : const SizedBox(width: double.infinity),
           ),
-          if (!widget.isLogin) ...[
+          if (!isLogin) ...[
             Responsive.spaceSm.gapH,
             Row(
               children: [
                 Checkbox(
-                  value: _agreeTerms,
+                  value: auth.agreeTerms,
                   activeColor: AppColors.brand600,
-                  onChanged: (value) => setState(() => _agreeTerms = value ?? false),
+                  onChanged: (value) => auth.setAgreeTerms(value ?? false),
                 ),
                 Expanded(
                   child: Text(
@@ -174,10 +185,10 @@ class _AuthFormState extends State<AuthForm> {
           ],
           Responsive.spaceMd.gapH,
           CustomButton(
-            label: widget.isLogin ? l10n.login : l10n.createAccount,
-            icon: Icons.arrow_forward,
-            isLoading: isLoading,
-            onPressed: _showOtp ? _submit : null,
+            label: otpSent ? (isLogin ? l10n.login : l10n.register) : l10n.sendOtp,
+            icon: otpSent ? Icons.arrow_forward : Icons.sms_outlined,
+            isLoading: auth.isLoading,
+            onPressed: otpSent ? _submit : _sendOtp,
           ),
         ],
       ),

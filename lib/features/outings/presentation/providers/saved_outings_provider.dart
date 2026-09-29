@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
@@ -120,6 +119,32 @@ class OutingDraft {
       };
 }
 
+class SavedItem {
+  const SavedItem.bookmark(this.outing)
+      : draft = null,
+        kind = SavedKind.bookmark;
+
+  const SavedItem.draft(this.draft)
+      : outing = null,
+        kind = SavedKind.draft;
+
+  final SavedKind kind;
+  final SavedOuting? outing;
+  final OutingDraft? draft;
+
+  bool get isDraft => kind == SavedKind.draft;
+
+  String get id => draft?.id ?? outing!.id;
+
+  String get title => draft?.title ?? outing!.title;
+
+  String get image => draft?.image ?? outing!.image;
+
+  OutingLocation get location => draft?.location ?? outing!.location;
+}
+
+enum SavedKind { bookmark, draft }
+
 class SavedOutingsProvider extends ChangeNotifier {
   SavedOutingsProvider(this._prefs) {
     _load();
@@ -128,10 +153,32 @@ class SavedOutingsProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
   var _saved = <SavedOuting>[];
   var _drafts = <OutingDraft>[];
+  int _tab = 0;
 
   List<SavedOuting> get saved => List.unmodifiable(_saved);
 
   List<OutingDraft> get drafts => List.unmodifiable(_drafts);
+
+  List<SavedItem> get items => [
+        for (final draft in _drafts) SavedItem.draft(draft),
+        for (final outing in _saved) SavedItem.bookmark(outing),
+      ];
+
+  List<SavedItem> get visible => showingDrafts
+      ? [for (final draft in _drafts) SavedItem.draft(draft)]
+      : items;
+
+  int get totalCount => _saved.length + _drafts.length;
+
+  int get tab => _tab;
+
+  bool get showingDrafts => _tab == 1;
+
+  void setTab(int value) {
+    if (_tab == value) return;
+    _tab = value;
+    notifyListeners();
+  }
 
   bool isSaved(String id) => _saved.any((outing) => outing.id == id);
 
@@ -166,25 +213,34 @@ class SavedOutingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> remove(SavedItem item) {
+    return item.isDraft ? removeDraft(item.id) : removeSaved(item.id);
+  }
+
   void _load() {
-    final savedRaw = _prefs.getString(AppConstants.savedOutingsKey);
-    if (savedRaw != null && savedRaw.isNotEmpty) {
-      final decoded = jsonDecode(savedRaw);
-      if (decoded is List) {
-        _saved = [
-          for (final item in decoded)
-            if (item is Map) SavedOuting.fromJson(item.cast<String, dynamic>()),
-        ];
+    try {
+      final savedRaw = _prefs.getString(AppConstants.savedOutingsKey);
+      if (savedRaw != null && savedRaw.isNotEmpty) {
+        final decoded = jsonDecode(savedRaw);
+        if (decoded is List) {
+          _saved = [
+            for (final item in decoded)
+              if (item is Map) SavedOuting.fromJson(item.cast<String, dynamic>()),
+          ];
+        }
       }
+      final draftRaw = _prefs.getString(AppConstants.outingDraftsKey);
+      if (draftRaw == null || draftRaw.isEmpty) return;
+      final decoded = jsonDecode(draftRaw);
+      if (decoded is! List) return;
+      _drafts = [
+        for (final item in decoded)
+          if (item is Map) OutingDraft.fromJson(item.cast<String, dynamic>()),
+      ];
+    } catch (_) {
+      _saved = [];
+      _drafts = [];
     }
-    final draftRaw = _prefs.getString(AppConstants.outingDraftsKey);
-    if (draftRaw == null || draftRaw.isEmpty) return;
-    final decoded = jsonDecode(draftRaw);
-    if (decoded is! List) return;
-    _drafts = [
-      for (final item in decoded)
-        if (item is Map) OutingDraft.fromJson(item.cast<String, dynamic>()),
-    ];
   }
 
   Future<void> _persist() {

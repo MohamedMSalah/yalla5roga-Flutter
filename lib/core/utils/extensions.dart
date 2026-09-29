@@ -21,6 +21,10 @@ extension BuildContextX on BuildContext {
 
   bool get isRtl => Directionality.of(this) == TextDirection.rtl;
 
+  IconData get chevronForward => isRtl ? Icons.chevron_left : Icons.chevron_right;
+
+  IconData get chevronBack => isRtl ? Icons.chevron_right : Icons.chevron_left;
+
   void showSnack(String message) => AppSnackBar.show(message);
 }
 

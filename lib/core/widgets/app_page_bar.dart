@@ -9,7 +9,7 @@ class AppPageBar extends StatelessWidget implements PreferredSizeWidget {
     this.title,
     this.subtitle,
     this.showBack = true,
-    this.backIcon = Icons.chevron_left,
+    this.backIcon = Icons.arrow_back,
     this.onBack,
     this.trailingIcon,
     this.onTrailingTap,

@@ -2,6 +2,39 @@ enum GroupRole { owner, admin, member }
 
 enum OutingOccasion { none, birthday, wedding }
 
+enum OutingStatus { upcoming, voting, past }
+
+class OutingPlace {
+  const OutingPlace({
+    required this.name,
+    required this.area,
+    this.latitude,
+    this.longitude,
+  });
+
+  final String name;
+  final String area;
+  final double? latitude;
+  final double? longitude;
+
+  bool get hasCoordinates => latitude != null && longitude != null;
+
+  OutingLocation toLocation() => OutingLocation(
+        name: name,
+        area: area,
+        latitude: latitude,
+        longitude: longitude,
+      );
+
+  @override
+  bool operator ==(Object other) {
+    return other is OutingPlace && other.name == name && other.area == area;
+  }
+
+  @override
+  int get hashCode => Object.hash(name, area);
+}
+
 class OutingLocation {
   const OutingLocation({
     required this.name,
@@ -49,6 +82,7 @@ class HeroSlide {
     this.location,
     this.occasion = OutingOccasion.none,
     this.guestIds = const [],
+    this.status = OutingStatus.upcoming,
   });
 
   final String id;
@@ -62,6 +96,15 @@ class HeroSlide {
   final OutingLocation? location;
   final OutingOccasion occasion;
   final List<String> guestIds;
+  final OutingStatus status;
+
+  List<String> get _dateParts {
+    return date.replaceAll(',', ' ').split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+  }
+
+  String get calendarDay => _dateParts.length >= 2 ? _dateParts[1] : date;
+
+  String get calendarMonth => _dateParts.length >= 3 ? _dateParts.last : '';
 }
 
 class DemoMember {
@@ -113,6 +156,7 @@ class DemoGroup {
     String? image,
     List<DemoMember>? people,
     int? members,
+    int? unread,
   }) {
     return DemoGroup(
       id: id,
@@ -124,7 +168,7 @@ class DemoGroup {
       image: image ?? this.image,
       people: people ?? this.people,
       lastMessage: lastMessage,
-      unread: unread,
+      unread: unread ?? this.unread,
       featured: featured,
       decision: decision,
       myRole: myRole,
@@ -134,19 +178,40 @@ class DemoGroup {
 
 class DemoChatMessage {
   const DemoChatMessage({
+    required this.id,
     required this.sender,
     required this.text,
     required this.time,
     required this.isMine,
     this.avatar,
+    this.senderId,
+    this.deliveryStatus = MessageDeliveryStatus.sent,
   });
 
+  final String id;
   final String sender;
   final String text;
   final String time;
   final bool isMine;
   final String? avatar;
+  final String? senderId;
+  final MessageDeliveryStatus deliveryStatus;
+
+  DemoChatMessage copyWith({MessageDeliveryStatus? deliveryStatus}) {
+    return DemoChatMessage(
+      id: id,
+      sender: sender,
+      text: text,
+      time: time,
+      isMine: isMine,
+      avatar: avatar,
+      senderId: senderId,
+      deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+    );
+  }
 }
+
+enum MessageDeliveryStatus { sent, delivered, seen }
 
 class DemoNotificationItem {
   const DemoNotificationItem({
@@ -240,6 +305,7 @@ class DemoData {
       time: '11:30 AM',
       going: 8,
       groupId: 'maadi-crew',
+      status: OutingStatus.voting,
       location: OutingLocation(name: 'The Brunch Room', area: 'Maadi', latitude: 29.9602, longitude: 31.2589),
     ),
     HeroSlide(
@@ -251,16 +317,29 @@ class DemoData {
       time: '8:00 PM',
       going: 5,
       groupId: 'book-brew',
+      status: OutingStatus.past,
       location: OutingLocation(name: 'Cairo Festival City', area: 'New Cairo', latitude: 30.0285, longitude: 31.4073),
     ),
   ];
 
-  static HeroSlide slideById(String id) {
-    return heroSlides.firstWhere(
-      (slide) => slide.id == id,
-      orElse: () => heroSlides.first,
-    );
+  static HeroSlide? findSlide(String id) {
+    for (final slide in heroSlides) {
+      if (slide.id == id) return slide;
+    }
+    return null;
   }
+
+  // TODO: replace with GET /outings/{id} when outing CRUD exists.
+  // Fake stand-in so notification / vote taps still open EventPage in testing.
+  static HeroSlide slideById(String id) => findSlide(id) ?? heroSlides.first;
+
+  static const catalogPlaces = [
+    OutingPlace(name: 'ZED Park', area: 'New Cairo', latitude: 30.0215, longitude: 31.4952),
+    OutingPlace(name: 'The Brunch Room', area: 'Maadi', latitude: 29.9602, longitude: 31.2589),
+    OutingPlace(name: "Lucille's", area: 'Zamalek', latitude: 30.0616, longitude: 31.2197),
+    OutingPlace(name: 'The Tap East', area: 'Heliopolis', latitude: 30.0917, longitude: 31.3244),
+    OutingPlace(name: 'Cairo Festival City', area: 'New Cairo', latitude: 30.0285, longitude: 31.4073),
+  ];
 
   static const groups = [
     DemoGroup(
@@ -320,12 +399,16 @@ class DemoData {
     ),
   ];
 
-  static DemoGroup groupById(String id) {
-    return groups.firstWhere(
-      (group) => group.id == id,
-      orElse: () => groups.first,
-    );
+  static DemoGroup? findGroup(String id) {
+    for (final group in groups) {
+      if (group.id == id) return group;
+    }
+    return null;
   }
+
+  // TODO: replace with GET /groups/{id} when group CRUD exists.
+  // Fake stand-in so notification taps still open GroupDetailsPage in testing.
+  static DemoGroup groupById(String id) => findGroup(id) ?? groups.first;
 
   static const birthdayImage =
       'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=800&q=85';
@@ -405,27 +488,36 @@ class DemoData {
 
   static const chatMessages = [
     DemoChatMessage(
+      id: 'm1',
       sender: 'Mariam',
+      senderId: 'mariam',
       text: 'Are we still on for 6:30?',
       time: '6:02 PM',
       isMine: false,
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
     ),
     DemoChatMessage(
+      id: 'm2',
       sender: 'You',
+      senderId: 'me',
       text: 'Yes! I’ll bring the picnic blanket.',
       time: '6:04 PM',
       isMine: true,
+      deliveryStatus: MessageDeliveryStatus.seen,
     ),
     DemoChatMessage(
+      id: 'm3',
       sender: 'Omar',
+      senderId: 'omar',
       text: 'I can pick up snacks on the way.',
       time: '6:08 PM',
       isMine: false,
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
     ),
     DemoChatMessage(
+      id: 'm4',
       sender: 'Nour',
+      senderId: 'nour',
       text: 'See you all there 🌅',
       time: '6:11 PM',
       isMine: false,

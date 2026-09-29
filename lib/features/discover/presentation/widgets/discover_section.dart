@@ -4,9 +4,8 @@ import 'package:yalla_5roga/core/demo/discover_data.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/section_header.dart';
 import 'package:yalla_5roga/features/discover/presentation/pages/discover_page.dart';
-import 'package:yalla_5roga/features/discover/presentation/widgets/suggested_outing_card.dart';
-import 'package:yalla_5roga/features/discover/presentation/widgets/suggested_place_tile.dart';
-import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/discover_featured_carousel.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/nearby_places_list.dart';
 
 class DiscoverSection extends StatelessWidget {
   const DiscoverSection({
@@ -23,8 +22,8 @@ class DiscoverSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final outings = DiscoverData.featuredOutings().take(limit).toList();
-    if (outings.isEmpty) return const SizedBox.shrink();
+    final featured = DiscoverData.featuredPlaces().take(limit).toList();
+    if (featured.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,41 +35,17 @@ class DiscoverSection extends StatelessWidget {
           onAction: () => Get.to(() => const DiscoverPage()),
         ),
         12.gapH,
-        SizedBox(
-          height: compact ? 196.h : 236.h,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: outings.length,
-            separatorBuilder: (_, _) => Responsive.spaceSm.gapW,
-            itemBuilder: (context, index) {
-              final outing = outings[index];
-              return SuggestedOutingCard(
-                outing: outing,
-                compact: compact,
-                onTap: () => Get.to(() => CreateOutingPage(suggestion: outing)),
-              );
-            },
-          ),
+        DiscoverFeaturedCarousel(
+          places: featured,
+          compact: compact,
+          showPriceLevel: false,
         ),
         if (showPlaces) ...[
           Responsive.spaceMd.gapH,
-          Text(
-            l10n.nearbyPlaces.toUpperCase(),
-            style: TextStyle(
-              color: context.palette.textMuted,
-              fontSize: Responsive.fontCaption,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.4,
-            ),
+          NearbyPlacesList(
+            places: DiscoverData.places.take(3).toList(),
+            title: l10n.nearbyPlaces,
           ),
-          Responsive.spaceSm.gapH,
-          for (final place in DiscoverData.places.take(3)) ...[
-            SuggestedPlaceTile(
-              place: place,
-              onTap: () => Get.to(() => CreateOutingPage(suggestedPlace: place)),
-            ),
-            Responsive.spaceSm.gapH,
-          ],
         ],
       ],
     );

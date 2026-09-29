@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
-import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/filter_chip_row.dart';
+import 'package:yalla_5roga/core/widgets/notification_button.dart';
 import 'package:yalla_5roga/core/widgets/section_header.dart';
 import 'package:yalla_5roga/features/groups/presentation/pages/create_group_page.dart';
-import 'package:yalla_5roga/features/groups/presentation/pages/group_page.dart';
+import 'package:yalla_5roga/features/groups/presentation/pages/group_details_page.dart';
+import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/create_group_card.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/featured_group_card.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/group_card.dart';
+import 'package:yalla_5roga/features/groups/presentation/widgets/groups_skeleton.dart';
+import 'package:yalla_5roga/features/shell/presentation/widgets/shell_loading.dart';
 
 class GroupsPage extends StatefulWidget {
   const GroupsPage({super.key});
@@ -22,30 +25,85 @@ class GroupsPage extends StatefulWidget {
 }
 
 class _GroupsPageState extends State<GroupsPage> {
-  int _filter = 0;
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _openSearch(GroupsProvider groups) {
+    groups.openSearch();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
+    });
+  }
+
+  void _closeSearch(GroupsProvider groups) {
+    _searchController.clear();
+    _searchFocus.unfocus();
+    groups.closeSearch();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (shellIsLoading(context)) return const GroupsSkeleton();
+
     final l10n = context.l10n;
-    final groups = DemoData.groups.where((group) {
-      if (_filter == 1) return group.featured || group.unread > 0;
-      return true;
-    }).toList();
+    final palette = context.palette;
+    final groups = context.watch<GroupsProvider>();
+    final items = groups.visible;
 
     return SafeArea(
       child: ListView(
         padding: Responsive.pagePadding(),
         children: [
-          SectionHeader(
-            eyebrow: l10n.yourCircles,
-            title: l10n.groupsTitle,
-            subtitle: l10n.activeGroupsFriends,
+          // SectionHeader + NotificationButton — page title row
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SectionHeader(
+                  eyebrow: l10n.yourCircles,
+                  title: l10n.groupsTitle,
+                  subtitle: l10n.activeGroupsFriends,
+                ),
+              ),
+              const NotificationButton(),
+            ],
           ),
           Responsive.spaceSm.gapH,
+          // AppIconButton — search (expands to TextField) and create group
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              AppIconButton(icon: Icons.search, onTap: () => AppSnackBar.show(l10n.search)),
+              if (groups.searching)
+                Expanded(
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocus,
+                      onChanged: groups.setQuery,
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: l10n.searchGroups,
+                        filled: true,
+                        fillColor: palette.inputFill,
+                        prefixIcon: Icon(Icons.search, color: palette.textMuted, size: 20.w),
+                        suffixIcon: IconButton(
+                          icon: Icon(Icons.close, size: 18.w, color: palette.textMuted),
+                          onPressed: () => _closeSearch(groups),
+                        ),
+                        contentPadding: Responsive.padding(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                AppIconButton(icon: Icons.search, onTap: () => _openSearch(groups)),
               Responsive.spaceSm.gapW,
               AppIconButton(
                 icon: Icons.add,
@@ -56,25 +114,27 @@ class _GroupsPageState extends State<GroupsPage> {
             ],
           ),
           Responsive.spaceMd.gapH,
+          // FilterChipRow — all / most active / recently added
           FilterChipRow(
             labels: [l10n.allGroups, l10n.mostActive, l10n.recentlyAdded],
-            index: _filter,
-            onChanged: (index) => setState(() => _filter = index),
+            index: groups.filter,
+            onChanged: groups.setFilter,
           ),
           Responsive.spaceMd.gapH,
+          // FeaturedGroupCard / GroupCard / CreateGroupCard — group list
           ListCard(
             children: [
-              for (final group in groups)
+              for (final group in items)
                 group.featured
                     ? FeaturedGroupCard(
                         group: group,
-                        onTap: () => Get.to(() => GroupPage(group: group)),
+                        onTap: () => Get.to(() => GroupDetailsPage(groupId: group.id)),
                       )
                     : GroupCard(
                         group: group,
-                        onTap: () => Get.to(() => GroupPage(group: group)),
+                        onTap: () => Get.to(() => GroupDetailsPage(groupId: group.id)),
                       ),
-              CreateGroupCard(onTap: () => Get.to(() => const CreateGroupPage())),
+              if (groups.query.trim().isEmpty) CreateGroupCard(onTap: () => Get.to(() => const CreateGroupPage())),
             ],
           ),
         ],

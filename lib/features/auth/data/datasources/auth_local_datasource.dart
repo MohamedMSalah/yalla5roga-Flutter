@@ -21,8 +21,10 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> cacheUser(UserModel user) async {
     await _prefs.setString(AppConstants.userCacheKey, jsonEncode(user.toJson()));
-    if (user.token != null) {
+    if (user.token != null && user.token!.isNotEmpty) {
       await _prefs.setString(AppConstants.tokenKey, user.token!);
+    } else {
+      await _prefs.remove(AppConstants.tokenKey);
     }
   }
 
@@ -32,7 +34,17 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     if (raw == null) {
       throw const CacheException('No cached user');
     }
-    return UserModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        throw const CacheException('No cached user');
+      }
+      return UserModel.fromJson(Map<String, dynamic>.from(decoded));
+    } on CacheException {
+      rethrow;
+    } catch (_) {
+      throw const CacheException('No cached user');
+    }
   }
 
   @override

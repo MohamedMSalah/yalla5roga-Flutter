@@ -58,7 +58,7 @@ class GroupCard extends StatelessWidget {
                         ),
                       )
                     else
-                      Icon(Icons.chevron_right, color: context.palette.border, size: 20.w),
+                      Icon(context.chevronForward, color: context.palette.border, size: 20.w),
                   ],
                 ),
                 Text(

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/utils/input_formatters.dart';
+import 'package:yalla_5roga/core/utils/validators.dart';
 
 class OtpInput extends StatefulWidget {
   const OtpInput({
     super.key,
     required this.controller,
     required this.label,
-    this.length = 4,
+    this.length = Validators.otpLength,
     this.validator,
     this.onCompleted,
     this.action,

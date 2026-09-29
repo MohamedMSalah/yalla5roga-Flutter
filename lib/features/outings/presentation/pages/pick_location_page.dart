@@ -1,42 +1,23 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yalla_5roga/core/constants/app_constants.dart';
+import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
+import 'package:yalla_5roga/core/utils/app_permissions.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
-import 'package:yalla_5roga/core/widgets/app_alert.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/custom_textfield.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/pick_location_provider.dart';
+import 'package:yalla_5roga/features/outings/presentation/widgets/outing_chat_skeleton.dart';
 
-class PickedPlace {
-  const PickedPlace({
-    required this.latitude,
-    required this.longitude,
-    required this.name,
-  });
+export 'package:yalla_5roga/features/outings/presentation/providers/pick_location_provider.dart' show PickedPlace;
 
-  final double latitude;
-  final double longitude;
-  final String name;
-}
-
-class _SearchHit {
-  const _SearchHit({required this.name, required this.point});
-
-  final String name;
-  final LatLng point;
-}
-
-class PickLocationPage extends StatefulWidget {
+class PickLocationPage extends StatelessWidget {
   const PickLocationPage({
     super.key,
     this.initialLatitude,
@@ -49,59 +30,39 @@ class PickLocationPage extends StatefulWidget {
   final String? placeName;
 
   @override
-  State<PickLocationPage> createState() => _PickLocationPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => PickLocationProvider(
+        geocoding: context.read<GeocodingRepository>(),
+        initialLatitude: initialLatitude,
+        initialLongitude: initialLongitude,
+        placeName: placeName,
+      ),
+      child: const _PickLocationView(),
+    );
+  }
 }
 
-class _PickLocationPageState extends State<PickLocationPage> {
-  static const _cairo = LatLng(30.0444, 31.2357);
+class _PickLocationView extends StatefulWidget {
+  const _PickLocationView();
 
+  @override
+  State<_PickLocationView> createState() => _PickLocationViewState();
+}
+
+class _PickLocationViewState extends State<_PickLocationView> {
   final _map = MapController();
-  late LatLng? _pin;
-  late final TextEditingController _nameController;
-  var _lookingUp = false;
-  var _locating = false;
 
   @override
   void initState() {
     super.initState();
-    final lat = widget.initialLatitude;
-    final lng = widget.initialLongitude;
-    _pin = lat != null && lng != null ? LatLng(lat, lng) : null;
-    _nameController = TextEditingController(text: widget.placeName ?? '');
-    _nameController.addListener(() {
-      if (mounted) setState(() {});
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _askLocationOnFirstOpen();
     });
   }
 
-  Future<void> _askLocationOnFirstOpen() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(AppConstants.locationPromptShownKey) ?? false) return;
-
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
-      await prefs.setBool(AppConstants.locationPromptShownKey, true);
-      return;
-    }
-    if (!mounted) return;
-
-    final l10n = context.l10n;
-    final allowed = await AppAlert.confirm(
-      title: l10n.locationAccessTitle,
-      message: l10n.locationAccessBody,
-      confirmText: l10n.allowLocation,
-      cancelText: l10n.notNow,
-    );
-    await prefs.setBool(AppConstants.locationPromptShownKey, true);
-    if (!allowed || !mounted) return;
-    await _useCurrentLocation();
-  }
-
   @override
   void dispose() {
-    _nameController.dispose();
     _map.dispose();
     super.dispose();
   }
@@ -112,79 +73,46 @@ class _PickLocationPageState extends State<PickLocationPage> {
     } catch (_) {}
   }
 
-  Future<void> _dropPin(LatLng point, {String? name}) async {
-    setState(() {
-      _pin = point;
-      _lookingUp = name == null;
-    });
-    _moveTo(point);
-    if (name != null && name.trim().isNotEmpty) {
-      _nameController.text = name.trim();
-      setState(() => _lookingUp = false);
-      return;
-    }
-    final lookedUp = await _lookupName(point);
-    if (!mounted) return;
-    if (lookedUp != null && lookedUp.isNotEmpty) {
-      _nameController.text = lookedUp;
-    } else if (_nameController.text.trim().isEmpty) {
-      _nameController.text = context.l10n.customPlace;
-    }
-    setState(() => _lookingUp = false);
+  Future<void> _askLocationOnFirstOpen() async {
+    final map = context.read<PickLocationProvider>();
+    final prompt = await map.firstOpenPrompt();
+    if (prompt == LocationPrompt.skip || !mounted) return;
+    final l10n = context.l10n;
+    final result = await AppPermissions.promptLocationAccess(l10n);
+    await map.markPromptShown();
+    if (!mounted || result != AppPermissionResult.granted) return;
+    await _useCurrentLocation();
   }
 
-  Future<String?> _lookupName(LatLng point) async {
-    try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
-        'format': 'jsonv2',
-        'lat': '${point.latitude}',
-        'lon': '${point.longitude}',
-      });
-      final response = await http.get(uri, headers: {'User-Agent': 'Yalla5roga/1.0'});
-      if (response.statusCode != 200) return null;
-      final data = jsonDecode(response.body);
-      if (data is! Map) return null;
-      final named = data['name'] as String?;
-      if (named != null && named.trim().isNotEmpty) return named.trim();
-      final display = data['display_name'] as String?;
-      if (display == null || display.trim().isEmpty) return null;
-      return display.split(',').first.trim();
-    } catch (_) {
-      return null;
-    }
+  Future<void> _dropPin(LatLng point, {String? name}) async {
+    final map = context.read<PickLocationProvider>();
+    _moveTo(point);
+    await map.dropPin(point, name: name, fallbackName: context.l10n.customPlace);
   }
 
   Future<void> _useCurrentLocation() async {
-    if (_locating) return;
+    final map = context.read<PickLocationProvider>();
     final l10n = context.l10n;
-    setState(() => _locating = true);
-    try {
-      final enabled = await Geolocator.isLocationServiceEnabled();
-      if (!enabled) {
-        if (mounted) AppSnackBar.show(l10n.locationDisabled);
-        return;
-      }
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        if (mounted) AppSnackBar.show(l10n.locationPermissionDenied);
-        return;
-      }
-      final position = await Geolocator.getCurrentPosition();
-      if (!mounted) return;
-      await _dropPin(LatLng(position.latitude, position.longitude));
-    } catch (_) {
-      if (mounted) AppSnackBar.show(l10n.couldNotGetLocation);
-    } finally {
-      if (mounted) setState(() => _locating = false);
+    final permission = await AppPermissions.ensureLocation(l10n);
+    if (!mounted) return;
+    if (permission != AppPermissionResult.granted) return;
+
+    final error = await map.useCurrentLocation(l10n);
+    if (!mounted) return;
+    if (error != null) {
+      AppSnackBar.show(error);
+      return;
     }
+    final pin = map.pin;
+    if (pin != null) _moveTo(pin);
   }
 
   Future<void> _openSearch() async {
-    final hit = await Get.bottomSheet<_SearchHit>(
-      const _PlaceSearchSheet(),
+    final hit = await Get.bottomSheet<PlaceSearchHit>(
+      ChangeNotifierProvider(
+        create: (_) => PlaceSearchProvider(context.read<GeocodingRepository>()),
+        child: const _PlaceSearchSheet(),
+      ),
       isScrollControlled: true,
     );
     if (hit == null || !mounted) return;
@@ -192,23 +120,23 @@ class _PickLocationPageState extends State<PickLocationPage> {
   }
 
   void _confirm() {
-    final pin = _pin;
-    if (pin == null) return;
-    final name = _nameController.text.trim().isEmpty ? context.l10n.customPlace : _nameController.text.trim();
-    Get.back(
-      result: PickedPlace(latitude: pin.latitude, longitude: pin.longitude, name: name),
-    );
+    final result = context.read<PickLocationProvider>().confirm(context.l10n);
+    if (result == null) return;
+    Get.back(result: result);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final center = _pin ?? _cairo;
+    final map = context.watch<PickLocationProvider>();
+    final pin = map.pin;
+    final center = map.center;
 
     return Scaffold(
+      // AppPageBar — pick location + search
       appBar: AppPageBar(
         title: l10n.pickLocation,
-        subtitle: _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
+        subtitle: map.nameController.text.trim().isEmpty ? null : map.nameController.text.trim(),
         trailingIcon: Icons.search,
         onTrailingTap: _openSearch,
       ),
@@ -221,7 +149,7 @@ class _PickLocationPageState extends State<PickLocationPage> {
                   mapController: _map,
                   options: MapOptions(
                     initialCenter: center,
-                    initialZoom: _pin == null ? 12 : 15,
+                    initialZoom: pin == null ? 12 : 15,
                     onTap: (_, point) => _dropPin(point),
                   ),
                   children: [
@@ -229,11 +157,11 @@ class _PickLocationPageState extends State<PickLocationPage> {
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.yalla_5roga',
                     ),
-                    if (_pin != null)
+                    if (pin != null)
                       MarkerLayer(
                         markers: [
                           Marker(
-                            point: _pin!,
+                            point: pin,
                             width: 40,
                             height: 40,
                             alignment: Alignment.bottomCenter,
@@ -255,9 +183,10 @@ class _PickLocationPageState extends State<PickLocationPage> {
                       ),
                       8.gapH,
                       AppIconButton(
-                        icon: _locating ? Icons.hourglass_top : Icons.my_location,
+                        icon: Icons.my_location,
                         background: AppColors.brand600,
                         foreground: Colors.white,
+                        isLoading: map.locating,
                         onTap: _useCurrentLocation,
                       ),
                     ],
@@ -274,14 +203,14 @@ class _PickLocationPageState extends State<PickLocationPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   CustomTextField(
-                    controller: _nameController,
+                    controller: map.nameController,
                     label: l10n.chooseLocation,
                     hint: l10n.customPlace,
                     prefixIcon: Icons.place_outlined,
                   ),
                   Responsive.spaceSm.gapH,
                   Text(
-                    _lookingUp ? l10n.locationPinned : l10n.tapToPin,
+                    map.lookingUp ? l10n.lookingUpLocation : l10n.tapToPin,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: context.palette.textMuted, fontSize: Responsive.fontSm),
                   ),
@@ -289,7 +218,8 @@ class _PickLocationPageState extends State<PickLocationPage> {
                   CustomButton(
                     label: l10n.confirmLocation,
                     icon: Icons.check,
-                    onPressed: _pin == null || _lookingUp ? null : _confirm,
+                    isLoading: map.lookingUp,
+                    onPressed: pin == null || map.lookingUp ? null : _confirm,
                   ),
                 ],
               ),
@@ -301,80 +231,14 @@ class _PickLocationPageState extends State<PickLocationPage> {
   }
 }
 
-class _PlaceSearchSheet extends StatefulWidget {
+class _PlaceSearchSheet extends StatelessWidget {
   const _PlaceSearchSheet();
-
-  @override
-  State<_PlaceSearchSheet> createState() => _PlaceSearchSheetState();
-}
-
-class _PlaceSearchSheetState extends State<_PlaceSearchSheet> {
-  final _query = TextEditingController();
-  var _results = const <_SearchHit>[];
-  var _searching = false;
-  var _searched = false;
-
-  @override
-  void dispose() {
-    _query.dispose();
-    super.dispose();
-  }
-
-  Future<void> _search() async {
-    final query = _query.text.trim();
-    if (query.isEmpty) return;
-    setState(() {
-      _searching = true;
-      _searched = true;
-    });
-    try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
-        'format': 'jsonv2',
-        'q': query,
-        'limit': '8',
-      });
-      final response = await http.get(uri, headers: {'User-Agent': 'Yalla5roga/1.0'});
-      if (!mounted) return;
-      if (response.statusCode != 200) {
-        setState(() {
-          _results = const [];
-          _searching = false;
-        });
-        return;
-      }
-      final data = jsonDecode(response.body);
-      final hits = <_SearchHit>[];
-      if (data is List) {
-        for (final item in data) {
-          if (item is! Map) continue;
-          final lat = double.tryParse('${item['lat']}');
-          final lon = double.tryParse('${item['lon']}');
-          if (lat == null || lon == null) continue;
-          final named = (item['name'] as String?)?.trim();
-          final display = (item['display_name'] as String?)?.trim();
-          final label = (named != null && named.isNotEmpty)
-              ? named
-              : (display == null || display.isEmpty ? query : display.split(',').first.trim());
-          hits.add(_SearchHit(name: label, point: LatLng(lat, lon)));
-        }
-      }
-      setState(() {
-        _results = hits;
-        _searching = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _results = const [];
-        _searching = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final palette = context.palette;
+    final search = context.watch<PlaceSearchProvider>();
 
     return SafeArea(
       child: Container(
@@ -390,7 +254,7 @@ class _PlaceSearchSheetState extends State<_PlaceSearchSheet> {
             Text(l10n.searchPlace, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
             Responsive.spaceMd.gapH,
             CustomTextField(
-              controller: _query,
+              controller: search.queryController,
               label: l10n.searchPlace,
               hint: l10n.searchPlaceHint,
               prefixIcon: Icons.search,
@@ -400,15 +264,16 @@ class _PlaceSearchSheetState extends State<_PlaceSearchSheet> {
             CustomButton(
               label: l10n.searchPlace,
               icon: Icons.search,
-              onPressed: _searching ? null : _search,
+              isLoading: search.searching,
+              onPressed: search.searching ? null : search.search,
             ),
             Responsive.spaceMd.gapH,
             Expanded(
-              child: _searching
-                  ? const Center(child: CircularProgressIndicator())
-                  : !_searched
+              child: search.searching
+                  ? const PlaceSearchSkeleton()
+                  : !search.searched
                       ? const SizedBox.shrink()
-                      : _results.isEmpty
+                      : search.results.isEmpty
                           ? Center(
                               child: Text(
                                 l10n.noPlaceResults,
@@ -416,10 +281,10 @@ class _PlaceSearchSheetState extends State<_PlaceSearchSheet> {
                               ),
                             )
                           : ListView.separated(
-                              itemCount: _results.length,
+                              itemCount: search.results.length,
                               separatorBuilder: (_, _) => 8.gapH,
                               itemBuilder: (context, index) {
-                                final hit = _results[index];
+                                final hit = search.results[index];
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: const Icon(Icons.place_outlined, color: AppColors.brand600),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/demo/demo_data.dart';
 import 'package:yalla_5roga/core/demo/discover_data.dart';
@@ -15,17 +14,18 @@ import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/custom_textfield.dart';
 import 'package:yalla_5roga/core/widgets/icon_circle.dart';
 import 'package:yalla_5roga/core/widgets/image_source_sheet.dart';
+import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/pick_location_page.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/create_outing_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/vibe_picker.dart';
 
-class CreateOutingPage extends StatefulWidget {
+class CreateOutingPage extends StatelessWidget {
   const CreateOutingPage({
     super.key,
     this.group,
-    this.suggestion,
     this.suggestedPlace,
     this.saved,
     this.draft,
@@ -33,207 +33,65 @@ class CreateOutingPage extends StatefulWidget {
   });
 
   final DemoGroup? group;
-  final SuggestedOuting? suggestion;
   final SuggestedPlace? suggestedPlace;
   final SavedOuting? saved;
   final OutingDraft? draft;
   final bool specialEvent;
 
   @override
-  State<CreateOutingPage> createState() => _CreateOutingPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) {
+        final form = CreateOutingProvider(
+          groups: context.read<GroupsProvider>().groups,
+          group: group,
+          suggestedPlace: suggestedPlace,
+          saved: saved,
+          draft: draft,
+          specialEvent: specialEvent,
+        );
+        form.applySuggestionTitle(context.l10n);
+        return form;
+      },
+      child: const _CreateOutingView(),
+    );
+  }
 }
 
-class _CreateOutingPageState extends State<CreateOutingPage> {
-  late final TextEditingController _nameController;
-  final _customPlaceController = TextEditingController();
-  int _step = 0;
-  int _vibe = 0;
-  bool _letVote = true;
-  String? _image;
-  DemoGroup? _group;
-  DateTime _date = DateTime.now().add(const Duration(days: 1));
-  TimeOfDay _time = const TimeOfDay(hour: 11, minute: 30);
-  OutingPlace? _place;
-  double? _customLatitude;
-  double? _customLongitude;
-  OutingOccasion _occasion = OutingOccasion.none;
-  late final bool _specialEvent;
-  final _guestIds = <String>{};
-  late final String _draftId;
+class _CreateOutingView extends StatelessWidget {
+  const _CreateOutingView();
 
-  var _appliedSuggestionName = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _specialEvent = widget.specialEvent || (widget.draft?.specialEvent ?? false);
-    _nameController = TextEditingController(text: _specialEvent ? '' : 'Friday brunch');
-    _group = widget.group;
-    _draftId = widget.draft?.id ?? 'draft-${DateTime.now().millisecondsSinceEpoch}';
-    if (_specialEvent) _occasion = OutingOccasion.birthday;
-    _customPlaceController.addListener(_onCustomPlaceChanged);
-    final suggestion = widget.suggestion;
-    final suggestedPlace = widget.suggestedPlace ?? suggestion?.place;
-    if (suggestion != null) {
-      _image = suggestion.imageUrl;
-      _vibe = suggestion.vibe.index;
-      _time = suggestion.time;
-      _date = suggestion.nextDate();
-    }
-    if (suggestedPlace != null) {
-      _place = suggestedPlace.toOutingPlace();
-      if (suggestion == null) _vibe = suggestedPlace.vibe.index;
-    }
-    final saved = widget.saved;
-    if (saved != null) {
-      _nameController.text = saved.title;
-      _image = saved.image;
-      _applyLocation(saved.location);
-    }
-    final draft = widget.draft;
-    if (draft != null) {
-      _nameController.text = draft.title;
-      _image = draft.image;
-      _vibe = draft.vibe;
-      _time = draft.time;
-      _date = draft.date;
-      _occasion = draft.occasion == OutingOccasion.none && _specialEvent
-          ? OutingOccasion.birthday
-          : draft.occasion;
-      _guestIds.addAll(draft.guestIds);
-      if (draft.groupId != null) {
-        _group = DemoData.groups.cast<DemoGroup?>().firstWhere(
-          (group) => group?.id == draft.groupId,
-          orElse: () => widget.group,
-        );
-      }
-      _applyLocation(draft.location);
-    }
-    _date = _clampDate(_date);
-  }
-
-  void _applyLocation(OutingLocation location) {
-    final match = DiscoverData.catalogPlaces().where(
-      (place) => place.name == location.name && (location.area.isEmpty || place.area == location.area),
-    );
-    if (match.isNotEmpty) {
-      _place = match.first;
-      return;
-    }
-    _customPlaceController.text = location.label;
-    _customLatitude = location.latitude;
-    _customLongitude = location.longitude;
-  }
-
-  DateTime get _minDate {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, now.day);
-  }
-
-  DateTime get _maxDate {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month + 1, now.day);
-  }
-
-  DateTime _clampDate(DateTime date) {
-    final day = DateTime(date.year, date.month, date.day);
-    if (day.isBefore(_minDate)) return _minDate;
-    if (day.isAfter(_maxDate)) return _maxDate;
-    return day;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_appliedSuggestionName || widget.suggestion == null) return;
-    _appliedSuggestionName = true;
-    _nameController.text = widget.suggestion!.title(context.l10n);
-  }
-
-  String get _resolvedImage =>
-      _image ?? (_specialEvent ? DemoData.specialEventImage(_occasion) : '');
-
-  bool get _isCustomPlace => _customPlaceController.text.trim().isNotEmpty;
-
-  bool get _customPlacePinned => _customLatitude != null && _customLongitude != null;
-
-  OutingLocation? get _selectedLocation {
-    if (_isCustomPlace) {
-      return OutingLocation(
-        name: _customPlaceController.text.trim(),
-        latitude: _customLatitude,
-        longitude: _customLongitude,
-      );
-    }
-    return _place?.toLocation();
-  }
-
-  void _onCustomPlaceChanged() {
-    if (!mounted) return;
-    if (_isCustomPlace && _place != null) {
-      setState(() => _place = null);
-    }
-  }
-
-  Future<void> _pickCustomLocation() async {
+  Future<void> _pickCustomLocation(BuildContext context, CreateOutingProvider form) async {
     final picked = await Get.to<PickedPlace>(
       () => PickLocationPage(
-        placeName: _customPlaceController.text.trim(),
-        initialLatitude: _customLatitude,
-        initialLongitude: _customLongitude,
+        placeName: form.customPlaceController.text.trim(),
+        initialLatitude: form.customLatitude,
+        initialLongitude: form.customLongitude,
       ),
     );
-    if (picked == null || !mounted) return;
-    setState(() {
-      _place = null;
-      _customLatitude = picked.latitude;
-      _customLongitude = picked.longitude;
-      _customPlaceController.text = picked.name;
-    });
+    if (picked == null || !context.mounted) return;
+    form.applyPickedPlace(picked);
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _customPlaceController.dispose();
-    super.dispose();
-  }
-
-  String get _formattedDate => DateFormat('EEE, d MMM').format(_date).toUpperCase();
-
-  String get _formattedTime {
-    final date = DateTime(0, 1, 1, _time.hour, _time.minute);
-    return DateFormat('h:mm a').format(date);
-  }
-
-  String get _locationLabel {
-    if (_customPlaceController.text.trim().isNotEmpty) return _customPlaceController.text.trim();
-    if (_place != null) return '${_place!.name}, ${_place!.area}';
-    return '';
-  }
-
-  Future<void> _pickDate() async {
-    final initial = _clampDate(_date);
+  Future<void> _pickDate(BuildContext context, CreateOutingProvider form) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: initial,
-      firstDate: _minDate,
-      lastDate: _maxDate,
+      initialDate: form.clampDate(form.date),
+      firstDate: form.minDate,
+      lastDate: form.maxDate,
     );
-    if (picked == null || !mounted) return;
-    setState(() => _date = picked);
+    if (picked == null) return;
+    form.setDate(picked);
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(context: context, initialTime: _time);
-    if (picked == null || !mounted) return;
-    setState(() => _time = picked);
+  Future<void> _pickTime(BuildContext context, CreateOutingProvider form) async {
+    final picked = await showTimePicker(context: context, initialTime: form.time);
+    if (picked == null) return;
+    form.setTime(picked);
   }
 
-  bool get _groupLocked => widget.group != null;
-
-  Future<void> _pickGroup() async {
-    if (_groupLocked) return;
+  Future<void> _pickGroup(BuildContext context, CreateOutingProvider form) async {
+    if (form.groupLocked) return;
     final selected = await Get.bottomSheet<DemoGroup>(
       SafeArea(
         child: Builder(
@@ -252,13 +110,13 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                 children: [
                   Text(l10n.chooseGroup, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
                   Responsive.spaceMd.gapH,
-                  for (final group in DemoData.groups)
+                  for (final group in form.groups)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: AppNetworkImage(url: group.image, width: 40.w, height: 40.w, radius: 12.r),
                       title: Text(group.name, style: const TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: Text(l10n.membersWillBeInvited(group.people.length)),
-                      trailing: _group?.id == group.id
+                      trailing: form.group?.id == group.id
                           ? Icon(Icons.check_circle, color: AppColors.brand600, size: 22.w)
                           : null,
                       onTap: () => Get.back(result: group),
@@ -271,120 +129,55 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
       ),
     );
     if (selected == null) return;
-    setState(() => _group = selected);
+    form.setGroup(selected);
   }
 
-  void _next() {
-    final l10n = context.l10n;
-    if (_step == 0) {
-      if (_nameController.text.trim().isEmpty) {
-        AppSnackBar.show(l10n.nameRequired);
-        return;
-      }
-      if (!_specialEvent && _image == null) {
-        AppSnackBar.show(l10n.photoRequired);
-        return;
-      }
-      if (_specialEvent) {
-        if (_guestIds.isEmpty) {
-          AppSnackBar.show(l10n.guestsRequired);
-          return;
-        }
-      } else if (_group == null) {
-        AppSnackBar.show(l10n.groupRequired);
-        return;
-      }
-    }
-    if (_step == 1) {
-      if (_locationLabel.isEmpty) {
-        AppSnackBar.show(l10n.locationRequired);
-        return;
-      }
-      if (_isCustomPlace && !_customPlacePinned) {
-        AppSnackBar.show(l10n.pickLocationRequired);
-        return;
-      }
-    }
-    setState(() => _step += 1);
+  void _next(BuildContext context, CreateOutingProvider form) {
+    final error = form.next(context.l10n);
+    if (error != null) AppSnackBar.show(error);
   }
 
-  void _create() {
-    final guests = [
-      for (final id in _guestIds)
-        if (DemoData.memberById(id) != null) id,
-    ];
-    final outing = HeroSlide(
-      id: 'outing-${DateTime.now().millisecondsSinceEpoch}',
-      image: _resolvedImage,
-      title: _nameController.text.trim(),
-      meta: '$_locationLabel · $_formattedTime',
-      date: _formattedDate,
-      time: _formattedTime,
-      going: _specialEvent ? guests.length : _group!.people.length,
-      groupId: _specialEvent ? null : _group!.id,
-      location: _selectedLocation,
-      occasion: _occasion,
-      guestIds: guests,
-    );
+  void _create(BuildContext context, CreateOutingProvider form) {
+    final outing = form.buildOuting();
     context.read<OutingsProvider>().add(outing);
-    if (widget.draft != null) {
-      context.read<SavedOutingsProvider>().removeDraft(widget.draft!.id);
+    if (form.draft != null) {
+      context.read<SavedOutingsProvider>().removeDraft(form.draft!.id);
     }
     AppSnackBar.show(context.l10n.outingCreated);
     Get.off(() => EventPage(event: outing));
   }
 
-  Future<void> _saveDraft() async {
+  Future<void> _saveDraft(BuildContext context, CreateOutingProvider form) async {
     final l10n = context.l10n;
-    if (_nameController.text.trim().isEmpty) {
-      AppSnackBar.show(l10n.nameRequired);
+    final error = form.draftError(l10n);
+    if (error != null) {
+      AppSnackBar.show(error);
       return;
     }
-    if (!_specialEvent && _image == null) {
-      AppSnackBar.show(l10n.photoRequired);
-      return;
-    }
-    if (_locationLabel.isEmpty) {
-      AppSnackBar.show(l10n.locationRequired);
-      return;
-    }
-    await context.read<SavedOutingsProvider>().saveDraft(
-      OutingDraft(
-        id: _draftId,
-        title: _nameController.text.trim(),
-        image: _resolvedImage,
-        location: _selectedLocation ?? OutingLocation(name: _locationLabel),
-        date: _date,
-        hour: _time.hour,
-        minute: _time.minute,
-        vibe: _vibe,
-        groupId: _group?.id,
-        occasion: _occasion,
-        specialEvent: _specialEvent,
-        guestIds: _guestIds.toList(),
-      ),
-    );
-    if (!mounted) return;
+    await context.read<SavedOutingsProvider>().saveDraft(form.toDraft());
+    if (!context.mounted) return;
     AppSnackBar.show(l10n.draftSaved);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final form = context.watch<CreateOutingProvider>();
     final titles = [l10n.theBasics, l10n.chooseLocation, l10n.reviewOuting];
     final headlines = [l10n.whatAreWeDoing, l10n.pickAPlace, l10n.reviewOuting];
     final bodies = [l10n.addEssentials, l10n.chooseLocationNext, l10n.almostThere];
     final actions = [l10n.continueToLocation, l10n.continueToReview, l10n.createAndGo];
 
     return Scaffold(
+      // AppPageBar — create outing / special event
       appBar: AppPageBar(
-        title: _specialEvent ? l10n.createSpecialEvent : l10n.createOuting,
-        subtitle: _specialEvent ? l10n.specialEventSubtitle : l10n.funStartsHere,
-        backIcon: _step == 0 ? Icons.close : Icons.chevron_left,
-        onBack: () => _step == 0 ? Get.back() : setState(() => _step -= 1),
-        trailing: _step == 2
+        title: form.specialEvent ? l10n.createSpecialEvent : l10n.createOuting,
+        subtitle: form.specialEvent ? l10n.specialEventSubtitle : l10n.funStartsHere,
+        backIcon: form.step == 0 ? Icons.close : Icons.chevron_left,
+        onBack: () => form.step == 0 ? Get.back() : form.back(),
+        trailing: form.step == 2
             ? TextButton(
-                onPressed: _saveDraft,
+                onPressed: () => _saveDraft(context, form),
                 child: Text(
                   l10n.saveDraft,
                   style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: Responsive.fontSm),
@@ -409,8 +202,8 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                             duration: const Duration(milliseconds: 200),
                             height: 6.h,
                             decoration: BoxDecoration(
-                              color: i <= _step
-                                  ? (i == _step ? AppColors.brand600 : AppColors.brand200)
+                              color: i <= form.step
+                                  ? (i == form.step ? AppColors.brand600 : AppColors.brand200)
                                   : context.palette.border,
                               borderRadius: BorderRadius.circular(999.r),
                             ),
@@ -418,27 +211,27 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                         ),
                       ],
                       Responsive.spaceSm.gapW,
-                      Text(l10n.stepOf(_step + 1, 3), style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: 10.sp)),
+                      Text(l10n.stepOf(form.step + 1, 3), style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: 10.sp)),
                     ],
                   ),
                   Responsive.spaceLg.gapH,
-                  Text(titles[_step].toUpperCase(), style: TextStyle(color: AppColors.brand600, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
-                  Text(headlines[_step], style: TextStyle(fontSize: Responsive.fontLg, fontWeight: FontWeight.w800)),
+                  Text(titles[form.step].toUpperCase(), style: TextStyle(color: AppColors.brand600, fontSize: 10.sp, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
+                  Text(headlines[form.step], style: TextStyle(fontSize: Responsive.fontLg, fontWeight: FontWeight.w800)),
                   Responsive.spaceXs.gapH,
-                  Text(bodies[_step], style: TextStyle(color: context.palette.textMuted, fontSize: 12.sp)),
+                  Text(bodies[form.step], style: TextStyle(color: context.palette.textMuted, fontSize: 12.sp)),
                   Responsive.spaceLg.gapH,
-                  if (_step == 0) _basics(l10n),
-                  if (_step == 1) _location(l10n),
-                  if (_step == 2) _review(l10n),
+                  if (form.step == 0) _basics(context, l10n, form),
+                  if (form.step == 1) _location(context, l10n, form),
+                  if (form.step == 2) _review(context, l10n, form),
                 ],
               ),
             ),
             Padding(
               padding: Responsive.padding(horizontal: 20, top: 8, bottom: 16),
               child: CustomButton(
-                label: _step == 2 && _specialEvent ? l10n.createSpecialEvent : actions[_step],
+                label: form.step == 2 && form.specialEvent ? l10n.createSpecialEvent : actions[form.step],
                 icon: Icons.arrow_forward,
-                onPressed: _step == 2 ? _create : _next,
+                onPressed: form.step == 2 ? () => _create(context, form) : () => _next(context, form),
               ),
             ),
           ],
@@ -447,29 +240,16 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
     );
   }
 
-  void _toggleSelectAll() {
-    final people = DemoData.groupContacts;
-    setState(() {
-      if (_guestIds.length == people.length) {
-        _guestIds.clear();
-      } else {
-        _guestIds
-          ..clear()
-          ..addAll(people.map((person) => person.id));
-      }
-    });
-  }
-
-  Widget _basics(L10n l10n) {
-    final preview = _image ?? (_specialEvent ? DemoData.specialEventImage(_occasion) : null);
+  Widget _basics(BuildContext context, L10n l10n, CreateOutingProvider form) {
+    final preview = form.image ?? (form.specialEvent ? DemoData.specialEventImage(form.occasion) : null);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
           onTap: () async {
             final path = await ImageSourceSheet.pick(title: context.l10n.uploadPhoto);
-            if (path == null || !mounted) return;
-            setState(() => _image = path);
+            if (path == null) return;
+            form.setImage(path);
           },
           child: preview == null
               ? Container(
@@ -492,7 +272,7 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
               : Stack(
                   children: [
                     AppNetworkImage(url: preview, width: double.infinity, height: 140.h, radius: 22.r),
-                    if (_specialEvent && _image == null)
+                    if (form.specialEvent && form.image == null)
                       Positioned(
                         right: 12.w,
                         bottom: 12.h,
@@ -513,12 +293,12 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
         ),
         Responsive.spaceMd.gapH,
         CustomTextField(
-          controller: _nameController,
-          label: _specialEvent ? l10n.eventName : l10n.outingName,
+          controller: form.nameController,
+          label: form.specialEvent ? l10n.eventName : l10n.outingName,
           prefixIcon: Icons.auto_awesome,
         ),
         Responsive.spaceMd.gapH,
-        if (_specialEvent) ...[
+        if (form.specialEvent) ...[
           Text(l10n.specialEvent, style: TextStyle(fontSize: Responsive.fontSm, fontWeight: FontWeight.w800, color: context.palette.textSecondary)),
           Responsive.spaceXs.gapH,
           Text(l10n.specialEventHint, style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp)),
@@ -528,10 +308,8 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
               VibeOption('🎂', l10n.birthday),
               VibeOption('💍', l10n.wedding),
             ],
-            index: _occasion == OutingOccasion.wedding ? 1 : 0,
-            onChanged: (index) => setState(() {
-              _occasion = index == 1 ? OutingOccasion.wedding : OutingOccasion.birthday;
-            }),
+            index: form.occasion == OutingOccasion.wedding ? 1 : 0,
+            onChanged: (index) => form.setOccasion(index == 1 ? OutingOccasion.wedding : OutingOccasion.birthday),
           ),
           Responsive.spaceMd.gapH,
           Row(
@@ -540,9 +318,9 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                 child: Text(l10n.invitePeople, style: TextStyle(fontSize: Responsive.fontSm, fontWeight: FontWeight.w800, color: context.palette.textSecondary)),
               ),
               TextButton(
-                onPressed: _toggleSelectAll,
+                onPressed: form.toggleSelectAll,
                 child: Text(
-                  _guestIds.length == DemoData.groupContacts.length ? l10n.clearSelection : l10n.selectAll,
+                  form.allGuestsSelected ? l10n.clearSelection : l10n.selectAll,
                   style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: Responsive.fontSm),
                 ),
               ),
@@ -550,13 +328,11 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
           ),
           Text(l10n.invitePeopleHint, style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp)),
           Responsive.spaceSm.gapH,
-          for (final person in DemoData.groupContacts) ...[
+          for (final person in form.contacts) ...[
             AppCard(
-              onTap: () => setState(() {
-                if (!_guestIds.add(person.id)) _guestIds.remove(person.id);
-              }),
-              color: _guestIds.contains(person.id) ? context.palette.brandSoft : null,
-              borderColor: _guestIds.contains(person.id) ? context.palette.brandSoftBorder : null,
+              onTap: () => form.toggleGuest(person.id),
+              color: form.guestIds.contains(person.id) ? context.palette.brandSoft : null,
+              borderColor: form.guestIds.contains(person.id) ? context.palette.brandSoftBorder : null,
               child: Row(
                 children: [
                   AppNetworkImage(url: person.avatar, width: 40.w, height: 40.w, radius: 12.r),
@@ -574,11 +350,9 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                     ),
                   ),
                   Checkbox(
-                    value: _guestIds.contains(person.id),
+                    value: form.guestIds.contains(person.id),
                     activeColor: AppColors.brand600,
-                    onChanged: (_) => setState(() {
-                      if (!_guestIds.add(person.id)) _guestIds.remove(person.id);
-                    }),
+                    onChanged: (_) => form.toggleGuest(person.id),
                   ),
                 ],
               ),
@@ -595,37 +369,37 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
               VibeOption('🌿', l10n.outdoor),
               VibeOption('🎬', l10n.movie),
             ],
-            index: _vibe,
-            onChanged: (index) => setState(() => _vibe = index),
+            index: form.vibe,
+            onChanged: form.setVibe,
           ),
           Responsive.spaceMd.gapH,
           Text(l10n.inviteAGroup, style: TextStyle(fontSize: Responsive.fontSm, fontWeight: FontWeight.w800, color: context.palette.textSecondary)),
           Responsive.spaceSm.gapH,
           AppCard(
-            onTap: _groupLocked ? null : _pickGroup,
-            color: _group == null ? context.palette.brandSoft : null,
-            borderColor: _group == null ? context.palette.brandSoftBorder : null,
+            onTap: form.groupLocked ? null : () => _pickGroup(context, form),
+            color: form.group == null ? context.palette.brandSoft : null,
+            borderColor: form.group == null ? context.palette.brandSoftBorder : null,
             child: Row(
               children: [
                 IconCircle(
                   icon: Icons.groups_2_outlined,
-                  background: _group == null ? AppColors.brand50 : AppColors.brand600,
-                  foreground: _group == null ? AppColors.brand600 : Colors.white,
+                  background: form.group == null ? AppColors.brand50 : AppColors.brand600,
+                  foreground: form.group == null ? AppColors.brand600 : Colors.white,
                 ),
                 12.gapW,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_group?.name ?? l10n.chooseGroup, style: const TextStyle(fontWeight: FontWeight.w800)),
+                      Text(form.group?.name ?? l10n.chooseGroup, style: const TextStyle(fontWeight: FontWeight.w800)),
                       Text(
-                        _group == null ? l10n.inviteAGroup : l10n.membersWillBeInvited(_group!.people.length),
+                        form.group == null ? l10n.inviteAGroup : l10n.membersWillBeInvited(form.group!.people.length),
                         style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp),
                       ),
                     ],
                   ),
                 ),
-                if (!_groupLocked) Icon(Icons.unfold_more, color: context.palette.textMuted),
+                if (!form.groupLocked) Icon(Icons.unfold_more, color: context.palette.textMuted),
               ],
             ),
           ),
@@ -635,7 +409,7 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
           children: [
             Expanded(
               child: AppCard(
-                onTap: _pickDate,
+                onTap: () => _pickDate(context, form),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -647,7 +421,7 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                         Responsive.spaceSm.gapW,
                         Expanded(
                           child: Text(
-                            DateFormat('d MMM').format(_date),
+                            form.shortDate,
                             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp),
                           ),
                         ),
@@ -660,7 +434,7 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
             10.gapW,
             Expanded(
               child: AppCard(
-                onTap: _pickTime,
+                onTap: () => _pickTime(context, form),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -671,7 +445,7 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                         const Icon(Icons.schedule, size: 16, color: AppColors.brand600),
                         Responsive.spaceSm.gapW,
                         Expanded(
-                          child: Text(_formattedTime, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp)),
+                          child: Text(form.formattedTime, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp)),
                         ),
                       ],
                     ),
@@ -681,18 +455,18 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
             ),
           ],
         ),
-        if (!_specialEvent) ...[
+        if (!form.specialEvent) ...[
           12.gapH,
           AppCard(
             color: context.palette.brandSoft,
             borderColor: context.palette.brandSoftBorder,
-            onTap: () => setState(() => _letVote = !_letVote),
+            onTap: form.toggleLetVote,
             child: Row(
               children: [
                 Checkbox(
-                  value: _letVote,
+                  value: form.letVote,
                   activeColor: AppColors.brand600,
-                  onChanged: (value) => setState(() => _letVote = value ?? true),
+                  onChanged: (value) => form.setLetVote(value ?? true),
                 ),
                 Expanded(
                   child: Column(
@@ -712,19 +486,19 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
     );
   }
 
-  Widget _location(L10n l10n) {
+  Widget _location(BuildContext context, L10n l10n, CreateOutingProvider form) {
     return Column(
       children: [
         AppCard(
-          onTap: _pickCustomLocation,
-          color: _customPlacePinned ? context.palette.brandSoft : null,
-          borderColor: _customPlacePinned ? context.palette.brandSoftBorder : null,
+          onTap: () => _pickCustomLocation(context, form),
+          color: form.customPlacePinned ? context.palette.brandSoft : null,
+          borderColor: form.customPlacePinned ? context.palette.brandSoftBorder : null,
           child: Row(
             children: [
               IconCircle(
-                icon: _customPlacePinned ? Icons.check_circle : Icons.add_location_alt_outlined,
-                background: _customPlacePinned ? AppColors.brand600 : AppColors.brand50,
-                foreground: _customPlacePinned ? Colors.white : AppColors.brand600,
+                icon: form.customPlacePinned ? Icons.check_circle : Icons.add_location_alt_outlined,
+                background: form.customPlacePinned ? AppColors.brand600 : AppColors.brand50,
+                foreground: form.customPlacePinned ? Colors.white : AppColors.brand600,
               ),
               12.gapW,
               Expanded(
@@ -732,11 +506,11 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _isCustomPlace ? _customPlaceController.text.trim() : l10n.pickOnMap,
+                      form.isCustomPlace ? form.customPlaceController.text.trim() : l10n.pickOnMap,
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                     Text(
-                      _customPlacePinned ? l10n.changeMapLocation : l10n.locationHint,
+                      form.customPlacePinned ? l10n.changeMapLocation : l10n.locationHint,
                       style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp),
                     ),
                   ],
@@ -749,20 +523,15 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
         Responsive.spaceMd.gapH,
         for (final place in DiscoverData.catalogPlaces()) ...[
           AppCard(
-            onTap: () => setState(() {
-              _place = place;
-              _customLatitude = null;
-              _customLongitude = null;
-              _customPlaceController.clear();
-            }),
-            color: _place == place ? context.palette.brandSoft : null,
-            borderColor: _place == place ? context.palette.brandSoftBorder : null,
+            onTap: () => form.setCatalogPlace(place),
+            color: form.place == place ? context.palette.brandSoft : null,
+            borderColor: form.place == place ? context.palette.brandSoftBorder : null,
             child: Row(
               children: [
                 IconCircle(
                   icon: Icons.location_on_outlined,
-                  background: _place == place ? AppColors.brand600 : AppColors.brand50,
-                  foreground: _place == place ? Colors.white : AppColors.brand600,
+                  background: form.place == place ? AppColors.brand600 : AppColors.brand50,
+                  foreground: form.place == place ? Colors.white : AppColors.brand600,
                 ),
                 12.gapW,
                 Expanded(
@@ -774,7 +543,7 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
                     ],
                   ),
                 ),
-                if (_place == place) Icon(Icons.check_circle, color: AppColors.brand600, size: 20.w),
+                if (form.place == place) Icon(Icons.check_circle, color: AppColors.brand600, size: 20.w),
               ],
             ),
           ),
@@ -784,50 +553,44 @@ class _CreateOutingPageState extends State<CreateOutingPage> {
     );
   }
 
-  Widget _review(L10n l10n) {
+  Widget _review(BuildContext context, L10n l10n, CreateOutingProvider form) {
     return Column(
       children: [
-        AppNetworkImage(url: _resolvedImage, width: double.infinity, height: 160.h, radius: 22.r),
+        AppNetworkImage(url: form.resolvedImage, width: double.infinity, height: 160.h, radius: 22.r),
         Responsive.spaceMd.gapH,
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_nameController.text.trim(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
-              if (_occasion != OutingOccasion.none) ...[
+              Text(form.nameController.text.trim(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
+              if (form.occasion != OutingOccasion.none) ...[
                 Responsive.spaceXs.gapH,
                 Text(
-                  _occasion == OutingOccasion.birthday ? l10n.birthday : l10n.wedding,
+                  form.occasion == OutingOccasion.birthday ? l10n.birthday : l10n.wedding,
                   style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: 12.sp),
                 ),
               ],
               Responsive.spaceSm.gapH,
-              Text(_locationLabel, style: TextStyle(color: context.palette.textMuted)),
-              if (_selectedLocation?.hasCoordinates ?? false) ...[
+              Text(form.locationLabel, style: TextStyle(color: context.palette.textMuted)),
+              if (form.selectedLocation?.hasCoordinates ?? false) ...[
                 Responsive.spaceXs.gapH,
                 Text(l10n.locationPinned, style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: 10.sp)),
               ],
               Responsive.spaceSm.gapH,
-              Text('$_formattedDate · $_formattedTime', style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text('${form.formattedDate} · ${form.formattedTime}', style: const TextStyle(fontWeight: FontWeight.w700)),
               Responsive.spaceSm.gapH,
               Text(
-                _specialEvent
-                    ? l10n.guestsInvited(_guestIds.length)
-                    : _group == null
+                form.specialEvent
+                    ? l10n.guestsInvited(form.guestIds.length)
+                    : form.group == null
                         ? l10n.chooseGroup
-                        : l10n.membersWillBeInvited(_group!.people.length),
+                        : l10n.membersWillBeInvited(form.group!.people.length),
                 style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800),
               ),
-              if (_specialEvent)
-                Text(
-                  [
-                    for (final id in _guestIds)
-                      if (DemoData.memberById(id) != null) DemoData.memberById(id)!.name,
-                  ].join(', '),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                )
-              else if (_group != null)
-                Text(_group!.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+              if (form.specialEvent)
+                Text(form.guestNames.join(', '), style: const TextStyle(fontWeight: FontWeight.w800))
+              else if (form.group != null)
+                Text(form.group!.name, style: const TextStyle(fontWeight: FontWeight.w800)),
             ],
           ),
         ),

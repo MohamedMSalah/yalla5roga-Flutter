@@ -28,6 +28,7 @@ class L10n {
   String get ok => _t('OK', 'حسناً');
   String get share => _t('Share', 'مشاركة');
   String get search => _t('Search', 'بحث');
+  String get searchGroups => _t('Search groups', 'ابحث عن مجموعة');
   String get back => _t('Back', 'رجوع');
   String get edit => _t('Edit', 'تعديل');
   String get change => _t('Change', 'تغيير');
@@ -69,16 +70,23 @@ class L10n {
   String get nameHint => _t('Ahmed Hassan', 'أحمد حسن');
   String get forgotPassword => _t('Forgot password?', 'نسيت كلمة المرور؟');
   String get otp => _t('OTP code', 'رمز التحقق');
-  String get otpHint => _t('4-digit code', 'رمز من ٤ أرقام');
-  String get invalidOtp => _t('Enter the 4-digit code sent to your phone', 'أدخل الرمز المكوّن من ٤ أرقام المرسل إلى هاتفك');
+  String get otpHint => _t('6-digit code', 'رمز من ٦ أرقام');
+  String get invalidOtp => _t('Enter the 6-digit code sent to your phone', 'أدخل الرمز المكوّن من ٦ أرقام المرسل إلى هاتفك');
   String otpSent(String phone) => _t('OTP sent to $phone', 'تم إرسال رمز التحقق إلى $phone');
   String get resendOtp => _t('Resend code', 'إعادة إرسال الرمز');
+  String get sendOtp => _t('Send OTP', 'إرسال رمز التحقق');
   String get requiredField => _t('This field is required', 'هذا الحقل مطلوب');
   String get invalidPhone => _t('Enter a valid Egyptian phone number', 'أدخل رقم هاتف مصري صالح');
   String get passwordTooShort => _t('Password must be at least 8 characters', 'كلمة المرور يجب أن تكون ٨ أحرف على الأقل');
   String get loginFailed => _t('Login failed', 'فشل تسجيل الدخول');
   String get registerFailed => _t('Registration failed', 'فشل إنشاء الحساب');
   String get welcomeBack => _t('Welcome back', 'أهلاً بعودتك');
+  String get welcomeNew => _t('Welcome', 'أهلاً بك');
+  String get demoUserName => _t('Ahmed Hassan', 'أحمد حسن');
+  String get demoFirstName => _t('Ahmed', 'أحمد');
+  String get demoPhone => _t('+20 100 123 4567', '+20 100 123 4567');
+  String get noInternet => _t('No internet connection', 'لا يوجد اتصال بالإنترنت');
+  String get unexpectedError => _t('Something went wrong. Please try again.', 'حدث خطأ. حاول مرة أخرى.');
   String get letsGetYouOut => _t('Let’s get you out.', 'يلا نخرج.');
   String get joinTheFun => _t('Join the fun.', 'انضم للمتعة.');
   String get authLoginSubtitle => _t(
@@ -107,7 +115,14 @@ class L10n {
   String get settings => _t('Settings', 'الإعدادات');
 
   // --- Home ---
+  String get goodMorning => _t('Good morning,', 'صباح الخير،');
   String get goodAfternoon => _t('Good afternoon,', 'مساء الخير،');
+  String get goodEvening => _t('Good evening,', 'مساء الخير،');
+  String greetingForHour(int hour) {
+    if (hour < 12) return goodMorning;
+    if (hour < 17) return goodAfternoon;
+    return goodEvening;
+  }
   String get nextUp => _t('Next up', 'الخروجة القادمة');
   String get quickActions => _t('Quick actions', 'إجراءات سريعة');
   String get makeItHappen => _t('Make it happen', 'خلّيها تحصل');
@@ -129,12 +144,91 @@ class L10n {
   String get couldNotOpenWhatsApp => _t('Could not open WhatsApp', 'تعذّر فتح واتساب');
   String get tryThis => _t('Try this', 'جرّب دي');
   String get suggestedForYou => _t('Suggested for you', 'مقترحة لك');
-  String get discoverSubtitle => _t('Places and plans your group can start tonight', 'أماكن وخطط تقدروا تبدأوها الليلة');
+  String get discoverSubtitle => _t('Browse places with vibes, prices, and hours', 'تصفح أماكن بأجواء وأسعار ومواعيد');
   String get nearbyPlaces => _t('Nearby places', 'أماكن قريبة');
+  String get featuredPlaces => _t('Featured places', 'أماكن مميزة');
+  String get allPlaces => _t('All places', 'كل الأماكن');
+  String get aboutPlace => _t('About', 'عن المكان');
+  String get prices => _t('Prices', 'الأسعار');
+  String get workingHours => _t('Working hours', 'مواعيد العمل');
+  String get closed => _t('Closed', 'مغلق');
+  String get planOutingHere => _t('Plan an outing here', 'خطط خروجة هنا');
+  String get otpSendFailed => _t('Could not send verification code', 'تعذّر إرسال رمز التحقق');
   String get useThisIdea => _t('Use this idea', 'استخدم الفكرة');
   String get planThisOuting => _t('Plan this outing', 'خطط الخروجة');
   String get allVibes => _t('All vibes', 'كل الأجواء');
   String outingAtPlace(String place, String time) => _t('$place · $time', '$place · $time');
+
+  String priceLevelLabel(String level) => switch (level) {
+        'free' => _t('Free', 'مجاني'),
+        'budget' => _t('Budget', 'اقتصادي'),
+        'moderate' => _t('Moderate', 'متوسط'),
+        'expensive' => _t('Expensive', 'مرتفع'),
+        'luxury' => _t('Luxury', 'فاخر'),
+        _ => level,
+      };
+
+  String weekdayLabel(String day) => switch (day) {
+        'monday' => _t('Monday', 'الاثنين'),
+        'tuesday' => _t('Tuesday', 'الثلاثاء'),
+        'wednesday' => _t('Wednesday', 'الأربعاء'),
+        'thursday' => _t('Thursday', 'الخميس'),
+        'friday' => _t('Friday', 'الجمعة'),
+        'saturday' => _t('Saturday', 'السبت'),
+        'sunday' => _t('Sunday', 'الأحد'),
+        _ => day,
+      };
+
+  String discoverPriceLabel(String key) => switch (key) {
+        'entry' => _t('Entry', 'دخول'),
+        'parking' => _t('Parking', 'انتظار'),
+        'brunch_set' => _t('Brunch set', 'وجبة برانش'),
+        'coffee' => _t('Coffee', 'قهوة'),
+        'games' => _t('Games', 'ألعاب'),
+        'drinks' => _t('Drinks', 'مشروبات'),
+        'bowling' => _t('Bowling', 'بولينج'),
+        'food' => _t('Food', 'أكل'),
+        'ticket' => _t('Ticket', 'تذكرة'),
+        'combo' => _t('Combo', 'كومبو'),
+        'dinner' => _t('Dinner', 'عشاء'),
+        _ => key,
+      };
+
+  String discoverPlaceDescription(String key) => switch (key) {
+        'zed-park' => _t(
+              'Open lawns and picnic spots for sunset hangouts.',
+              'مساحات خضراء وأماكن نزهة مناسبة لغروب الشمس.',
+            ),
+        'brunch-room' => _t(
+              'Relaxed Maadi brunch spot with coffee and long tables.',
+              'مكان برانش هادي في المعادي بقهوة وطاولات طويلة.',
+            ),
+        'tap-east' => _t(
+              'Games, rounds, and a lively Heliopolis crowd.',
+              'ألعاب وأجواء حيوية في مصر الجديدة.',
+            ),
+        'cfc' => _t(
+              'Mall hub for bowling, food, and evening plans.',
+              'مول فيه بولينج وأكل وخطط مسائية.',
+            ),
+        'vox-cfc' => _t(
+              'Cinema nights with easy parking and food nearby.',
+              'ليالي سينما مع باركينج سهل وأكل قريب.',
+            ),
+        'sequoia' => _t(
+              'Nile-side dinner when you want something special.',
+              'عشاء على النيل لما تحبوا حاجة مميزة.',
+            ),
+        'azhar-park' => _t(
+              'Green views over Islamic Cairo for easy walks.',
+              'مساحات خضراء مطلة على القاهرة الإسلامية للنزهة.',
+            ),
+        'zawya' => _t(
+              'Indie screenings downtown with talks after the film.',
+              'عروض مستقلة في وسط البلد ونقاش بعد الفيلم.',
+            ),
+        _ => '',
+      };
 
   String vibeLabel(String vibe) => switch (vibe) {
         'food' => food,
@@ -242,7 +336,7 @@ class L10n {
   // --- Outings ---
   String get makeAMemory => _t('Make a memory', 'اصنع ذكرى');
   String get outingsTitle => _t('Outings', 'الخروجات');
-  String get plan => _t('Plan', 'خطّط');
+  String get plan => _t('New plan', 'خطّط جديدة');
   String get upcoming => _t('Upcoming', 'القادمة');
   String get voting => _t('Voting', 'التصويت');
   String get past => _t('Past', 'السابقة');
@@ -267,6 +361,11 @@ class L10n {
         'أضف الأساسيات الآن، وبعدها المجموعة تصوّت على التفاصيل.',
       );
   String get outingName => _t('Outing name', 'اسم الخروجة');
+  String get defaultOutingName => _t('Friday brunch', 'فطار الجمعة');
+  String get you => _t('You', 'أنت');
+  String get now => _t('Now', 'الآن');
+  String get lookingUpLocation => _t('Finding this place…', 'جارٍ التعرف على المكان…');
+  String get shareStarted => _t('Opening share…', 'جارٍ فتح المشاركة…');
   String get pickAVibe => _t('Pick a vibe', 'اختر الجو');
   String get food => _t('Food', 'أكل');
   String get activity => _t('Activity', 'نشاط');
@@ -285,9 +384,10 @@ class L10n {
   String get draftSaved => _t('Draft saved', 'تم حفظ المسودة');
   String get outingSaved => _t('Outing saved', 'تم حفظ الخروجة');
   String get outingRemoved => _t('Removed from saved', 'تمت الإزالة من المحفوظات');
+  String get draftRemoved => _t('Draft deleted', 'تم حذف المسودة');
   String get mySaved => _t('My saved', 'محفوظاتي');
   String get mySavedSubtitle => _t('Reuse a saved outing as a new plan', 'استخدم خروجة محفوظة كخطة جديدة');
-  String savedCount(int count) => _t('$count saved outings', '$count خروجات محفوظة');
+  String savedCount(int count) => _t('$count saved', '$count محفوظ');
   String get noSavedOutings => _t('No saved outings yet. Bookmark one to reuse it later.', 'لا توجد خروجات محفوظة. احفظ واحدة لتعيد استخدامها لاحقاً.');
   String get drafts => _t('Drafts', 'المسودات');
   String get noDrafts => _t('No drafts yet. Save a plan from the review step.', 'لا توجد مسودات. احفظ خطة من خطوة المراجعة.');
@@ -314,8 +414,20 @@ class L10n {
         'Yalla 5roga uses your location to pin where you are on the map when you pick a place.',
         'يلا خروجة تستخدم موقعك لتحديد مكانك على الخريطة عند اختيار المكان.',
       );
+  String get allow => _t('Allow', 'السماح');
   String get allowLocation => _t('Allow', 'السماح');
   String get notNow => _t('Not now', 'ليس الآن');
+  String get openAppSettings => _t('Open settings', 'فتح الإعدادات');
+  String get permissionNeededTitle => _t('Permission required', 'إذن مطلوب');
+  String get notificationAccessTitle => _t('Allow notifications?', 'السماح بالإشعارات؟');
+  String get notificationAccessBody => _t(
+        'Yalla 5roga sends updates about outings, votes, and group activity. Allow notifications so you don’t miss anything.',
+        'يلا خروجة ترسل تحديثات عن الخروجات والتصويت ونشاط المجموعات. اسمح بالإشعارات حتى لا يفوتك شيء.',
+      );
+  String get locationOpenSettingsBody => _t(
+        'Location access is turned off. Open app settings and enable location to pin where you are.',
+        'إذن الموقع مغلق. افتح إعدادات التطبيق وفعّل الموقع لتحديد مكانك.',
+      );
   String get useSavedOuting => _t('Use this outing', 'استخدم هذه الخروجة');
   String get whoIsGoing => _t("Who's going", 'من سيذهب');
   String votedFor(String place) => _t('Voted for $place', 'صوّت لـ $place');
@@ -437,6 +549,8 @@ class L10n {
   String get accountDeleted => _t('Account deleted', 'تم حذف الحساب');
   String get aboutDeveloper => _t('About Developer', 'عن المطوّر');
   String get developerName => _t('Mohamed Mohamed Salah', 'محمد محمد صلاح');
+  String get developerInitials => _t('MS', 'مس');
+  String get demoShowUpRate => _t('86%', '٨٦٪');
   String get developerTitle => _t('Full-Stack Mobile App Developer', 'مطوّر تطبيقات موبايل متكامل');
   String get developerTagline => _t(
         'Building complete mobile experiences from frontend to backend.',
