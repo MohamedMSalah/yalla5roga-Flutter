@@ -5,19 +5,32 @@ class NotificationItem {
     required this.time,
     required this.unread,
     this.image,
-    this.eventId,
+    this.outingId,
     this.groupId,
     this.action = false,
+    this.createdAt,
+    this.type,
   });
 
   final String id;
   final String body;
+
+  /// Relative display time (or format [createdAt] in presentation).
   final String time;
   final bool unread;
   final String? image;
-  final String? eventId;
+
+  /// Canonical outing deep-link id. [eventId] is a legacy alias.
+  final String? outingId;
   final String? groupId;
   final bool action;
+  final DateTime? createdAt;
+  final String? type;
+
+  /// Legacy alias used by older UI / JSON payloads.
+  String? get eventId => outingId;
+
+  bool get isEarlier => time.toLowerCase().contains('yesterday');
 
   NotificationItem copyWith({bool? unread}) {
     return NotificationItem(
@@ -26,9 +39,11 @@ class NotificationItem {
       time: time,
       unread: unread ?? this.unread,
       image: image,
-      eventId: eventId,
+      outingId: outingId,
       groupId: groupId,
       action: action,
+      createdAt: createdAt,
+      type: type,
     );
   }
 }

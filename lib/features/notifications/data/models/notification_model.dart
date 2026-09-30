@@ -8,9 +8,11 @@ class NotificationModel extends NotificationItem {
     required super.time,
     required super.unread,
     super.image,
-    super.eventId,
+    super.outingId,
     super.groupId,
     super.action,
+    super.createdAt,
+    super.type,
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
@@ -20,9 +22,11 @@ class NotificationModel extends NotificationItem {
       time: apiString(json['time']) ?? '',
       unread: apiBool(json['unread']),
       image: apiString(json['image']),
-      eventId: apiString(json['eventId']),
+      outingId: apiString(json['outingId']) ?? apiString(json['eventId']),
       groupId: apiString(json['groupId']),
       action: apiBool(json['action']),
+      type: apiString(json['type']),
+      createdAt: DateTime.tryParse(apiString(json['createdAt']) ?? ''),
     );
   }
 }

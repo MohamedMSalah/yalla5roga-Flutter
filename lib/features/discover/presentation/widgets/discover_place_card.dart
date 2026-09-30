@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:yalla_5roga/core/demo/discover_data.dart';
+import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 

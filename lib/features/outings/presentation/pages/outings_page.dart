@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/notification_button.dart';
@@ -12,11 +11,26 @@ import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_pa
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_items.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outings_skeleton.dart';
+import 'package:yalla_5roga/features/outings/presentation/widgets/outing_vote_widget.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/vote_card.dart';
 import 'package:yalla_5roga/features/shell/presentation/widgets/shell_loading.dart';
 
-class OutingsPage extends StatelessWidget {
+class OutingsPage extends StatefulWidget {
   const OutingsPage({super.key});
+
+  @override
+  State<OutingsPage> createState() => _OutingsPageState();
+}
+
+class _OutingsPageState extends State<OutingsPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<OutingsProvider>().refreshLifecycle();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +38,7 @@ class OutingsPage extends StatelessWidget {
 
     final l10n = context.l10n;
     final outings = context.watch<OutingsProvider>();
+    final needsVote = outings.needsYourVote;
 
     return SafeArea(
       child: ListView(
@@ -50,7 +65,7 @@ class OutingsPage extends StatelessWidget {
             labels: [l10n.upcoming, l10n.voting, l10n.past],
             index: outings.filter,
             onChanged: outings.setFilter,
-            badges: {outings.filter: '${outings.filtered.length}'},
+            badges: {outings.filter: l10n.n(outings.filtered.length)},
           ),
           Responsive.spaceLg.gapH,
           const DiscoverSection(limit: 4),
@@ -66,24 +81,30 @@ class OutingsPage extends StatelessWidget {
           ),
           Responsive.spaceSm.gapH,
           const OutingItems(filtered: true),
-          Responsive.spaceLg.gapH,
-          Row(
-            children: [
-              Text(
-                l10n.needsYourVote.toUpperCase(),
-                style: TextStyle(
-                  color: context.palette.textMuted,
-                  fontSize: Responsive.fontCaption,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.4,
+          if (needsVote.isNotEmpty) ...[
+            Responsive.spaceLg.gapH,
+            Row(
+              children: [
+                Text(
+                  l10n.needsYourVote.toUpperCase(),
+                  style: TextStyle(
+                    color: context.palette.textMuted,
+                    fontSize: Responsive.fontCaption,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.4,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              Text(l10n.endsIn, style: TextStyle(color: AppColors.amber700, fontSize: 10.sp, fontWeight: FontWeight.w800)),
+                const Spacer(),
+                if (outings.voteEndsAt(needsVote.first.id) != null)
+                  VoteCountdownText(endsAt: outings.voteEndsAt(needsVote.first.id)!),
+              ],
+            ),
+            Responsive.spaceSm.gapH,
+            for (final outing in needsVote) ...[
+              VoteCard(outing: outing),
+              Responsive.spaceSm.gapH,
             ],
-          ),
-          Responsive.spaceSm.gapH,
-          const VoteCard(),
+          ],
         ],
       ),
     );

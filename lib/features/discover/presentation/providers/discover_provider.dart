@@ -1,8 +1,19 @@
 import 'package:flutter/foundation.dart';
-import 'package:yalla_5roga/core/demo/discover_data.dart';
+import 'package:yalla_5roga/core/error/app_error_feedback.dart';
+import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
+import 'package:yalla_5roga/features/discover/domain/repositories/discover_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 
 class DiscoverProvider extends ChangeNotifier {
+  DiscoverProvider({required this.repository});
+
+  final DiscoverRepository repository;
+
   int _filter = 0;
+  var _places = <SuggestedPlace>[];
+  var _featuredAll = <SuggestedPlace>[];
+  var _hasLoaded = false;
+  String? _errorMessage;
 
   int get filter => _filter;
 
@@ -14,23 +25,77 @@ class DiscoverProvider extends ChangeNotifier {
         _ => null,
       };
 
-  List<SuggestedPlace> get places => DiscoverData.placesFor(vibe);
+  List<SuggestedPlace> get places => List.unmodifiable(_places);
 
   List<SuggestedPlace> get featured => [
-        for (final place in DiscoverData.featuredPlaces())
+        for (final place in _featuredAll)
           if (vibe == null || place.vibe == vibe) place,
       ];
 
+  List<SuggestedPlace> get featuredPlaces => featured;
+
+  bool get hasLoaded => _hasLoaded;
+
+  String? get errorMessage => _errorMessage;
+
+  List<Place> catalogPlaces() => repository.catalogPlaces();
+
   SuggestedPlace? findById(String id) {
-    for (final place in DiscoverData.places) {
+    for (final place in _places) {
+      if (place.id == id) return place;
+    }
+    for (final place in _featuredAll) {
       if (place.id == id) return place;
     }
     return null;
   }
 
-  void setFilter(int value) {
+  SuggestedPlace placeById(String id) {
+    return findById(id) ??
+        (_places.isNotEmpty
+            ? _places.first
+            : SuggestedPlace(
+                id: id,
+                name: '',
+                area: '',
+                vibe: OutingVibe.food,
+                coverImageUrl: '',
+                descriptionKey: id,
+              ));
+  }
+
+  Future<void> load() async {
+    final featured = await repository.getFeaturedPlaces();
+    featured.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'discoverFeatured');
+      },
+      (items) => _featuredAll = List.of(items),
+    );
+    await _reloadPlaces(notify: false);
+    _hasLoaded = true;
+    notifyListeners();
+  }
+
+  Future<void> setFilter(int value) async {
     if (_filter == value) return;
     _filter = value;
-    notifyListeners();
+    await _reloadPlaces();
+  }
+
+  Future<void> _reloadPlaces({bool notify = true}) async {
+    final result = await repository.getPlaces(vibe: vibe);
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'discoverPlaces');
+      },
+      (items) {
+        _places = List.of(items);
+        _errorMessage = null;
+      },
+    );
+    if (notify) notifyListeners();
   }
 }

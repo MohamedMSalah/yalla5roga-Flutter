@@ -5,10 +5,18 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
     <application
         android:label="Yalla 5roga"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- Default FCM channel when the OS displays a notification while backgrounded. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="yalla_5roga_high_importance" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

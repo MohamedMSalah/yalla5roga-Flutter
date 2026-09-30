@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/chat_message.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/outing_chat_repository.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
 import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
@@ -9,10 +12,12 @@ class OutingChatProvider extends ChangeNotifier {
   OutingChatProvider({
     required this.repository,
     required this.unreadCounts,
+    required this.outings,
   });
 
   final OutingChatRepository repository;
   final UnreadCountsRepository unreadCounts;
+  final OutingsProvider outings;
 
   var _unread = <String, int>{};
   int _unreadChatCount = 0;
@@ -20,9 +25,8 @@ class OutingChatProvider extends ChangeNotifier {
   var _isUpdating = false;
   var _hasLoaded = false;
   String? _errorMessage;
-  final _threads = <String, List<DemoChatMessage>>{};
+  final _threads = <String, List<ChatMessage>>{};
   var _epoch = 0;
-  var _messageSeq = 0;
 
   int get unreadChatCount => _unreadChatCount;
 
@@ -36,16 +40,24 @@ class OutingChatProvider extends ChangeNotifier {
 
   String? get errorMessage => _errorMessage;
 
-  int unreadFor(String eventId) => _unread[eventId] ?? 0;
+  int unreadFor(String outingId) => _unread[outingId] ?? 0;
 
-  List<DemoChatMessage> messagesFor(String eventId) {
-    final thread = _threads[eventId];
+  List<ChatMessage> messagesFor(String outingId) {
+    final thread = _threads[outingId];
     if (thread != null) return List.unmodifiable(thread);
-    return List.unmodifiable(DemoData.chatMessages);
+    return const [];
   }
 
-  void _ensureThread(String eventId) {
-    _threads.putIfAbsent(eventId, () => List.of(DemoData.chatMessages));
+  Future<void> loadMessages(String outingId) async {
+    final result = await repository.getMessages(outingId);
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'loadMessages');
+      },
+      (messages) => _threads[outingId] = List.of(messages),
+    );
+    notifyListeners();
   }
 
   void applyCounts(UnreadCounts counts) {
@@ -69,6 +81,7 @@ class OutingChatProvider extends ChangeNotifier {
     result.fold<void>(
       (failure) {
         _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'chatUnread');
       },
       applyCounts,
     );
@@ -82,21 +95,22 @@ class OutingChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> markRead(String eventId) async {
+  Future<bool> markRead(String outingId) async {
     final token = ++_epoch;
     _isUpdating = true;
     _errorMessage = null;
     notifyListeners();
 
-    final result = await repository.markRead(eventId);
+    final result = await repository.markRead(outingId);
     if (token != _epoch) return false;
     final success = result.fold(
       (failure) {
         _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'chatMarkRead');
         return false;
       },
       (read) {
-        _unread[eventId] = read.unreadCount;
+        _unread[outingId] = read.unreadCount;
         _unreadChatCount = read.unreadChatCount;
         return true;
       },
@@ -107,36 +121,48 @@ class OutingChatProvider extends ChangeNotifier {
     return success;
   }
 
-  bool send(String eventId, String text, L10n l10n) {
+  bool isChatClosed(String outingId) {
+    final outing = outings.findById(outingId);
+    if (outing == null) return false;
+    return outing.isPastOuting || outing.status == OutingStatus.past;
+  }
+
+  Future<bool> send(String outingId, String text, L10n l10n) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return false;
-    _ensureThread(eventId);
-    final messageId = 'local-${DateTime.now().millisecondsSinceEpoch}-${_messageSeq++}';
-    _threads[eventId]!.add(
-      DemoChatMessage(
-        id: messageId,
-        sender: l10n.you,
-        senderId: 'me',
-        text: trimmed,
-        time: l10n.now,
-        isMine: true,
-        deliveryStatus: MessageDeliveryStatus.sent,
-      ),
+    if (isChatClosed(outingId)) return false;
+    final result = await repository.sendMessage(
+      outingId: outingId,
+      text: trimmed,
+      senderId: 'me',
+      senderName: l10n.you,
     );
-    notifyListeners();
-    _progressDelivery(eventId, messageId);
-    return true;
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'sendChat');
+        notifyListeners();
+        return false;
+      },
+      (message) {
+        final thread = _threads.putIfAbsent(outingId, () => <ChatMessage>[]);
+        thread.add(message);
+        notifyListeners();
+        _progressDelivery(outingId, message.id);
+        return true;
+      },
+    );
   }
 
-  Future<void> _progressDelivery(String eventId, String messageId) async {
+  Future<void> _progressDelivery(String outingId, String messageId) async {
     await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!_updateStatus(eventId, messageId, MessageDeliveryStatus.delivered)) return;
+    if (!_updateStatus(outingId, messageId, MessageDeliveryStatus.delivered)) return;
     await Future<void>.delayed(const Duration(milliseconds: 900));
-    _updateStatus(eventId, messageId, MessageDeliveryStatus.seen);
+    _updateStatus(outingId, messageId, MessageDeliveryStatus.seen);
   }
 
-  bool _updateStatus(String eventId, String messageId, MessageDeliveryStatus status) {
-    final thread = _threads[eventId];
+  bool _updateStatus(String outingId, String messageId, MessageDeliveryStatus status) {
+    final thread = _threads[outingId];
     if (thread == null) return false;
     final index = thread.indexWhere((message) => message.id == messageId);
     if (index < 0) return false;

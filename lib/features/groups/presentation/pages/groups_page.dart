@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/filter_chip_row.dart';
 import 'package:yalla_5roga/core/widgets/notification_button.dart';
@@ -69,7 +70,10 @@ class _GroupsPageState extends State<GroupsPage> {
                 child: SectionHeader(
                   eyebrow: l10n.yourCircles,
                   title: l10n.groupsTitle,
-                  subtitle: l10n.activeGroupsFriends,
+                  subtitle: l10n.activeGroupsFriends(
+                    groups.groups.length,
+                    groups.groups.fold<int>(0, (sum, group) => sum + group.members),
+                  ),
                 ),
               ),
               const NotificationButton(),
@@ -122,21 +126,29 @@ class _GroupsPageState extends State<GroupsPage> {
           ),
           Responsive.spaceMd.gapH,
           // FeaturedGroupCard / GroupCard / CreateGroupCard — group list
-          ListCard(
-            children: [
-              for (final group in items)
-                group.featured
-                    ? FeaturedGroupCard(
-                        group: group,
-                        onTap: () => Get.to(() => GroupDetailsPage(groupId: group.id)),
-                      )
-                    : GroupCard(
-                        group: group,
-                        onTap: () => Get.to(() => GroupDetailsPage(groupId: group.id)),
-                      ),
-              if (groups.query.trim().isEmpty) CreateGroupCard(onTap: () => Get.to(() => const CreateGroupPage())),
-            ],
-          ),
+          if (items.isEmpty)
+            AppEmptyState(
+              icon: groups.query.trim().isEmpty ? Icons.groups_outlined : Icons.search_off_outlined,
+              message: groups.query.trim().isEmpty ? l10n.noGroups : l10n.noGroupsFound,
+              subtitle: groups.query.trim().isEmpty ? l10n.noGroupsHint : l10n.noGroupsFoundHint,
+              compact: true,
+            )
+          else
+            ListCard(
+              children: [
+                for (final group in items)
+                  group.featured
+                      ? FeaturedGroupCard(
+                          group: group,
+                          onTap: () => Get.to(() => GroupDetailsPage(groupId: group.id)),
+                        )
+                      : GroupCard(
+                          group: group,
+                          onTap: () => Get.to(() => GroupDetailsPage(groupId: group.id)),
+                        ),
+                if (groups.query.trim().isEmpty) CreateGroupCard(onTap: () => Get.to(() => const CreateGroupPage())),
+              ],
+            ),
         ],
       ),
     );

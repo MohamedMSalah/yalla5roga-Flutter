@@ -17,12 +17,12 @@ class ProfileStats extends StatelessWidget {
       radius: 20,
       child: Row(
         children: [
-          _stat(context, '$outingCount', l10n.outingsStat),
+          _stat(context, l10n.n(outingCount), l10n.outingsStat),
           Container(width: 1.w, height: 36.h, color: context.palette.border),
-          _stat(context, '$groupCount', l10n.groupsStat),
+          _stat(context, l10n.n(groupCount), l10n.groupsStat),
           Container(width: 1.w, height: 36.h, color: context.palette.border),
           // TODO: compute show-up from real outing attendance when that API exists.
-          _stat(context, l10n.demoShowUpRate, l10n.showUp),
+          _stat(context, '—', l10n.showUp),
         ],
       ),
     );

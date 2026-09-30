@@ -1,7 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/core/constants/avatar_placeholders.dart';
+import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
+import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group_role.dart';
 import 'package:yalla_5roga/features/groups/domain/repositories/groups_repository.dart';
 import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
 import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
@@ -10,15 +15,12 @@ class GroupsProvider extends ChangeNotifier {
   GroupsProvider({
     required this.repository,
     required this.unreadCounts,
-  }) {
-    _groups = List.of(DemoData.groups);
-    _unreadGroupCount = _groups.fold(0, (sum, group) => sum + group.unread);
-  }
+  });
 
   final GroupsRepository repository;
   final UnreadCountsRepository unreadCounts;
 
-  var _groups = <DemoGroup>[];
+  var _groups = <Group>[];
   int _unreadGroupCount = 0;
   int _filter = 0;
   var _searching = false;
@@ -31,7 +33,7 @@ class GroupsProvider extends ChangeNotifier {
   String? _errorMessage;
   var _epoch = 0;
 
-  List<DemoGroup> get groups => List.unmodifiable(_groups);
+  List<Group> get groups => List.unmodifiable(_groups);
 
   int get unreadGroupCount => _unreadGroupCount;
 
@@ -55,7 +57,15 @@ class GroupsProvider extends ChangeNotifier {
 
   List<String> get createPhones => List.unmodifiable(_createPhones);
 
-  List<DemoGroup> get visible {
+  List<GroupMember> get contacts => repository.contacts;
+
+  String groupsForMember(String id) => repository.groupsForMember(id);
+
+  GroupMember? memberById(String id) => repository.memberById(id);
+
+  GroupMember? memberByPhone(String phone) => repository.memberByPhone(phone);
+
+  List<Group> get visible {
     final needle = _query.trim().toLowerCase();
     return [
       for (final group in _groups)
@@ -65,15 +75,44 @@ class GroupsProvider extends ChangeNotifier {
     ];
   }
 
-  DemoGroup? findById(String id) {
+  Group? findById(String id) {
     for (final group in _groups) {
       if (group.id == id) return group;
     }
     return null;
   }
 
-  // TODO: GET /groups/{id} when group CRUD exists. Demo stand-in keeps taps testable.
-  DemoGroup byId(String id) => findById(id) ?? DemoData.groupById(id);
+  Group byId(String id) => findById(id) ?? (_groups.isNotEmpty ? _groups.first : _emptyGroup(id));
+
+  static Group _emptyGroup(String id) {
+    return Group(
+      id: id,
+      name: '',
+      members: 0,
+      outings: 0,
+      preview: '',
+      avatars: const [],
+      image: '',
+      people: const [],
+    );
+  }
+
+  Future<void> loadGroups() async {
+    final result = await repository.getGroups();
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'loadGroups');
+      },
+      (groups) {
+        _groups = List.of(groups);
+        _unreadGroupCount = _groups.fold(0, (sum, group) => sum + group.unread);
+        _errorMessage = null;
+      },
+    );
+    _hasLoaded = true;
+    notifyListeners();
+  }
 
   void setFilter(int value) {
     if (_filter == value) return;
@@ -134,24 +173,19 @@ class GroupsProvider extends ChangeNotifier {
     };
   }
 
-  DemoGroup? createGroup(String name, {required String ownerName, String? ownerAvatar}) {
+  Future<Group?> createGroup(String name, {required String ownerName, String? ownerAvatar}) async {
     if (name.trim().isEmpty) return null;
     if (_createImage == null) return null;
     final people = [
-      DemoMember(
+      GroupMember(
         id: 'me',
         name: ownerName,
-        avatar: ownerAvatar ?? DemoData.avatars.last,
+        avatar: ownerAvatar ?? AvatarPlaceholders.fallback,
         role: GroupRole.owner,
       ),
-      for (final phone in _createPhones)
-        DemoMember(
-          id: phone,
-          name: phone,
-          avatar: DemoData.avatars[phone.hashCode.abs() % DemoData.avatars.length],
-        ),
+      for (final phone in _createPhones) _memberFromPhone(phone),
     ];
-    final group = DemoGroup(
+    final group = Group(
       id: 'new-${DateTime.now().millisecondsSinceEpoch}',
       name: name.trim(),
       members: people.length,
@@ -162,50 +196,86 @@ class GroupsProvider extends ChangeNotifier {
       people: people,
       myRole: GroupRole.owner,
     );
-    _groups = [group, ..._groups];
+    final result = await repository.createGroup(group);
+    Group? created;
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'createGroup');
+      },
+      (value) {
+        created = value;
+        _groups = [value, ..._groups.where((item) => item.id != value.id)];
+        AnalyticsService.instance.createGroup();
+      },
+    );
     resetCreate(notify: false);
     notifyListeners();
-    return group;
+    return created;
   }
 
-  void updateImage(String groupId, String url) {
-    _groups = [
-      for (final group in _groups)
-        if (group.id == groupId) group.copyWith(image: url) else group,
-    ];
+  Future<void> updateImage(String groupId, String url) async {
+    final current = byId(groupId);
+    final result = await repository.updateGroup(current.copyWith(image: url));
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'updateGroupImage');
+      },
+      (group) {
+        _groups = [
+          for (final item in _groups)
+            if (item.id == group.id) group else item,
+        ];
+      },
+    );
     notifyListeners();
   }
 
-  String? addMember(String groupId, String phone, L10n l10n) {
+  Future<String?> addMember(String groupId, String phone, L10n l10n) async {
     final group = byId(groupId);
-    if (group.people.any((person) => person.id == phone || person.name == phone)) {
+    if (group.people.any((person) {
+      final personPhone = person.phone;
+      return person.id == phone ||
+          person.name == phone ||
+          (personPhone != null && personPhone == phone);
+    })) {
       return l10n.phoneAlreadyAdded;
     }
-    final member = DemoMember(
-      id: phone,
-      name: phone,
-      avatar: DemoData.avatars[phone.hashCode.abs() % DemoData.avatars.length],
+    final member = _memberFromPhone(phone);
+    final result = await repository.addMember(groupId, member);
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'addMember');
+      },
+      (updated) {
+        _groups = [
+          for (final item in _groups)
+            if (item.id == updated.id) updated else item,
+        ];
+        AnalyticsService.instance.joinGroup();
+      },
     );
-    _groups = [
-      for (final item in _groups)
-        if (item.id == groupId)
-          item.copyWith(people: [...item.people, member])
-        else
-          item,
-    ];
     notifyListeners();
     return null;
   }
 
-  void removeMember(String groupId, DemoMember person) {
+  Future<void> removeMember(String groupId, GroupMember person) async {
     if (person.role == GroupRole.owner) return;
-    _groups = [
-      for (final item in _groups)
-        if (item.id == groupId)
-          item.copyWith(people: item.people.where((member) => member.id != person.id).toList())
-        else
-          item,
-    ];
+    final result = await repository.removeMember(groupId, person.id);
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'removeMember');
+      },
+      (updated) {
+        _groups = [
+          for (final item in _groups)
+            if (item.id == updated.id) updated else item,
+        ];
+      },
+    );
     notifyListeners();
   }
 
@@ -225,6 +295,7 @@ class GroupsProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    await loadGroups();
     final result = await unreadCounts.fetchCounts();
     if (token != _epoch) {
       _finishInitialLoad();
@@ -233,6 +304,7 @@ class GroupsProvider extends ChangeNotifier {
     result.fold<void>(
       (failure) {
         _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'groupsRefresh');
       },
       applyCounts,
     );
@@ -257,6 +329,7 @@ class GroupsProvider extends ChangeNotifier {
     final success = result.fold(
       (failure) {
         _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'groupMarkRead');
         return false;
       },
       (read) {
@@ -283,5 +356,24 @@ class GroupsProvider extends ChangeNotifier {
     _hasLoaded = false;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  GroupMember _memberFromPhone(String phone) {
+    final known = repository.memberByPhone(phone);
+    if (known != null) {
+      return GroupMember(
+        id: known.id,
+        name: known.name,
+        avatar: known.avatar,
+        phone: known.phone ?? phone,
+        role: known.role,
+      );
+    }
+    return GroupMember(
+      id: phone,
+      name: phone,
+      phone: phone,
+      avatar: AvatarPlaceholders.urls[phone.hashCode.abs() % AvatarPlaceholders.urls.length],
+    );
   }
 }

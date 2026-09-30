@@ -29,4 +29,15 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
   Future<Either<Failure, int>> markRead(String id) {
     return guardRemote(networkInfo, () => remote.markRead(id));
   }
+
+  @override
+  Future<Either<Failure, NotificationItem>> pushLocal({
+    required String body,
+    String? outingId,
+    String? groupId,
+    bool action = false,
+    String? image,
+  }) async {
+    return const Left(ServerFailure('Local notification push is unavailable on live API'));
+  }
 }

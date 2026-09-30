@@ -22,6 +22,7 @@ class AvatarStack extends StatelessWidget {
       ...urls.take(3),
       if (extra > 0) '__extra__',
     ];
+    if (items.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
       width: side + (items.length - 1) * (side * 0.62),
@@ -42,7 +43,7 @@ class AvatarStack extends StatelessWidget {
                         border: Border.all(color: context.palette.surface, width: 2.w),
                       ),
                       child: Text(
-                        '+$extra',
+                        '+${context.l10n.n(extra)}',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: (size * 0.32).sp,

@@ -34,6 +34,7 @@ class PlaceSearchHit {
 class PickLocationProvider extends ChangeNotifier {
   PickLocationProvider({
     required this.geocoding,
+    required this.prefs,
     double? initialLatitude,
     double? initialLongitude,
     String? placeName,
@@ -48,6 +49,7 @@ class PickLocationProvider extends ChangeNotifier {
   static const cairo = LatLng(30.0444, 31.2357);
 
   final GeocodingRepository geocoding;
+  final SharedPreferences prefs;
 
   late final TextEditingController nameController;
   LatLng? pin;
@@ -59,8 +61,6 @@ class PickLocationProvider extends ChangeNotifier {
   LatLng get center => pin ?? cairo;
 
   Future<LocationPrompt> firstOpenPrompt() async {
-    // TODO: inject SharedPreferences from AppDependencies instead of a second getInstance.
-    final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(AppConstants.locationPromptShownKey) ?? false) {
       return LocationPrompt.skip;
     }
@@ -73,7 +73,6 @@ class PickLocationProvider extends ChangeNotifier {
   }
 
   Future<void> markPromptShown() async {
-    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(AppConstants.locationPromptShownKey, true);
   }
 

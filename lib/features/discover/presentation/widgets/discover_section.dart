@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:yalla_5roga/core/demo/discover_data.dart';
+import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/section_header.dart';
 import 'package:yalla_5roga/features/discover/presentation/pages/discover_page.dart';
+import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
 import 'package:yalla_5roga/features/discover/presentation/widgets/discover_featured_carousel.dart';
 import 'package:yalla_5roga/features/discover/presentation/widgets/nearby_places_list.dart';
 
@@ -22,8 +24,8 @@ class DiscoverSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final featured = DiscoverData.featuredPlaces().take(limit).toList();
-    if (featured.isEmpty) return const SizedBox.shrink();
+    final discover = context.watch<DiscoverProvider>();
+    final featured = discover.featuredPlaces.take(limit).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,15 +37,23 @@ class DiscoverSection extends StatelessWidget {
           onAction: () => Get.to(() => const DiscoverPage()),
         ),
         12.gapH,
-        DiscoverFeaturedCarousel(
-          places: featured,
-          compact: compact,
-          showPriceLevel: false,
-        ),
+        if (featured.isEmpty)
+          AppEmptyState(
+            icon: Icons.travel_explore_outlined,
+            message: l10n.noPlaces,
+            subtitle: l10n.noPlacesHint,
+            compact: true,
+          )
+        else
+          DiscoverFeaturedCarousel(
+            places: featured,
+            compact: compact,
+            showPriceLevel: false,
+          ),
         if (showPlaces) ...[
           Responsive.spaceMd.gapH,
           NearbyPlacesList(
-            places: DiscoverData.places.take(3).toList(),
+            places: discover.places.take(3).toList(),
             title: l10n.nearbyPlaces,
           ),
         ],

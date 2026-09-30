@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
@@ -10,7 +10,7 @@ import 'package:yalla_5roga/features/outings/presentation/providers/outings_prov
 class GroupCard extends StatelessWidget {
   const GroupCard({super.key, required this.group, this.onTap});
 
-  final DemoGroup group;
+  final Group group;
   final VoidCallback? onTap;
 
   @override
@@ -53,7 +53,7 @@ class GroupCard extends StatelessWidget {
                         radius: 10.r,
                         backgroundColor: AppColors.rose500,
                         child: Text(
-                          '${group.unread}',
+                          l10n.n(group.unread),
                           style: TextStyle(color: Colors.white, fontSize: Responsive.fontXs, fontWeight: FontWeight.w800),
                         ),
                       )
@@ -72,7 +72,7 @@ class GroupCard extends StatelessWidget {
                       children: [
                         if (group.lastMessage != null)
                           TextSpan(
-                            text: '${group.lastMessage}: ',
+                            text: '${l10n.digits(group.lastMessage!)}: ',
                             style: TextStyle(
                               color: AppColors.brand600,
                               fontWeight: FontWeight.w800,
@@ -80,7 +80,7 @@ class GroupCard extends StatelessWidget {
                             ),
                           ),
                         TextSpan(
-                          text: group.preview,
+                          text: l10n.digits(group.preview),
                           style: TextStyle(color: context.palette.textMuted, fontSize: Responsive.fontSm),
                         ),
                       ],

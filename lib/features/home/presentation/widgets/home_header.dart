@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/core/constants/avatar_placeholders.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
@@ -15,7 +15,7 @@ class HomeHeader extends StatelessWidget {
     final l10n = context.l10n;
     final user = context.watch<AuthProvider>().user;
     final avatar = Responsive.avatarMd;
-    final photo = user?.imageUrl ?? DemoData.avatars.last;
+    final photo = user?.imageUrl ?? AvatarPlaceholders.fallback;
 
     return Row(
       children: [
@@ -37,7 +37,7 @@ class HomeHeader extends StatelessWidget {
             children: [
               Text(l10n.greetingForHour(DateTime.now().hour), style: TextStyle(color: context.palette.textMuted, fontSize: Responsive.fontSm)),
               Text(
-                '${user?.name.split(' ').first ?? l10n.demoFirstName} 👋',
+                '${user?.name.split(' ').first ?? ''} 👋',
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15.sp),
               ),
             ],

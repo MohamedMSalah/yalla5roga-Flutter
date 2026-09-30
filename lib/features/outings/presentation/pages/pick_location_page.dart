@@ -3,9 +3,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/app_permissions.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
@@ -34,6 +36,7 @@ class PickLocationPage extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => PickLocationProvider(
         geocoding: context.read<GeocodingRepository>(),
+        prefs: context.read<SharedPreferences>(),
         initialLatitude: initialLatitude,
         initialLongitude: initialLongitude,
         placeName: placeName,
@@ -274,11 +277,11 @@ class _PlaceSearchSheet extends StatelessWidget {
                   : !search.searched
                       ? const SizedBox.shrink()
                       : search.results.isEmpty
-                          ? Center(
-                              child: Text(
-                                l10n.noPlaceResults,
-                                style: TextStyle(color: palette.textMuted),
-                              ),
+                          ? AppEmptyState(
+                              icon: Icons.search_off_outlined,
+                              message: l10n.noPlaceResults,
+                              subtitle: l10n.noPlaceResultsHint,
+                              compact: true,
                             )
                           : ListView.separated(
                               itemCount: search.results.length,

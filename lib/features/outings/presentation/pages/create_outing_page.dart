@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
-import 'package:yalla_5roga/core/demo/discover_data.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
@@ -14,7 +12,13 @@ import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/custom_textfield.dart';
 import 'package:yalla_5roga/core/widgets/icon_circle.dart';
 import 'package:yalla_5roga/core/widgets/image_source_sheet.dart';
+import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
+import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
+import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
+import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/pick_location_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/create_outing_provider.dart';
@@ -32,7 +36,7 @@ class CreateOutingPage extends StatelessWidget {
     this.specialEvent = false,
   });
 
-  final DemoGroup? group;
+  final Group? group;
   final SuggestedPlace? suggestedPlace;
   final SavedOuting? saved;
   final OutingDraft? draft;
@@ -42,8 +46,16 @@ class CreateOutingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) {
+        final groups = context.read<GroupsProvider>();
+        final outings = context.read<OutingsProvider>();
+        final discover = context.read<DiscoverProvider>();
         final form = CreateOutingProvider(
-          groups: context.read<GroupsProvider>().groups,
+          groups: groups.groups,
+          contacts: groups.contacts,
+          catalogPlaces: discover.catalogPlaces().isNotEmpty
+              ? discover.catalogPlaces()
+              : outings.places,
+          specialEventImage: outings.specialEventImage,
           group: group,
           suggestedPlace: suggestedPlace,
           saved: saved,
@@ -92,7 +104,7 @@ class _CreateOutingView extends StatelessWidget {
 
   Future<void> _pickGroup(BuildContext context, CreateOutingProvider form) async {
     if (form.groupLocked) return;
-    final selected = await Get.bottomSheet<DemoGroup>(
+    final selected = await Get.bottomSheet<Group>(
       SafeArea(
         child: Builder(
           builder: (context) {
@@ -138,11 +150,16 @@ class _CreateOutingView extends StatelessWidget {
   }
 
   void _create(BuildContext context, CreateOutingProvider form) {
-    final outing = form.buildOuting();
+    final userId = context.read<AuthProvider>().user?.id;
+    final outing = form.buildOuting(createdById: userId);
     context.read<OutingsProvider>().add(outing);
     if (form.draft != null) {
       context.read<SavedOutingsProvider>().removeDraft(form.draft!.id);
     }
+    context.read<NotificationsProvider>().emitLocal(
+          body: context.l10n.notifOutingCreated(outing.title),
+          eventId: outing.id,
+        );
     AppSnackBar.show(context.l10n.outingCreated);
     Get.off(() => EventPage(event: outing));
   }
@@ -162,7 +179,7 @@ class _CreateOutingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final form = context.watch<CreateOutingProvider>();
+    final form = context.watch<CreateOutingProvider>()..syncLocale(l10n);
     final titles = [l10n.theBasics, l10n.chooseLocation, l10n.reviewOuting];
     final headlines = [l10n.whatAreWeDoing, l10n.pickAPlace, l10n.reviewOuting];
     final bodies = [l10n.addEssentials, l10n.chooseLocationNext, l10n.almostThere];
@@ -241,7 +258,7 @@ class _CreateOutingView extends StatelessWidget {
   }
 
   Widget _basics(BuildContext context, L10n l10n, CreateOutingProvider form) {
-    final preview = form.image ?? (form.specialEvent ? DemoData.specialEventImage(form.occasion) : null);
+    final preview = form.image ?? (form.specialEvent ? form.resolvedImage : null);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -343,7 +360,7 @@ class _CreateOutingView extends StatelessWidget {
                       children: [
                         Text(person.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                         Text(
-                          DemoData.groupsForMember(person.id),
+                          context.read<GroupsProvider>().groupsForMember(person.id),
                           style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp),
                         ),
                       ],
@@ -466,14 +483,14 @@ class _CreateOutingView extends StatelessWidget {
                 Checkbox(
                   value: form.letVote,
                   activeColor: AppColors.brand600,
-                  onChanged: (value) => form.setLetVote(value ?? true),
+                  onChanged: (value) => form.setLetVote(value ?? false),
                 ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l10n.letGroupVote, style: TextStyle(color: context.palette.brandStrong, fontWeight: FontWeight.w800, fontSize: 12.sp)),
-                      Text(l10n.everyoneCanSuggest, style: TextStyle(color: AppColors.brand500, fontSize: 10.sp)),
+                      Text(l10n.addPlacesForVoting, style: TextStyle(color: context.palette.brandStrong, fontWeight: FontWeight.w800, fontSize: 12.sp)),
+                      Text(l10n.addPlacesForVotingHint, style: TextStyle(color: AppColors.brand500, fontSize: 10.sp)),
                     ],
                   ),
                 ),
@@ -481,57 +498,109 @@ class _CreateOutingView extends StatelessWidget {
               ],
             ),
           ),
+          if (form.letVote) ...[
+            12.gapH,
+            AppCard(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.voteDeadlineHours, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.sp)),
+                        Text(l10n.voteDeadlineHint, style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: form.voteDeadlineHours <= 1 ? null : () => form.setVoteDeadlineHours(form.voteDeadlineHours - 1),
+                    icon: const Icon(Icons.remove_circle_outline),
+                    color: AppColors.brand600,
+                  ),
+                  Text(
+                    l10n.hoursCount(form.voteDeadlineHours),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp, color: AppColors.brand700),
+                  ),
+                  IconButton(
+                    onPressed: form.voteDeadlineHours >= 72 ? null : () => form.setVoteDeadlineHours(form.voteDeadlineHours + 1),
+                    icon: const Icon(Icons.add_circle_outline),
+                    color: AppColors.brand600,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ],
     );
   }
 
   Widget _location(BuildContext context, L10n l10n, CreateOutingProvider form) {
+    final multi = form.multiPlaceMode;
     return Column(
       children: [
-        AppCard(
-          onTap: () => _pickCustomLocation(context, form),
-          color: form.customPlacePinned ? context.palette.brandSoft : null,
-          borderColor: form.customPlacePinned ? context.palette.brandSoftBorder : null,
-          child: Row(
-            children: [
-              IconCircle(
-                icon: form.customPlacePinned ? Icons.check_circle : Icons.add_location_alt_outlined,
-                background: form.customPlacePinned ? AppColors.brand600 : AppColors.brand50,
-                foreground: form.customPlacePinned ? Colors.white : AppColors.brand600,
-              ),
-              12.gapW,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      form.isCustomPlace ? form.customPlaceController.text.trim() : l10n.pickOnMap,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    Text(
-                      form.customPlacePinned ? l10n.changeMapLocation : l10n.locationHint,
-                      style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.map_outlined, color: AppColors.brand600, size: 20.w),
-            ],
+        if (multi) ...[
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              l10n.pickMultiplePlaces,
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontSm),
+            ),
           ),
-        ),
-        Responsive.spaceMd.gapH,
-        for (final place in DiscoverData.catalogPlaces()) ...[
+          Responsive.spaceXs.gapH,
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              l10n.placesSelectedMax(form.selectedPlaces.length, OutingsProvider.maxVotePlaces),
+              style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: 10.sp),
+            ),
+          ),
+          Responsive.spaceMd.gapH,
+        ] else ...[
           AppCard(
-            onTap: () => form.setCatalogPlace(place),
-            color: form.place == place ? context.palette.brandSoft : null,
-            borderColor: form.place == place ? context.palette.brandSoftBorder : null,
+            onTap: () => _pickCustomLocation(context, form),
+            color: form.customPlacePinned ? context.palette.brandSoft : null,
+            borderColor: form.customPlacePinned ? context.palette.brandSoftBorder : null,
+            child: Row(
+              children: [
+                IconCircle(
+                  icon: form.customPlacePinned ? Icons.check_circle : Icons.add_location_alt_outlined,
+                  background: form.customPlacePinned ? AppColors.brand600 : AppColors.brand50,
+                  foreground: form.customPlacePinned ? Colors.white : AppColors.brand600,
+                ),
+                12.gapW,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        form.isCustomPlace ? form.customPlaceController.text.trim() : l10n.pickOnMap,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        form.customPlacePinned ? l10n.changeMapLocation : l10n.locationHint,
+                        style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.map_outlined, color: AppColors.brand600, size: 20.w),
+              ],
+            ),
+          ),
+          Responsive.spaceMd.gapH,
+        ],
+        for (final place in form.catalogPlaces) ...[
+          AppCard(
+            onTap: () => form.togglePlace(place),
+            color: (multi ? form.isPlaceSelected(place) : form.place == place) ? context.palette.brandSoft : null,
+            borderColor: (multi ? form.isPlaceSelected(place) : form.place == place) ? context.palette.brandSoftBorder : null,
             child: Row(
               children: [
                 IconCircle(
                   icon: Icons.location_on_outlined,
-                  background: form.place == place ? AppColors.brand600 : AppColors.brand50,
-                  foreground: form.place == place ? Colors.white : AppColors.brand600,
+                  background: (multi ? form.isPlaceSelected(place) : form.place == place) ? AppColors.brand600 : AppColors.brand50,
+                  foreground: (multi ? form.isPlaceSelected(place) : form.place == place) ? Colors.white : AppColors.brand600,
                 ),
                 12.gapW,
                 Expanded(
@@ -543,7 +612,12 @@ class _CreateOutingView extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (form.place == place) Icon(Icons.check_circle, color: AppColors.brand600, size: 20.w),
+                if (multi
+                    ? form.isPlaceSelected(place)
+                    : form.place == place)
+                  Icon(multi ? Icons.check_box : Icons.check_circle, color: AppColors.brand600, size: 20.w)
+                else if (multi)
+                  Icon(Icons.check_box_outline_blank, color: context.palette.border, size: 20.w),
               ],
             ),
           ),
@@ -572,6 +646,13 @@ class _CreateOutingView extends StatelessWidget {
               ],
               Responsive.spaceSm.gapH,
               Text(form.locationLabel, style: TextStyle(color: context.palette.textMuted)),
+              if (form.multiPlaceMode) ...[
+                Responsive.spaceXs.gapH,
+                Text(
+                  l10n.voteClosesInHours(form.voteDeadlineHours),
+                  style: TextStyle(color: AppColors.amber700, fontWeight: FontWeight.w800, fontSize: 10.sp),
+                ),
+              ],
               if (form.selectedLocation?.hasCoordinates ?? false) ...[
                 Responsive.spaceXs.gapH,
                 Text(l10n.locationPinned, style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800, fontSize: 10.sp)),

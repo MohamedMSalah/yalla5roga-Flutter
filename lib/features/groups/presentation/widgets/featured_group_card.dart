@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/app_launcher.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
@@ -17,14 +17,19 @@ import 'package:yalla_5roga/features/outings/presentation/providers/outings_prov
 class FeaturedGroupCard extends StatelessWidget {
   const FeaturedGroupCard({super.key, required this.group, this.onTap});
 
-  final DemoGroup group;
+  final Group group;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final groupOutings = context.watch<OutingsProvider>().forGroup(group.id);
-    final nextOuting = groupOutings.isEmpty ? null : groupOutings.first;
+    final needsVote = context.watch<OutingsProvider>().needsYourVote.where((item) => item.groupId == group.id);
+    final nextOuting = needsVote.isNotEmpty
+        ? needsVote.first
+        : groupOutings.isEmpty
+            ? null
+            : groupOutings.first;
 
     return GestureDetector(
       onTap: onTap,

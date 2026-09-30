@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
 import 'package:yalla_5roga/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
@@ -23,6 +24,16 @@ class NotificationsProvider extends ChangeNotifier {
   var _epoch = 0;
 
   List<NotificationItem> get items => List.unmodifiable(_items);
+
+  List<NotificationItem> get todayItems => todayFrom(visible);
+
+  List<NotificationItem> get earlierItems => earlierFrom(visible);
+
+  static List<NotificationItem> todayFrom(List<NotificationItem> items) =>
+      [for (final item in items) if (!item.isEarlier) item];
+
+  static List<NotificationItem> earlierFrom(List<NotificationItem> items) =>
+      [for (final item in items) if (item.isEarlier) item];
 
   int get filter => _filter;
 
@@ -56,6 +67,31 @@ class NotificationsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> emitLocal({
+    required String body,
+    String? outingId,
+    String? eventId,
+    String? groupId,
+    bool action = false,
+    String? image,
+  }) async {
+    final result = await repository.pushLocal(
+      body: body,
+      outingId: outingId ?? eventId,
+      groupId: groupId,
+      action: action,
+      image: image,
+    );
+    result.fold(
+      (_) {},
+      (item) {
+        _items = [item, ..._items];
+        _unreadCount = _items.where((entry) => entry.unread).length;
+        notifyListeners();
+      },
+    );
+  }
+
   Future<void> refresh() async {
     final token = ++_epoch;
     _isLoading = true;
@@ -70,6 +106,7 @@ class NotificationsProvider extends ChangeNotifier {
     countsResult.fold<void>(
       (failure) {
         _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'notificationsCounts');
       },
       (counts) {
         _unreadCount = counts.unreadNotificationCount;
@@ -84,6 +121,7 @@ class NotificationsProvider extends ChangeNotifier {
     feedResult.fold<void>(
       (failure) {
         _errorMessage = failure.message;
+        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'notificationsFeed');
       },
       (feed) {
         _items = feed.items;
@@ -108,6 +146,7 @@ class NotificationsProvider extends ChangeNotifier {
       return result.fold(
         (failure) {
           _errorMessage = failure.message;
+          AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'markAllRead');
           return false;
         },
         (count) {
@@ -126,6 +165,7 @@ class NotificationsProvider extends ChangeNotifier {
       return result.fold(
         (failure) {
           _errorMessage = failure.message;
+          AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'markRead');
           return false;
         },
         (count) {

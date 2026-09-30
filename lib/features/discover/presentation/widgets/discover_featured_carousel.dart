@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:yalla_5roga/core/demo/discover_data.dart';
+import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/features/discover/presentation/pages/discover_place_details_page.dart';
 import 'package:yalla_5roga/features/discover/presentation/widgets/discover_place_card.dart';
 
@@ -22,7 +23,7 @@ class DiscoverFeaturedCarousel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (places.isEmpty) return const SizedBox.shrink();
+    final l10n = context.l10n;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,23 +40,31 @@ class DiscoverFeaturedCarousel extends StatelessWidget {
           ),
           Responsive.spaceSm.gapH,
         ],
-        SizedBox(
-          height: compact ? 168.h : 168.h,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: places.length,
-            separatorBuilder: (_, _) => Responsive.spaceSm.gapW,
-            itemBuilder: (context, index) {
-              final place = places[index];
-              return DiscoverPlaceCard(
-                place: place,
-                compact: compact,
-                showPriceLevel: showPriceLevel,
-                onTap: () => Get.to(() => DiscoverPlaceDetailsPage(placeId: place.id)),
-              );
-            },
+        if (places.isEmpty)
+          AppEmptyState(
+            icon: Icons.travel_explore_outlined,
+            message: l10n.noPlaces,
+            subtitle: l10n.noPlacesHint,
+            compact: true,
+          )
+        else
+          SizedBox(
+            height: 168.h,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: places.length,
+              separatorBuilder: (_, _) => Responsive.spaceSm.gapW,
+              itemBuilder: (context, index) {
+                final place = places[index];
+                return DiscoverPlaceCard(
+                  place: place,
+                  compact: compact,
+                  showPriceLevel: showPriceLevel,
+                  onTap: () => Get.to(() => DiscoverPlaceDetailsPage(placeId: place.id)),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }

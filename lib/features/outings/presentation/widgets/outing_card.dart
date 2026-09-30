@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/outing.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
@@ -17,7 +17,7 @@ import 'package:yalla_5roga/features/outings/presentation/widgets/outing_going_s
 class OutingCard extends StatelessWidget {
   const OutingCard({super.key, required this.slide});
 
-  final HeroSlide slide;
+  final Outing slide;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +86,7 @@ class OutingCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(slide.title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18.sp)),
-                              Text(slide.meta, style: TextStyle(color: Colors.white70, fontSize: 10.sp)),
+                              Text(l10n.digits(slide.meta), style: TextStyle(color: Colors.white70, fontSize: 10.sp)),
                             ],
                           ),
                         ),
@@ -95,8 +95,8 @@ class OutingCard extends StatelessWidget {
                           decoration: BoxDecoration(color: context.palette.surface, borderRadius: BorderRadius.circular(12.r)),
                           child: Column(
                             children: [
-                              Text(slide.calendarMonth, style: TextStyle(color: AppColors.rose500, fontSize: Responsive.fontXs, fontWeight: FontWeight.w800)),
-                              Text(slide.calendarDay, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
+                              Text(l10n.digits(slide.calendarMonth), style: TextStyle(color: AppColors.rose500, fontSize: Responsive.fontXs, fontWeight: FontWeight.w800)),
+                              Text(l10n.digits(slide.calendarDay), style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
                             ],
                           ),
                         ),
@@ -114,7 +114,7 @@ class OutingCard extends StatelessWidget {
                     children: [
                       Icon(Icons.schedule, size: Responsive.iconSm, color: AppColors.brand600),
                       Responsive.spaceXs.gapW,
-                      Text(slide.time, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontSm)),
+                      Text(l10n.digits(slide.time), style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontSm)),
                       Responsive.spaceSm.gapW,
                       Icon(Icons.groups_2_outlined, size: Responsive.iconSm, color: AppColors.brand600),
                       Responsive.spaceXs.gapW,
@@ -162,7 +162,7 @@ class OutingCard extends StatelessWidget {
                                     radius: 8.r,
                                     backgroundColor: AppColors.rose500,
                                     child: Text(
-                                      '$unread',
+                                      l10n.n(unread),
                                       style: TextStyle(color: Colors.white, fontSize: Responsive.fontXs, fontWeight: FontWeight.w800),
                                     ),
                                   ),

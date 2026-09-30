@@ -34,13 +34,11 @@ class DiscoverPage extends StatelessWidget {
               index: discover.filter,
               onChanged: discover.setFilter,
             ),
-            if (discover.featured.isNotEmpty) ...[
-              Responsive.spaceLg.gapH,
-              DiscoverFeaturedCarousel(
-                places: discover.featured,
-                title: l10n.featuredPlaces,
-              ),
-            ],
+            Responsive.spaceLg.gapH,
+            DiscoverFeaturedCarousel(
+              places: discover.featured,
+              title: l10n.featuredPlaces,
+            ),
             Responsive.spaceLg.gapH,
             NearbyPlacesList(
               places: discover.places,

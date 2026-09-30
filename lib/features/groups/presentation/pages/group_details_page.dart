@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group_role.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/utils/member_display_name.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
@@ -15,10 +17,13 @@ import 'package:yalla_5roga/core/widgets/image_source_sheet.dart';
 import 'package:yalla_5roga/core/widgets/phone_text_field.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/group_details_skeleton.dart';
+import 'package:yalla_5roga/features/groups/presentation/widgets/group_place_suggest_section.dart';
+import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_list_tile.dart';
+import 'package:yalla_5roga/core/utils/app_permissions.dart';
 
 class GroupDetailsPage extends StatefulWidget {
   const GroupDetailsPage({super.key, required this.groupId});
@@ -35,9 +40,13 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       context.read<GroupsProvider>().markRead(groupId);
+      await AppPermissions.promptContactsAccess(context.l10n);
+      if (!mounted) return;
+      await MemberDisplayName.ensureLoaded();
+      if (mounted) setState(() {});
     });
   }
 
@@ -94,12 +103,19 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
     );
 
       if (added == null || !context.mounted) return;
-      final error = groups.addMember(groupId, added, context.l10n);
+      final l10n = context.l10n;
+      final error = await groups.addMember(groupId, added, l10n);
+      if (!context.mounted) return;
       if (error != null) {
         AppSnackBar.show(error);
         return;
       }
-      AppSnackBar.show(context.l10n.memberAdded(added));
+      final display = MemberDisplayName.resolvePhone(added);
+      context.read<NotificationsProvider>().emitLocal(
+            body: l10n.notifMemberAdded(display, groups.byId(groupId).name),
+            groupId: groupId,
+          );
+      AppSnackBar.show(l10n.memberAdded(display));
     } finally {
       phoneController.dispose();
     }
@@ -183,15 +199,21 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
             ),
           ],
           Responsive.spaceLg.gapH,
+          GroupPlaceSuggestSection(group: group),
+          Responsive.spaceLg.gapH,
           Text(l10n.groupOutings, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
           Responsive.spaceSm.gapH,
           if (groupOutings.isEmpty)
-            Text(l10n.noGroupOutings, style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontSm))
+            AppEmptyState(
+              icon: Icons.event_busy_outlined,
+              message: l10n.noGroupOutings,
+              compact: true,
+            )
           else
             for (final outing in groupOutings) ...[
               OutingListTile(
                 title: outing.title,
-                subtitle: '${outing.date} · ${outing.time} · ${outing.meta}',
+                subtitle: l10n.digits('${outing.date} · ${outing.time} · ${outing.meta}'),
                 image: outing.image,
                 onTap: () => Get.to(() => EventPage(event: outing)),
               ),
@@ -200,35 +222,46 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
           Responsive.spaceLg.gapH,
           Text(l10n.members, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
           Responsive.spaceSm.gapH,
-          for (final person in group.people) ...[
-            AppCard(
-              radius: 16,
-              child: Row(
-                children: [
-                  AppNetworkImage(url: person.avatar, width: 44.w, height: 44.w, radius: 12.r),
-                  12.gapW,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(person.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
-                        Text(groups.roleLabel(person.role, l10n), style: TextStyle(color: palette.textMuted, fontSize: 10.sp)),
-                      ],
+          if (group.people.isEmpty)
+            AppEmptyState(
+              icon: Icons.person_off_outlined,
+              message: l10n.noGoingYet,
+              subtitle: l10n.noGoingYetHint,
+              compact: true,
+            )
+          else
+            for (final person in group.people) ...[
+              AppCard(
+                radius: 16,
+                child: Row(
+                  children: [
+                    AppNetworkImage(url: person.avatar, width: 44.w, height: 44.w, radius: 12.r),
+                    12.gapW,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            MemberDisplayName.resolve(person),
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody),
+                          ),
+                          Text(groups.roleLabel(person.role, l10n), style: TextStyle(color: palette.textMuted, fontSize: 10.sp)),
+                        ],
+                      ),
                     ),
-                  ),
-                  if (canManage && person.role != GroupRole.owner)
-                    IconButton(
-                      onPressed: () {
-                        groups.removeMember(groupId, person);
-                        AppSnackBar.show(l10n.memberRemoved(person.name));
-                      },
-                      icon: Icon(Icons.remove_circle_outline, color: AppColors.rose500, size: 20.w),
-                    ),
-                ],
+                    if (canManage && person.role != GroupRole.owner)
+                      IconButton(
+                        onPressed: () {
+                          groups.removeMember(groupId, person);
+                          AppSnackBar.show(l10n.memberRemoved(MemberDisplayName.resolve(person)));
+                        },
+                        icon: Icon(Icons.remove_circle_outline, color: AppColors.rose500, size: 20.w),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            8.gapH,
-          ],
+              8.gapH,
+            ],
         ],
       ),
     );

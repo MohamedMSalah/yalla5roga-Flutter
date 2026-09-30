@@ -4,8 +4,17 @@ import 'package:http/http.dart' as http;
 import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
 
-class GeocodingHttpRepository implements GeocodingRepository {
-  GeocodingHttpRepository({http.Client? client}) : _client = client ?? http.Client();
+abstract class GeocodingRemoteDataSource {
+  Future<String?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+  });
+
+  Future<List<GeocodingHit>> search(String query);
+}
+
+class GeocodingHttpDataSource implements GeocodingRemoteDataSource {
+  GeocodingHttpDataSource({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
 
@@ -66,4 +75,22 @@ class GeocodingHttpRepository implements GeocodingRepository {
       return const [];
     }
   }
+}
+
+class GeocodingHttpRepository implements GeocodingRepository {
+  GeocodingHttpRepository({GeocodingRemoteDataSource? remote})
+      : _remote = remote ?? GeocodingHttpDataSource();
+
+  final GeocodingRemoteDataSource _remote;
+
+  @override
+  Future<String?> reverseGeocode({
+    required double latitude,
+    required double longitude,
+  }) {
+    return _remote.reverseGeocode(latitude: latitude, longitude: longitude);
+  }
+
+  @override
+  Future<List<GeocodingHit>> search(String query) => _remote.search(query);
 }

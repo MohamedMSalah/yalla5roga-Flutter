@@ -7,11 +7,20 @@ import 'package:yalla_5roga/core/localization/locale_provider.dart';
 import 'package:yalla_5roga/core/network/api_client.dart';
 import 'package:yalla_5roga/core/network/dio_interceptors.dart';
 import 'package:yalla_5roga/core/network/network_info.dart';
+import 'package:yalla_5roga/core/network/performance_interceptor.dart';
 import 'package:yalla_5roga/core/theme/theme_provider.dart';
+import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
+import 'package:yalla_5roga/core/monitoring/crashlytics_service.dart';
+import 'package:yalla_5roga/core/monitoring/performance_service.dart';
+import 'package:yalla_5roga/core/utils/member_display_name.dart';
 import 'package:yalla_5roga/features/auth/data/datasources/firebase_auth_service.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
 import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
+import 'package:yalla_5roga/features/notifications/data/repositories/push_messaging_repository_impl.dart';
+import 'package:yalla_5roga/features/notifications/data/services/fcm_messaging_service.dart';
+import 'package:yalla_5roga/features/notifications/data/services/local_notifications_service.dart';
+import 'package:yalla_5roga/features/notifications/presentation/providers/fcm_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
@@ -26,6 +35,7 @@ class AppDependencies {
     required this.locale,
     required this.auth,
     required this.notifications,
+    required this.fcm,
     required this.outingChat,
     required this.outings,
     required this.savedOutings,
@@ -34,12 +44,14 @@ class AppDependencies {
     required this.discover,
     required this.settings,
     required this.geocoding,
+    required this.prefs,
   });
 
   final ThemeProvider theme;
   final LocaleProvider locale;
   final AuthProvider auth;
   final NotificationsProvider notifications;
+  final FcmProvider fcm;
   final OutingChatProvider outingChat;
   final OutingsProvider outings;
   final SavedOutingsProvider savedOutings;
@@ -48,6 +60,7 @@ class AppDependencies {
   final DiscoverProvider discover;
   final SettingsProvider settings;
   final GeocodingRepository geocoding;
+  final SharedPreferences prefs;
 
   static Future<AppDependencies> create() async {
     final prefs = await SharedPreferences.getInstance();
@@ -67,22 +80,56 @@ class AppDependencies {
     dio.interceptors.addAll([
       AuthInterceptor(prefs),
       AppLogInterceptor(),
+      PerformanceInterceptor(),
       ErrorInterceptor(),
     ]);
 
+    final firebaseAuth = FirebaseAuthService();
     final repos = RepositoryFactory(
       apiClient: ApiClient(dio),
       networkInfo: networkInfo,
       prefs: prefs,
+      firebaseAuth: firebaseAuth,
     );
 
     final authRepository = repos.auth();
     final unreadCountsRepository = repos.unreadCounts();
-    final auth = AuthProvider(
-      repository: authRepository,
-      firebaseAuth: FirebaseAuthService(),
-    );
+    final outingsRepository = repos.outings();
+    final groupsRepository = repos.groups();
+    final discoverRepository = repos.discover();
+    final savedOutingsRepository = repos.savedOutings();
+    final outingChatRepository = repos.outingChat();
+
+    final auth = AuthProvider(repository: authRepository);
     await auth.restoreSession();
+    await CrashlyticsService.instance.setUserId(auth.user?.id);
+    await AnalyticsService.instance.setUserId(auth.user?.id);
+
+    MemberDisplayName.memberByPhoneLookup = groupsRepository.memberByPhone;
+
+    final localNotifications = LocalNotificationsService();
+    final fcmMessaging = FcmMessagingService(
+      prefs: prefs,
+      localNotifications: localNotifications,
+    );
+    final pushMessaging = PushMessagingRepositoryImpl(messaging: fcmMessaging);
+    final fcm = FcmProvider(messaging: pushMessaging);
+    await fcm.initialize();
+
+    final outings = OutingsProvider(repository: outingsRepository);
+    await PerformanceService.instance.trace('load_outings', outings.load);
+
+    final groups = GroupsProvider(
+      repository: groupsRepository,
+      unreadCounts: unreadCountsRepository,
+    );
+    await PerformanceService.instance.trace('load_groups', groups.loadGroups);
+
+    final discover = DiscoverProvider(repository: discoverRepository);
+    await discover.load();
+
+    final savedOutings = SavedOutingsProvider(repository: savedOutingsRepository);
+    await savedOutings.load();
 
     return AppDependencies(
       theme: ThemeProvider(prefs),
@@ -92,20 +139,20 @@ class AppDependencies {
         repository: repos.notifications(),
         unreadCounts: unreadCountsRepository,
       ),
+      fcm: fcm,
       outingChat: OutingChatProvider(
-        repository: repos.outingChat(),
+        repository: outingChatRepository,
         unreadCounts: unreadCountsRepository,
+        outings: outings,
       ),
-      outings: OutingsProvider(),
-      savedOutings: SavedOutingsProvider(prefs),
+      outings: outings,
+      savedOutings: savedOutings,
       shell: ShellProvider(),
-      groups: GroupsProvider(
-        repository: repos.groups(),
-        unreadCounts: unreadCountsRepository,
-      ),
-      discover: DiscoverProvider(),
+      groups: groups,
+      discover: discover,
       settings: SettingsProvider(),
       geocoding: repos.geocoding(),
+      prefs: prefs,
     );
   }
 }

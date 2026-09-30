@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
@@ -35,22 +36,16 @@ class SavedOutingsPage extends StatelessWidget {
                 index: store.tab,
                 onChanged: store.setTab,
                 badges: {
-                  0: '${store.totalCount}',
-                  1: '${store.drafts.length}',
+                  0: l10n.n(store.totalCount),
+                  1: l10n.n(store.drafts.length),
                 },
               ),
             ),
             Expanded(
               child: items.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: Responsive.pagePadding(),
-                        child: Text(
-                          showingDrafts ? l10n.noDrafts : l10n.noSavedOutings,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: context.palette.textMuted, fontSize: Responsive.fontBody),
-                        ),
-                      ),
+                  ? AppEmptyState(
+                      icon: showingDrafts ? Icons.edit_note_outlined : Icons.bookmark_border,
+                      message: showingDrafts ? l10n.noDrafts : l10n.noSavedOutings,
                     )
                   : ListView.separated(
                       padding: Responsive.pagePadding(),

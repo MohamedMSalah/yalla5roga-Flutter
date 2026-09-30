@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
+import 'package:yalla_5roga/core/constants/avatar_placeholders.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
@@ -65,7 +65,7 @@ class ProfileHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(26.r),
                 border: Border.all(color: Colors.white, width: 4.w),
               ),
-              child: AppNetworkImage(url: user?.imageUrl ?? DemoData.avatars.last, radius: 22.r),
+              child: AppNetworkImage(url: user?.imageUrl ?? AvatarPlaceholders.fallback, radius: 22.r),
             ),
             Positioned(
               right: 0,
@@ -83,11 +83,11 @@ class ProfileHeader extends StatelessWidget {
         ),
         12.gapH,
         Text(
-          user?.name ?? l10n.demoUserName,
+          user?.name ?? '',
           style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w800),
         ),
         Text(
-          user?.phone ?? l10n.demoPhone,
+          user?.phone ?? '',
           style: TextStyle(color: AppColors.brand100, fontSize: Responsive.fontSm),
         ),
       ],

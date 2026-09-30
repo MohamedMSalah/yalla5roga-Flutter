@@ -48,13 +48,21 @@ class _AuthFormState extends State<AuthForm> {
     auth.resetOtp();
   }
 
+  String _authError(AuthProvider auth) {
+    final l10n = context.l10n;
+    return l10n.phoneAuthError(
+      auth.errorCode,
+      fallback: auth.errorMessage ?? l10n.otpSendFailed,
+    );
+  }
+
   Future<void> _resendOtp() async {
     final auth = context.read<AuthProvider>();
     final phone = Validators.normalizePhone(_phoneController.text);
     final ok = await auth.resendOtp(phone);
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(auth.errorMessage ?? context.l10n.otpSendFailed);
+      AppSnackBar.show(_authError(auth));
       return;
     }
     AppSnackBar.show(context.l10n.otpSent(phone));
@@ -72,7 +80,7 @@ class _AuthFormState extends State<AuthForm> {
     final ok = await auth.sendOtp(phone);
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(auth.errorMessage ?? context.l10n.otpSendFailed);
+      AppSnackBar.show(_authError(auth));
       return;
     }
     AppSnackBar.show(context.l10n.otpSent(phone));
@@ -95,7 +103,12 @@ class _AuthFormState extends State<AuthForm> {
 
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(auth.errorMessage ?? (auth.isLogin ? l10n.loginFailed : l10n.registerFailed));
+      AppSnackBar.show(
+        l10n.phoneAuthError(
+          auth.errorCode,
+          fallback: auth.errorMessage ?? (auth.isLogin ? l10n.loginFailed : l10n.registerFailed),
+        ),
+      );
       return;
     }
     Get.offAll(() => const MainShell());

@@ -130,14 +130,13 @@ class SettingsPage extends StatelessWidget {
                   SettingsTile(
                     icon: Icons.phone_outlined,
                     title: l10n.phone,
-                    subtitle: user?.phone ?? l10n.demoPhone,
+                    subtitle: user?.phone ?? '',
                     background: const Color(0xFFEDE9FE),
                     foreground: const Color(0xFF7C3AED),
                   ),
                   SettingsTile(
                     icon: Icons.calendar_today_outlined,
                     title: l10n.memberSince,
-                    subtitle: l10n.memberSinceDate,
                     background: AppColors.amber100,
                     foreground: AppColors.amber700,
                   ),

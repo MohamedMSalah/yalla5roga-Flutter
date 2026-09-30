@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/avatar_stack.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
@@ -30,7 +30,14 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
     final l10n = context.l10n;
     final slides = context.watch<OutingsProvider>().outings;
     final index = context.watch<OutingsProvider>().featuredIndex;
-    if (slides.isEmpty) return const SizedBox.shrink();
+    if (slides.isEmpty) {
+      return AppEmptyState(
+        icon: Icons.photo_outlined,
+        message: l10n.noFeaturedOuting,
+        subtitle: l10n.noFeaturedOutingHint,
+        compact: true,
+      );
+    }
 
     return Column(
       children: [
@@ -73,7 +80,7 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
                               Icon(Icons.calendar_today, size: 12.w, color: AppColors.brand700),
                               6.gapW,
                               Text(
-                                slide.date,
+                                l10n.digits(slide.date),
                                 style: TextStyle(
                                   fontSize: Responsive.fontCaption,
                                   fontWeight: FontWeight.w800,
@@ -113,13 +120,17 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
                                     ),
                                   ),
                                   Text(
-                                    slide.meta,
+                                    l10n.digits(slide.meta),
                                     style: TextStyle(color: Colors.white70, fontSize: Responsive.fontSm),
                                   ),
                                 ],
                               ),
                             ),
-                            AvatarStack(urls: DemoData.avatars.take(2).toList(), extra: 5),
+                            if (slide.going > 0)
+                              AvatarStack(
+                                urls: const [],
+                                extra: slide.going.clamp(0, 99),
+                              ),
                           ],
                         ),
                       ),

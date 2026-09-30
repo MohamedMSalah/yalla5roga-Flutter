@@ -13,29 +13,27 @@ Yalla 5roga is a Flutter mobile app for planning group outings in Egypt: create 
 - Display name: **Yalla 5roga** (`AppConstants.appName`)
 - Version: `0.1.0+1`, Dart SDK `^3.13.3`
 - Entry: `lib/main.dart` → `AppDependencies.create()` → `lib/app.dart` `App`
-- No backend, Firebase, database, env files, or tests exist in this repo
-- Root `index.html` is a Tailwind UI concept gallery the Flutter theme was based on; it is not app runtime code
+- No Node.js backend in this repo yet; client talks to placeholder REST via Dio
+- Firebase Auth (phone OTP) + FCM are used behind repository adapters only
+- Root `index.html` is a Tailwind UI concept gallery; it is not app runtime code
 
 ### Main technologies
 
-Flutter + Dart, Provider (`ChangeNotifier`), GetX (`GetMaterialApp` navigation/snackbars/dialogs), Dio for the app API, `dartz` `Either` for failures, Equatable, SharedPreferences, flutter_map + geolocator + Nominatim (`package:http`).
-
-### Main dependencies (actual usage)
-
-Used: `provider`, `get`, `dio`, `http` (Nominatim only), `dartz`, `equatable`, `shared_preferences`, `connectivity_plus`, `google_fonts`, `flutter_svg` (declared; unused in `lib/`), `image_picker`, `url_launcher`, `flutter_map`, `latlong2`, `geolocator`, `intl`, `flutter_localizations`.
-
-Declared in `pubspec.yaml` but unused in `lib/`: `device_info_plus`, `package_info_plus`, `flutter_localization` (the pub package; SDK `flutter_localizations` **is** used).
-
-Dev: `flutter_lints`, `flutter_launcher_icons`. Analyzer excludes platform folders. `flutter: generate: false` — localization is **not** gen-l10n.
+Flutter + Dart, Provider (`ChangeNotifier`), GetX (`GetMaterialApp` navigation/snackbars/dialogs), Dio for the app API, `dartz` `Either` for failures, Equatable, SharedPreferences, Firebase Auth/Messaging, flutter_map + geolocator + Nominatim (`package:http` via geocoding datasource).
 
 ### Overall architecture
 
-Feature-first, mixed Clean Architecture:
+Feature-first Clean Architecture. **Every feature data path:**
 
-- **Auth, notifications, unread counts, group mark-read, outing-chat mark-read**: UI → Provider → (UseCase only for auth login/register) → Repository → DataSource → `ApiClient` (Dio)
-- **Groups list/create, outings CRUD/chat messages, discover, settings UI**: in-memory `DemoData` / `DiscoverData` or local SharedPreferences; not persisted to the API
+```
+UI Screen → Provider → Repository (Either) → Remote DataSource
+  → ApiClient/Dio (live) | prefs (saved/drafts) | Firebase adapters (auth/push)
+```
+
+- `RepositoryFactory` builds API-backed repository implementations only
 - Manual DI in `AppDependencies` (no get_it)
-- Responses: `Either<Failure, T>` from repositories; exceptions at datasource; `notifyListeners()` in providers
+- Presentation must **not** import `ApiClient`, Dio, `http`, or Firebase packages
+- No seed/demo fixtures; empty/error UI until the API responds
 
 ---
 
@@ -46,9 +44,9 @@ lib/
   main.dart
   app.dart
   core/          # shared kernel
-  features/      # feature modules
-assets/branding/ # yalla_5roga_logo.svg
-android/ ios/ web/ windows/ macos/ linux/  # Flutter platform shells
+  features/      # feature modules (data/domain/presentation)
+assets/branding/
+android/ ios/ web/ windows/ macos/ linux/
 index.html       # design preview only
 ```
 
@@ -56,35 +54,30 @@ index.html       # design preview only
 
 | Folder | Purpose |
 |---|---|
-| `constants/` | `AppConstants`, `ApiConstants`, `AssetConstants` |
-| `di/` | `AppDependencies.create()` wires Dio, prefs, repos, providers |
-| `network/` | `ApiClient`, interceptors, `NetworkInfo`, `guardRemote`, `apiPayload` helpers |
+| `constants/` | `AppConstants`, `ApiConstants` (incl. placeholders), `AssetConstants`, `AvatarPlaceholders` |
+| `di/` | `AppDependencies.create()` + `RepositoryFactory` |
+| `network/` | `ApiClient`, interceptors, `NetworkInfo`, `guardRemote` |
 | `error/` | `Failure` (domain) + `AppException` (data) |
-| `usecases/` | `UseCase<T, Params>` + `NoParams` (auth only) |
-| `theme/` | `AppColors`, `AppPalette` (ThemeExtension), `AppTheme`, `ThemeProvider` |
+| `theme/` | `AppColors`, `AppPalette`, `AppTheme`, `ThemeProvider` |
 | `localization/` | Manual `L10n` (en/ar) + `LocaleProvider` |
-| `responsive/` | 375×812 scale; `.w` `.h` `.sp` `.r` `.gapW` `.gapH` |
+| `responsive/` | 375×812 scale; `.w` `.h` `.sp` `.r` |
 | `widgets/` | Shared UI |
-| `utils/` | `extensions.dart` (`context.l10n`, `context.palette`), `Validators`, `AppLauncher`, `InputFormatters` |
-| `demo/` | `DemoData` (groups/outings/chat) + `DiscoverData` (suggested places/outings) |
+| `utils/` | extensions, Validators, AppLauncher, permissions helpers |
 
-### Features and how they relate
+### Features
 
 | Feature | Layers | Role |
 |---|---|---|
 | `splash` | presentation | Unauthenticated landing → `AuthPage` |
-| `auth` | data/domain/presentation | Phone login/register, session cache |
-| `shell` | presentation | 4-tab `MainShell` (`IndexedStack`) |
-| `home` | presentation | Dashboard; uses outings/groups/discover/auth |
-| `groups` | data/domain/presentation | Demo groups + API `markRead` |
-| `outings` | data/domain (chat read only) + presentation | Demo outings/chat; local saved/drafts; map pick |
-| `discover` | presentation | Local suggested outings/places |
-| `notifications` | data/domain/presentation | API feed + read |
-| `unread` | data/domain only | Shared `/me/unread-counts`; no UI |
+| `auth` | data/domain/presentation | Firebase phone OTP behind `AuthRepository`; prefs session cache; optional REST login/register |
+| `shell` | presentation | 4-tab `MainShell` |
+| `home` | presentation | Dashboard |
+| `groups` | full stack | List/create/members via `GroupsRepository` (+ markRead) |
+| `outings` | full stack | CRUD, votes, attendance, chat, saved/drafts, geocoding |
+| `discover` | full stack | Places via `DiscoverRepository` |
+| `notifications` | full stack | Feed + read + local emit; FCM via `PushMessagingRepository` |
+| `unread` | data/domain | Shared `/me/unread-counts` |
 | `setting` | presentation | Live settings tab |
-| `profile` | leftover pages only | Duplicate of settings; **not wired** in `App`/`MainShell` |
-
-`unread` is consumed by `NotificationsProvider`, `OutingChatProvider`, and `GroupsProvider`.
 
 ---
 
@@ -92,262 +85,71 @@ index.html       # design preview only
 
 ### Boot
 
-1. `main()` → `AppDependencies.create()`
-2. SharedPreferences, `NetworkInfoImpl(Connectivity())`, Dio (`ApiConstants.baseUrl` + timeouts)
-3. Interceptors: `AuthInterceptor` (Bearer from prefs), `AppLogInterceptor`, `ErrorInterceptor`
-4. Repos: auth, notifications, outing chat, groups, unread
-5. `AuthProvider.restoreSession()` before `runApp`
-6. `App` wraps `GetMaterialApp` in `MultiProvider`; `home` is `MainShell` if `auth.isAuthenticated` else `SplashPage`
-7. `builder` calls `Responsive.init` and clamps text scale
+1. `main()` → Firebase init (if configured) → `AppDependencies.create()`
+2. SharedPreferences, `NetworkInfo`, Dio, `RepositoryFactory`
+3. Repos for auth, groups, outings, chat, discover, saved, notifications, unread, geocoding, push
+4. `AuthProvider.restoreSession()` + FCM init before/with `runApp`
+5. `App` → `MultiProvider` → `GetMaterialApp`; `MainShell` if authenticated else `SplashPage`
 
-### Data flow (API features)
+### Data flow
 
 ```
-Widget  context.read/watch<XProvider>()
-  → Provider (ChangeNotifier)
-    → Repository (Either<Failure, T>)
-      → guardRemote(NetworkInfo) 
-        → RemoteDataSource (ApiClient + fromJson)
-          → Dio interceptors (token, errors → AppException)
+Widget → Provider → Repository → RemoteDataSource (ApiClient placeholders)
+                              → LocalDataSource (prefs for saved/drafts)
+AuthRepository → AuthRemote + AuthLocal + FirebaseAuthDataSource
+PushMessagingRepository → FcmMessagingService
+GeocodingRepository → Nominatim HTTP
 ```
 
-Auth extra hop: `AuthProvider` → `LoginUseCase` / `RegisterUseCase` → `AuthRepository`.
+### Domain models (canonical)
 
-Auth local: `AuthLocalDataSource` caches user JSON + token in SharedPreferences.
+`Outing` (alias `HeroSlide`), `Group` (`DemoGroup`), `GroupMember`, `Place` (`OutingPlace`), `PlaceLocation`, `PlaceVote`/`VoteOption`, `Attendance`/`AttendanceStatus`, `ChatMessage`, `SuggestedPlace`, `SavedOuting`/`OutingDraft`, `NotificationItem` (`outingId`; `eventId` alias).
 
-### Non-API flow
+Display strings (`meta`, relative time) are computed getters/formatters from `scheduledAt` + place data.
 
-```
-Widget → Provider → DemoData / DiscoverData / SharedPreferences
-```
+### Existing + placeholder API (`ApiConstants`)
 
-Create-outing and pick-location providers are **page-scoped** (`ChangeNotifierProvider(create: …)` on the page), not in `AppDependencies`.
+Live endpoints in use: auth login/register, unread counts, notifications (+ read), group/chat mark-read.
 
----
+Placeholders for future Node.js: groups CRUD/members, outings CRUD/votes/attendance, chat messages, discover places, saved outings, optional FCM token.
 
-## State Management
+Until the Node backend exists, Dio calls may fail and providers should surface empty/error states.
 
-Provider `ChangeNotifier`. UI uses `context.watch<T>()` to rebuild and `context.read<T>()` for actions.
+### Auth & push
 
-### App-wide (registered in `AppDependencies` + `app.dart`)
+- Phone OTP via Firebase, folded into `AuthRepository` (`sendOtp`, `verifyOtpAndCache`, session)
+- Presentation uses domain `PhoneVerification` / `PhoneAuthErrorCodes` only
+- FCM behind `PushMessagingRepository`; UI uses `PushAuthorizationStatus`
+- REST login/register remain on the remote auth path (no demo-user fallback)
 
-| Provider | State |
-|---|---|
-| `ThemeProvider` | light/dark; prefs `theme_mode` |
-| `LocaleProvider` | `en`/`ar`; prefs `locale`; `Get.updateLocale` |
-| `AuthProvider` | user, loading, login/register form flags, session |
-| `NotificationsProvider` | feed, unread, filter |
-| `OutingChatProvider` | unread by outing, demo threads |
-| `OutingsProvider` | demo `HeroSlide` list, filters, vote index, catalog places |
-| `SavedOutingsProvider` | bookmarks + drafts in prefs |
-| `ShellProvider` | bottom-nav index (`openOutings()` → index 2) |
-| `GroupsProvider` | demo groups, search/filter, create-group form, unread |
-| `DiscoverProvider` | vibe filter over `DiscoverData` |
-| `SettingsProvider` | in-memory `pushEnabled` only (not persisted) |
-
-### Page-scoped
-
-- `CreateOutingProvider` — multi-step create form
-- `PickLocationProvider` — map pin, reverse geocode, GPS
-- `PlaceSearchProvider` — Nominatim search
-
-Do not put API/networking inside widgets. Do not add a new app-wide provider without wiring it in **both** `AppDependencies.create()` and `App`'s `MultiProvider`.
-
----
-
-## API & Networking
-
-### Client
-
-- `ApiClient` wraps Dio `get/post/put/delete`
-- Base URL: `--dart-define=API_BASE_URL=…`, default `https://api.yalla5roga.com`
-- Timeouts: 30s connect/receive
-- JSON `Content-Type` / `Accept`
-- **Do not invent endpoints.** Add new ones only in `ApiConstants`.
-
-### Existing endpoints (`ApiConstants`)
-
-- `POST /auth/login` `{phone, password}`
-- `POST /auth/register` `{name, phone, password}`
-- `GET /me/unread-counts`
-- `GET /notifications`
-- `POST /notifications/read` (mark all)
-- `POST /notifications/{id}/read`
-- `POST /outings/{outingId}/chat/read`
-- `POST /groups/{groupId}/read`
-
-### Payload pattern
-
-Envelope: prefer `body['data']` if it is a `Map`, else the body (`apiPayload`). Helpers: `apiInt`, `apiBool`, `apiString`.
-
-Models extend entities and implement `fromJson`.
-
-### Auth token
-
-`AuthInterceptor` reads `AppConstants.tokenKey` (`auth_token`) and sets `Authorization: Bearer <token>`. Token is written by `AuthLocalDataSource.cacheUser` when `user.token` is non-null. Logout removes `cached_user` and `auth_token`.
-
-### Errors
-
-`ErrorInterceptor` maps Dio errors → `NetworkException` / `AuthException` (401/403) / `ServerException`. Datasources unwrap `DioException.error` if it is `AppException`. Repos use `guardRemote`: offline → `NetworkFailure`; `AuthException` → `AuthFailure`; other `AppException` → `ServerFailure`.
-
-Auth login/register is special: on connectivity, call API and cache; on `AuthException` return `AuthFailure`; on other API errors **or** offline, cache a **demo user** and succeed (preview fallback while backend is incomplete). Do not remove this unless the task says so.
-
-### Exception: Nominatim
-
-`PickLocationProvider` / `PlaceSearchProvider` call `nominatim.openstreetmap.org` with `package:http` and `User-Agent: Yalla5roga/1.0`. Not Dio, not `ApiConstants`.
-
----
-
-## Data Layer
-
-### Entities / models (API)
-
-- `User` / `UserModel`
-- `NotificationItem`, `NotificationsFeed` / `NotificationModel`, `NotificationsFeedModel`
-- `UnreadCounts` / `UnreadCountsModel` (`chats[].outingId`, `groups[].groupId`)
-- `GroupReadResult` / `GroupReadResultModel`
-- `OutingChatReadResult` / `OutingChatReadResultModel`
-
-### Demo / local types (`core/demo`, providers)
-
-`HeroSlide`, `DemoGroup`, `DemoMember`, `GroupRole`, `OutingLocation`, `OutingOccasion`, `OutingPlace`, `SavedOuting`, `OutingDraft`, `SuggestedPlace`, `SuggestedOuting`, `OutingVibe`, `PickedPlace`. Group/outing **lists** are these types, not API entities.
-
-### Local storage (SharedPreferences keys in `AppConstants`)
+### Local storage keys (`AppConstants`)
 
 `auth_token`, `cached_user`, `theme_mode`, `locale`, `saved_outings`, `outing_drafts`, `location_prompt_shown`.
 
-No SQLite, Hive, or secure storage.
+### State management
 
-### Repositories
+App-wide providers registered in `AppDependencies` + `app.dart`. Page-scoped: `CreateOutingProvider`, `PickLocationProvider`, `PlaceSearchProvider` (receive repos via `context.read`).
 
-`AuthRepository`, `NotificationsRepository`, `UnreadCountsRepository`, `GroupsRepository` (`markRead` only), `OutingChatRepository` (`markRead` only). Impl classes `*_repository_impl.dart`.
+Theme/locale stay core prefs providers (not feature REST).
 
----
+### Navigation
 
-## Navigation
+Imperative GetX (`Get.to` / `off` / `offAll` / `back`). No named route table. Deep links resolve outings via `OutingsProvider`.
 
-No named routes / `GetPage` table. `GetMaterialApp(home: …)` plus imperative GetX:
+### Coding conventions
 
-- `Get.to(() => Page())` push
-- `Get.off(() => Page())` replace
-- `Get.offAll(() => Page())` clear stack
-- `Get.back(result: …)` pop
-- `Get.dialog` / `Get.bottomSheet` / `Get.showSnackbar` (`AppAlert`, `ImageSourceSheet`, `AppSnackBar`)
-
-### Main flow
-
-Unauthenticated: `SplashPage` → `AuthPage` → success `Get.offAll(MainShell)`.
-
-Authenticated on launch: `MainShell` tabs (IndexedStack):
-
-0. `HomePage`
-1. `GroupsPage`
-2. `OutingsPage`
-3. `SettingsPage` from **`features/setting`**
-
-Logout / delete-account: clear unread providers, `AuthProvider.logout()`, `Get.offAll(AuthPage)`.
-
-### Important screens
-
-- Groups: `CreateGroupPage`, `GroupDetailsPage(groupId:)` (live detail; marks group read)
-- Outings: `CreateOutingPage`, `EventPage`, `OutingChatPage` (marks chat read), `PickLocationPage`, `SavedOutingsPage`
-- `DiscoverPage`, `NotificationsPage` (marks all read on open)
-- Settings: `ProfileInfoPage` (help/privacy/terms), `AboutDeveloperPage`
-
-Quick actions (home): create outing, special event, create group, discover.
-
----
-
-## Authentication & Authorization
-
-- Phone-first Egyptian numbers (`Validators`: `1[0125]` + 8 digits, stored as `+20…`)
-- UI: send OTP is **local** (snackbar + `auth.sendOtp()`). There is **no OTP API**. Submit sends the 4-digit OTP as `password` to login/register
-- Session: cached `User` in prefs; `isAuthenticated` iff `_user != null`
-- `updateProfile` saves locally only (no profile API)
-- `GroupRole` (owner/admin/member) is demo-group metadata, not app-wide RBAC
-- Delete account currently logs out locally; no delete-user endpoint
-- `SettingsProvider.pushEnabled` is UI-only
-
----
-
-## Reusable Components
-
-Prefer these over new one-off widgets:
-
-`CustomButton`, `CustomTextField`, `PhoneTextField`, `OtpInput`, `AppPageBar`, `AppCard`, `AppIconButton`, `AppSnackBar`, `AppAlert`, `AppSwitch`, `AppBadge`, `AppNetworkImage` (http or local file path), `AppBottomNav` / `AppBottomNavLayout`, `SegmentedTabs`, `FilterChipRow`, `SectionHeader`, `AvatarStack`, `IconCircle`, `ImageSourceSheet.pick`, `LanguageChoice`, `NotificationButton`, `MarqueeText`, `LoadingIndicator`.
-
-Utils: `context.l10n`, `context.palette`, `context.showSnack`, `AppLauncher` (https, maps, WhatsApp), `Validators`, `InputFormatters`.
-
-Present but unused by other `lib/` files: `LanguageToggleButton`, `ActivityTile`, `AssetConstants.logo`. Reuse them before creating duplicates.
-
----
-
-## Coding Conventions
-
-- Features: `data/` `domain/` `presentation/` when API exists; presentation-only is OK for local/demo features (home, discover, splash, shell, setting)
-- Files: `*_page.dart`, `*_provider.dart`, `*_repository.dart` / `*_repository_impl.dart`, `*_remote_datasource.dart`, `*_local_datasource.dart`, `*_model.dart`, `*_usecase.dart`
-- Models extend entities; `fromJson` / `toJson` / `fromEntity` as needed
-- Constant classes: private constructor `const X._()`
-- Strings: add getters on `L10n` (`_t(en, ar)`). Use `context.l10n`. Do not hardcode user-facing copy
-- Layout: `Responsive.pagePadding()`, `.w/.h/.sp/.r`, `AppColors` / `context.palette`. Fonts: Inter (en), Cairo (ar) via `AppTheme`
-- After mutations: `notifyListeners()`
-- Repository returns `Either`; provider folds to `_errorMessage` + snackbar in UI
+- Strings via `L10n` / `context.l10n`
+- Layout via Responsive + `AppColors` / `context.palette`
+- Repository returns `Either`; providers fold to UI state
 - Imports: `package:yalla_5roga/...`
+- Do not invent endpoints outside `ApiConstants`
+- Do not call ApiClient/Dio/http/Firebase from widgets or feature providers
+- Prefer existing shared widgets before new one-offs
 
-```dart
-// ✅ read vs watch
-context.watch<GroupsProvider>().visible
-context.read<GroupsProvider>().markRead(id)
+### Modification rules
 
-// ✅ navigation
-Get.to(() => GroupDetailsPage(groupId: group.id));
-
-// ❌ do not call ApiClient from a widget
-```
-
----
-
-## Feature Development Flow
-
-1. Inspect a similar feature (notifications = full API; discover = local-only; groups = demo + one API).
-2. Reuse existing provider/repo/widget/endpoint if it already exists.
-3. **If API-backed:** `ApiConstants` → entity → model `fromJson` (`apiPayload`) → remote datasource (`ApiClient`) → repository + `guardRemote` → provider → register in `AppDependencies` **and** `app.dart` → page/widgets → `L10n` strings.
-4. **If auth-like:** also add `UseCase` + params (only auth does this today).
-5. **If local/demo:** provider + `DemoData`/`DiscoverData`/prefs; page-scoped provider if form-only.
-6. **If unread-related:** go through `UnreadCountsRepository`, do not add a parallel counts API.
-7. Navigate with GetX widget constructors; keep tabs in `MainShell`.
-8. Use `ImageSourceSheet` for photos, `PickLocationPage` for maps, `AppLauncher` for external links.
-
----
-
-## Modification Rules
-
-- Always inspect existing code before creating new code.
-- Reuse existing implementations whenever possible.
-- Do not duplicate existing services/providers/repositories/widgets.
-- Do not invent API endpoints.
-- Do not invent models or architecture when an existing implementation can be reused.
-- Do not place API/networking logic directly inside UI widgets.
-- Follow the existing Provider implementation.
-- Follow the existing architecture.
-- Keep changes minimal and focused.
-- Do not modify unrelated files.
-- Preserve existing behavior unless the task explicitly requires changing it.
-- Use existing authentication/networking mechanisms.
-- Follow existing naming and coding conventions.
-
----
-
-## Important Project-Specific Rules
-
-- Live settings live in `lib/features/setting/`. `lib/features/groups` detail screen is `GroupDetailsPage(groupId:)`. `lib/features/profile/` still has leftover pages that import from `setting`; do **not** add new settings UI there or wire `MainShell` to profile.
-- Groups/outings/discover/chat **content** is demo/local. Do not add API CRUD for them unless new endpoints are first added to `ApiConstants`.
-- OTP send is UI-only; login/register currently posts OTP as `password`.
-- Keep auth demo-user fallback unless explicitly asked to require a live API.
-- Nominatim stays on `package:http`; app API stays on Dio/`ApiClient`.
-- Phone validation is Egyptian-only; do not switch to generic email/password without updating `Validators` + auth UI.
-- Persist new prefs keys in `AppConstants`, not magic strings.
-- `flutter: generate: false` — do not introduce `.arb`/gen-l10n unless asked; extend `l10n.dart`.
-- Android applicationId `com.example.yalla_5roga`; iOS bundle `com.example.yalla5roga`. Permissions already include internet, camera, photos, location. WhatsApp/maps query schemes exist — use `AppLauncher`.
-- No `test/` directory. Do not add a new DI package. Do not add Firebase unless asked.
-- Root `index.html` is design reference only; do not treat it as a backend or Flutter web entry (web uses `web/`).
+- Inspect and reuse existing layers before adding new ones
+- Wire new app-wide providers in **both** `AppDependencies` and `App`
+- Do not reintroduce mock/demo seed data layers
+- Live mode may hit placeholder paths that fail until the Node backend exists — acceptable
+- `flutter: generate: false` — extend `l10n.dart`, do not add gen-l10n unless asked

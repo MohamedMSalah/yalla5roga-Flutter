@@ -4,18 +4,113 @@ import 'package:yalla_5roga/core/error/exceptions.dart';
 import 'package:yalla_5roga/core/network/api_client.dart';
 import 'package:yalla_5roga/core/network/api_payload.dart';
 import 'package:yalla_5roga/features/groups/data/models/group_read_result_model.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group_read_result.dart';
+import 'package:yalla_5roga/features/groups/domain/entities/group_role.dart';
 
-abstract class GroupsRemoteDataSource {
-  Future<GroupReadResultModel> markRead(String groupId);
+abstract class GroupsDataSource {
+  Future<List<Group>> getGroups();
+  Future<Group> getGroup(String groupId);
+  Future<Group> createGroup(Group group);
+  Future<Group> updateGroup(Group group);
+  Future<Group> addMember(String groupId, GroupMember member);
+  Future<Group> removeMember(String groupId, String memberId);
+  Future<GroupReadResult> markRead(String groupId);
+  GroupMember? memberById(String id);
+  GroupMember? memberByPhone(String phone);
+  String groupsForMember(String id);
+  List<GroupMember> get contacts;
 }
 
-class GroupsRemoteDataSourceImpl implements GroupsRemoteDataSource {
-  const GroupsRemoteDataSourceImpl(this._client);
+/// Live Dio datasource. Placeholder endpoints until the Node.js backend lands.
+class GroupsRemoteDataSource implements GroupsDataSource {
+  GroupsRemoteDataSource(this._client);
 
   final ApiClient _client;
 
   @override
-  Future<GroupReadResultModel> markRead(String groupId) async {
+  List<GroupMember> get contacts => const [];
+
+  @override
+  Future<List<Group>> getGroups() async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(ApiConstants.groups);
+      final payload = apiPayload(response.data);
+      final raw = payload['items'] ?? payload['groups'] ?? payload;
+      if (raw is! List) return const [];
+      return [
+        for (final item in raw)
+          if (item is Map) _groupFromJson(Map<String, dynamic>.from(item)),
+      ];
+    } on DioException catch (error) {
+      throw _unwrap(error);
+    }
+  }
+
+  @override
+  Future<Group> getGroup(String groupId) async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(ApiConstants.group(groupId));
+      return _groupFromJson(apiPayload(response.data));
+    } on DioException catch (error) {
+      throw _unwrap(error);
+    }
+  }
+
+  @override
+  Future<Group> createGroup(Group group) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        ApiConstants.groups,
+        data: _groupToJson(group),
+      );
+      return _groupFromJson(apiPayload(response.data));
+    } on DioException catch (error) {
+      throw _unwrap(error);
+    }
+  }
+
+  @override
+  Future<Group> updateGroup(Group group) async {
+    try {
+      final response = await _client.put<Map<String, dynamic>>(
+        ApiConstants.group(group.id),
+        data: _groupToJson(group),
+      );
+      return _groupFromJson(apiPayload(response.data));
+    } on DioException catch (error) {
+      throw _unwrap(error);
+    }
+  }
+
+  @override
+  Future<Group> addMember(String groupId, GroupMember member) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        ApiConstants.groupMembers(groupId),
+        data: member.toJson(),
+      );
+      return _groupFromJson(apiPayload(response.data));
+    } on DioException catch (error) {
+      throw _unwrap(error);
+    }
+  }
+
+  @override
+  Future<Group> removeMember(String groupId, String memberId) async {
+    try {
+      final response = await _client.delete<Map<String, dynamic>>(
+        '${ApiConstants.groupMembers(groupId)}/$memberId',
+      );
+      return _groupFromJson(apiPayload(response.data));
+    } on DioException catch (error) {
+      throw _unwrap(error);
+    }
+  }
+
+  @override
+  Future<GroupReadResult> markRead(String groupId) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
         ApiConstants.groupRead(groupId),
@@ -25,10 +120,59 @@ class GroupsRemoteDataSourceImpl implements GroupsRemoteDataSource {
         groupId: groupId,
       );
     } on DioException catch (error) {
-      if (error.error is AppException) {
-        throw error.error as AppException;
-      }
-      throw ServerException(error.message ?? 'Server error');
+      throw _unwrap(error);
     }
+  }
+
+  @override
+  GroupMember? memberById(String id) => null;
+
+  @override
+  GroupMember? memberByPhone(String phone) => null;
+
+  @override
+  String groupsForMember(String id) => '';
+
+  Group _groupFromJson(Map<String, dynamic> json) {
+    final peopleRaw = json['people'] ?? json['membersList'];
+    final people = <GroupMember>[
+      if (peopleRaw is List)
+        for (final item in peopleRaw)
+          if (item is Map) GroupMember.fromJson(Map<String, dynamic>.from(item)),
+    ];
+    return Group(
+      id: apiString(json['id']) ?? '',
+      name: apiString(json['name']) ?? '',
+      members: people.isNotEmpty ? people.length : apiInt(json['members']),
+      outings: apiInt(json['outings']),
+      preview: apiString(json['preview']) ?? '',
+      avatars: [
+        for (final item in json['avatars'] as List? ?? const [])
+          if (item is String) item,
+      ],
+      image: apiString(json['image']) ?? apiString(json['coverUrl']) ?? '',
+      people: people,
+      lastMessage: apiString(json['lastMessage']),
+      unread: apiInt(json['unread']),
+      featured: apiBool(json['featured']),
+      decision: apiString(json['decision']),
+      myRole: GroupRole.values.firstWhere(
+        (role) => role.name == json['myRole'],
+        orElse: () => GroupRole.member,
+      ),
+    );
+  }
+
+  Map<String, dynamic> _groupToJson(Group group) => {
+        'id': group.id,
+        'name': group.name,
+        'image': group.image,
+        'people': [for (final person in group.people) person.toJson()],
+        'myRole': group.myRole.name,
+      };
+
+  AppException _unwrap(DioException error) {
+    if (error.error is AppException) return error.error as AppException;
+    return ServerException(error.message ?? 'Server error');
   }
 }

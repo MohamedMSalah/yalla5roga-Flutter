@@ -1,41 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
+import 'package:yalla_5roga/core/utils/app_launcher.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
-import 'package:yalla_5roga/core/utils/app_launcher.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/avatar_stack.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
+import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
+import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/outing.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/outing_chat_page.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
+import 'package:yalla_5roga/features/outings/presentation/widgets/outing_attendance_widget.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_going_sheet.dart';
+import 'package:yalla_5roga/features/outings/presentation/widgets/outing_vote_widget.dart';
 
-class EventPage extends StatelessWidget {
+class EventPage extends StatefulWidget {
   const EventPage({super.key, required this.event});
 
-  final HeroSlide event;
+  final Outing event;
+
+  @override
+  State<EventPage> createState() => _EventPageState();
+}
+
+class _EventPageState extends State<EventPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final outings = context.read<OutingsProvider>();
+      final before = outings.findById(widget.event.id);
+      final changed = await outings.refreshLifecycle();
+      if (!changed || !mounted) return;
+      final after = outings.findById(widget.event.id);
+      if (before?.status == OutingStatus.voting && after?.status == OutingStatus.upcoming) {
+        final place = after?.location?.name ?? '';
+        context.read<NotificationsProvider>().emitLocal(
+              body: context.l10n.notifVotingEnded(place, after!.title),
+              outingId: after.id,
+            );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final palette = context.palette;
-    final saved = context.watch<SavedOutingsProvider>().isSaved(event.id);
+    final outings = context.watch<OutingsProvider>();
+    final live = outings.findById(widget.event.id) ?? widget.event;
+    final saved = context.watch<SavedOutingsProvider>().isSaved(live.id);
+    final userId = context.watch<AuthProvider>().user?.id;
+    final attendance = outings.myAttendance(live.id, userId);
+    final going = outings.goingCountFor(live.id);
+    final goingAvatars = [
+      for (final member in outings.membersForOuting(live))
+        if (outings.attendanceFor(live.id, member.id) == AttendanceStatus.going &&
+            member.avatar.trim().isNotEmpty)
+          member.avatar,
+    ];
+    final goingAvatarUrls = goingAvatars.take(3).toList();
 
     return Scaffold(
-      // AppPageBar — outing title + bookmark AppIconButton
       appBar: AppPageBar(
-        title: event.title,
+        title: live.title,
         trailing: AppIconButton(
           icon: saved ? Icons.bookmark : Icons.bookmark_border,
           background: saved ? AppColors.brand600 : null,
           foreground: saved ? Colors.white : null,
-          onTap: () => _toggleSaved(context),
+          onTap: () => _toggleSaved(context, live),
         ),
       ),
       body: SafeArea(
@@ -43,44 +85,54 @@ class EventPage extends StatelessWidget {
         child: ListView(
           padding: Responsive.pagePadding(),
           children: [
-            // AppNetworkImage — cover photo
-            AppNetworkImage(url: event.image, width: double.infinity, height: 220.h, radius: 24.r),
+            AppNetworkImage(url: live.image, width: double.infinity, height: 220.h, radius: 24.r),
             Responsive.spaceMd.gapH,
-            Text(
-              event.title,
-              style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.w800),
-            ),
+            Text(live.title, style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.w800)),
             Responsive.spaceXs.gapH,
             Wrap(
               spacing: 8.w,
               runSpacing: 8.h,
               children: [
-                // AppBadge — confirmed / birthday / wedding
-                AppBadge(label: l10n.confirmed, color: AppColors.emerald500, textColor: Colors.white),
-                if (event.occasion == OutingOccasion.birthday)
+                AppBadge(
+                  label: switch (live.status) {
+                    OutingStatus.voting => l10n.voting,
+                    OutingStatus.past => l10n.past,
+                    _ => l10n.confirmed,
+                  },
+                  color: live.status == OutingStatus.voting ? AppColors.amber100 : AppColors.emerald500,
+                  textColor: live.status == OutingStatus.voting ? AppColors.amber700 : Colors.white,
+                ),
+                if (live.occasion == OutingOccasion.birthday)
                   AppBadge(label: l10n.birthday, color: AppColors.brand50, textColor: AppColors.brand700),
-                if (event.occasion == OutingOccasion.wedding)
-                  AppBadge(label: l10n.wedding, color: const Color(0xFFEDE9FE), textColor: const Color(0xFF7C3AED)),
+                if (live.occasion == OutingOccasion.wedding)
+                  AppBadge(
+                    label: l10n.wedding,
+                    color: const Color(0xFFEDE9FE),
+                    textColor: const Color(0xFF7C3AED),
+                  ),
               ],
             ),
             Responsive.spaceSm.gapH,
-            Text(event.meta, style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontBody)),
+            Text(live.meta, style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontBody)),
             Responsive.spaceMd.gapH,
             Row(
               children: [
                 Icon(Icons.event, size: Responsive.iconMd, color: AppColors.brand600),
                 8.gapW,
-                Text(event.date, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
+                Text(live.date, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
                 const Spacer(),
                 Icon(Icons.schedule, size: Responsive.iconMd, color: AppColors.brand600),
                 8.gapW,
-                Text(event.time, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
+                Text(live.time, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
               ],
             ),
             Responsive.spaceMd.gapH,
-            // AvatarStack + AppBadge — who's going (opens OutingGoingSheet)
+            OutingVoteWidget(outing: live),
+            Responsive.spaceMd.gapH,
+            OutingAttendanceWidget(outing: live),
+            Responsive.spaceMd.gapH,
             GestureDetector(
-              onTap: () => OutingGoingSheet.show(event),
+              onTap: () => OutingGoingSheet.show(live),
               child: Container(
                 padding: EdgeInsets.all(14.w),
                 decoration: BoxDecoration(
@@ -90,29 +142,50 @@ class EventPage extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    AvatarStack(urls: DemoData.avatars.take(3).toList(), extra: event.going - 3),
-                    12.gapW,
+                    if (going > 0) ...[
+                      AvatarStack(
+                        urls: goingAvatarUrls,
+                        extra: (going - goingAvatarUrls.length).clamp(0, 99),
+                      ),
+                      12.gapW,
+                    ],
                     Expanded(
                       child: Text(
-                        l10n.goingCount(event.going),
+                        l10n.goingCount(going),
                         style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontSm),
                       ),
                     ),
-                    AppBadge(label: l10n.youreIn, color: AppColors.emerald50, textColor: const Color(0xFF059669)),
+                    AppBadge(
+                      label: switch (attendance) {
+                        AttendanceStatus.going => l10n.imIn,
+                        AttendanceStatus.notGoing => l10n.notIn,
+                        AttendanceStatus.notVoted => l10n.stillNotVoted,
+                      },
+                      color: switch (attendance) {
+                        AttendanceStatus.going => AppColors.emerald50,
+                        AttendanceStatus.notGoing => AppColors.rose50,
+                        AttendanceStatus.notVoted => palette.surfaceMuted,
+                      },
+                      textColor: switch (attendance) {
+                        AttendanceStatus.going => const Color(0xFF059669),
+                        AttendanceStatus.notGoing => AppColors.rose600,
+                        AttendanceStatus.notVoted => palette.textMuted,
+                      },
+                    ),
                   ],
                 ),
               ),
             ),
             Responsive.spaceLg.gapH,
-            // CustomButton — open maps
-            _MapsButton(event: event),
-            Responsive.spaceSm.gapH,
-            // CustomButton — OutingChatPage
+            if (!live.isLocationHidden && live.location != null) ...[
+              _MapsButton(event: live),
+              Responsive.spaceSm.gapH,
+            ],
             CustomButton(
               label: l10n.outingChat,
               icon: Icons.chat_bubble_outline,
               variant: AppButtonVariant.outlined,
-              onPressed: () => Get.to(() => OutingChatPage(event: event)),
+              onPressed: () => Get.to(() => OutingChatPage(event: live)),
             ),
           ],
         ),
@@ -120,8 +193,8 @@ class EventPage extends StatelessWidget {
     );
   }
 
-  Future<void> _toggleSaved(BuildContext context) async {
-    final added = await context.read<SavedOutingsProvider>().toggle(event);
+  Future<void> _toggleSaved(BuildContext context, Outing live) async {
+    final added = await context.read<SavedOutingsProvider>().toggle(live);
     if (!context.mounted) return;
     AppSnackBar.show(added ? context.l10n.outingSaved : context.l10n.outingRemoved);
   }
@@ -130,7 +203,7 @@ class EventPage extends StatelessWidget {
 class _MapsButton extends StatefulWidget {
   const _MapsButton({required this.event});
 
-  final HeroSlide event;
+  final Outing event;
 
   @override
   State<_MapsButton> createState() => _MapsButtonState();

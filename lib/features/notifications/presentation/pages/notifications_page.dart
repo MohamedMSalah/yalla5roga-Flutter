@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/demo_data.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
@@ -14,6 +14,7 @@ import 'package:yalla_5roga/features/notifications/domain/entities/notification_
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/widgets/notification_card.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -57,9 +58,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
       final marked = await notifications.markRead(item.id);
       if (!marked || !mounted) return;
     }
-    if (item.eventId != null) {
-      // TODO: Get.to EventPage from GET /outings/{item.eventId} when outing CRUD exists.
-      Get.to(() => EventPage(event: DemoData.slideById(item.eventId!)));
+    if (item.outingId != null) {
+      final outing = context.read<OutingsProvider>().byId(item.outingId!);
+      Get.to(() => EventPage(event: outing));
       return;
     }
     if (item.groupId != null) {
@@ -117,10 +118,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 labels: [l10n.all, l10n.unread],
                 index: notifications.filter,
                 onChanged: notifications.setFilter,
-                badges: {1: '$unreadCount'},
+                badges: {1: l10n.n(unreadCount)},
                 children: [
-                  _feed(notifications.items),
-                  _feed(unread),
+                  _feed(notifications.items, unreadOnly: false),
+                  _feed(unread, unreadOnly: true),
                 ],
               ),
           ],
@@ -129,26 +130,33 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _feed(List<NotificationItem> items) {
+  Widget _feed(List<NotificationItem> items, {required bool unreadOnly}) {
     final l10n = context.l10n;
-    // TODO: group by item.createdAt from the API. Demo `time` strings use "Yesterday" as the earlier bucket.
-    final today = items.where((item) => !item.time.toLowerCase().contains('yesterday')).toList();
-    final earlier = items.where((item) => item.time.toLowerCase().contains('yesterday')).toList();
+    if (items.isEmpty) {
+      return AppEmptyState(
+        icon: unreadOnly ? Icons.mark_email_read_outlined : Icons.notifications_none_outlined,
+        message: unreadOnly ? l10n.noUnreadNotifications : l10n.noNotifications,
+        subtitle: unreadOnly ? l10n.noUnreadNotificationsHint : l10n.noNotificationsHint,
+        compact: true,
+      );
+    }
+    final today = NotificationsProvider.todayFrom(items);
+    final earlier = NotificationsProvider.earlierFrom(items);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.today.toUpperCase(),
-          style: TextStyle(
-            color: context.palette.textMuted,
-            fontSize: Responsive.fontCaption,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.4,
+        if (today.isNotEmpty) ...[
+          Text(
+            l10n.today.toUpperCase(),
+            style: TextStyle(
+              color: context.palette.textMuted,
+              fontSize: Responsive.fontCaption,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.4,
+            ),
           ),
-        ),
-        Responsive.spaceSm.gapH,
-        if (today.isNotEmpty)
+          Responsive.spaceSm.gapH,
           ListCard(
             children: [
               for (final item in today)
@@ -163,6 +171,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
             ],
           ),
+        ],
         if (earlier.isNotEmpty) ...[
           Responsive.spaceLg.gapH,
           Text(

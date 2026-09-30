@@ -57,6 +57,27 @@ class AppPermissions {
     return _requestLocationOrOpenSettings();
   }
 
+  /// Ask for contacts so member names can use device contact labels.
+  static Future<AppPermissionResult> promptContactsAccess(L10n l10n) async {
+    if (await Permission.contacts.isGranted) return AppPermissionResult.granted;
+
+    final allowed = await AppAlert.confirm(
+      title: l10n.contactsAccessTitle,
+      message: l10n.contactsAccessBody,
+      confirmText: l10n.allowContacts,
+      cancelText: l10n.notNow,
+    );
+    if (!allowed) return AppPermissionResult.denied;
+
+    var status = await Permission.contacts.status;
+    if (!status.isGranted && !status.isPermanentlyDenied) {
+      status = await Permission.contacts.request();
+    }
+    if (status.isGranted) return AppPermissionResult.granted;
+    await openAppSettings();
+    return AppPermissionResult.openedSettings;
+  }
+
   /// When current-location needs permission that was previously denied.
   static Future<AppPermissionResult> ensureLocation(L10n l10n) async {
     if (await isLocationGranted) return AppPermissionResult.granted;

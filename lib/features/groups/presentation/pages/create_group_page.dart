@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/utils/member_display_name.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
@@ -58,16 +59,17 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
     _phoneController.clear();
   }
 
-  void _create() {
+  void _create() async {
     if (!_formKey.currentState!.validate()) return;
     final groups = context.read<GroupsProvider>();
     final user = context.read<AuthProvider>().user;
     final l10n = context.l10n;
-    final group = groups.createGroup(
+    final group = await groups.createGroup(
       _nameController.text.trim(),
-      ownerName: user?.name ?? l10n.demoUserName,
+      ownerName: user?.name ?? l10n.guestFallback,
       ownerAvatar: user?.imageUrl,
     );
+    if (!mounted) return;
     if (group == null) {
       AppSnackBar.show(context.l10n.photoRequired);
       return;
@@ -172,7 +174,10 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                         children: [
                           for (final phone in phones)
                             Chip(
-                              label: Text(phone, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.sp)),
+                              label: Text(
+                                MemberDisplayName.resolvePhone(phone),
+                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.sp),
+                              ),
                               onDeleted: () => groups.removeCreatePhone(phone),
                               backgroundColor: palette.surfaceMuted,
                             ),

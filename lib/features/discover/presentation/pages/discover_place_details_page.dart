@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/demo/discover_data.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
+import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
 
@@ -20,7 +20,7 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final palette = context.palette;
-    final place = context.read<DiscoverProvider>().findById(placeId) ?? DiscoverData.placeById(placeId);
+    final place = context.read<DiscoverProvider>().placeById(placeId);
     final gallery = place.images.isNotEmpty
         ? place.images
         : [DiscoverPlaceImage(imageUrl: place.coverImageUrl)];
@@ -111,7 +111,7 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${price.amount.toStringAsFixed(0)} ${price.currency}',
+                          l10n.formatPrice(price.amount, price.currency),
                           style: TextStyle(
                             color: AppColors.brand600,
                             fontWeight: FontWeight.w800,
@@ -145,7 +145,7 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                         Text(
                           hour.isClosed
                               ? l10n.closed
-                              : '${hour.opensAt} – ${hour.closesAt}',
+                              : l10n.digits('${hour.opensAt} – ${hour.closesAt}'),
                           style: TextStyle(
                             color: hour.isClosed ? palette.textMuted : palette.textSecondary,
                             fontWeight: FontWeight.w700,

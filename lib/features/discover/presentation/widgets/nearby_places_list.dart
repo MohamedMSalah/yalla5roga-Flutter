@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:yalla_5roga/core/demo/discover_data.dart';
+import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/features/discover/presentation/pages/discover_place_details_page.dart';
 import 'package:yalla_5roga/features/discover/presentation/widgets/suggested_place_tile.dart';
 
@@ -18,7 +19,7 @@ class NearbyPlacesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (places.isEmpty) return const SizedBox.shrink();
+    final l10n = context.l10n;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,13 +36,21 @@ class NearbyPlacesList extends StatelessWidget {
           ),
           Responsive.spaceSm.gapH,
         ],
-        for (final place in places) ...[
-          SuggestedPlaceTile(
-            place: place,
-            onTap: () => Get.to(() => DiscoverPlaceDetailsPage(placeId: place.id)),
-          ),
-          Responsive.spaceSm.gapH,
-        ],
+        if (places.isEmpty)
+          AppEmptyState(
+            icon: Icons.place_outlined,
+            message: l10n.noPlaces,
+            subtitle: l10n.noPlacesHint,
+            compact: true,
+          )
+        else
+          for (final place in places) ...[
+            SuggestedPlaceTile(
+              place: place,
+              onTap: () => Get.to(() => DiscoverPlaceDetailsPage(placeId: place.id)),
+            ),
+            Responsive.spaceSm.gapH,
+          ],
       ],
     );
   }

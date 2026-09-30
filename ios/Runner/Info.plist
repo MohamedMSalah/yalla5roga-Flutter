@@ -8,6 +8,8 @@
 	<string>Take a photo for your group, outing, or profile.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Yalla 5roga uses your location to pin your current place on the map.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Yalla 5roga uses your contacts to show the names you saved for group members. Contacts stay on this device.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

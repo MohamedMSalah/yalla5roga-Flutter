@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/di/app_dependencies.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
@@ -13,6 +14,7 @@ import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
 import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
+import 'package:yalla_5roga/features/notifications/presentation/providers/fcm_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
@@ -36,6 +38,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider<LocaleProvider>.value(value: deps.locale),
         ChangeNotifierProvider<AuthProvider>.value(value: deps.auth),
         ChangeNotifierProvider<NotificationsProvider>.value(value: deps.notifications),
+        ChangeNotifierProvider<FcmProvider>.value(value: deps.fcm),
         ChangeNotifierProvider<OutingChatProvider>.value(value: deps.outingChat),
         ChangeNotifierProvider<OutingsProvider>.value(value: deps.outings),
         ChangeNotifierProvider<SavedOutingsProvider>.value(value: deps.savedOutings),
@@ -44,6 +47,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider<DiscoverProvider>.value(value: deps.discover),
         ChangeNotifierProvider<SettingsProvider>.value(value: deps.settings),
         Provider<GeocodingRepository>.value(value: deps.geocoding),
+        Provider<SharedPreferences>.value(value: deps.prefs),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, theme, locale, _) {
@@ -75,7 +79,7 @@ class App extends StatelessWidget {
                   data: theme.copyWith(
                     textTheme: theme.textTheme.apply(fontSizeFactor: Responsive.scale),
                   ),
-                  child: _NotificationPermissionGate(
+                  child: _PushBootstrap(
                     child: child ?? const SizedBox.shrink(),
                   ),
                 ),
@@ -88,22 +92,28 @@ class App extends StatelessWidget {
   }
 }
 
-class _NotificationPermissionGate extends StatefulWidget {
-  const _NotificationPermissionGate({required this.child});
+/// Asks for notification permission once, then flushes any cold-start FCM tap.
+class _PushBootstrap extends StatefulWidget {
+  const _PushBootstrap({required this.child});
 
   final Widget child;
 
   @override
-  State<_NotificationPermissionGate> createState() => _NotificationPermissionGateState();
+  State<_PushBootstrap> createState() => _PushBootstrapState();
 }
 
-class _NotificationPermissionGateState extends State<_NotificationPermissionGate> {
+class _PushBootstrapState extends State<_PushBootstrap> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await AppPermissions.promptNotificationsOnLaunch(context.l10n);
+      if (!mounted) return;
+      final fcm = context.read<FcmProvider>();
+      await fcm.afterPermissionPrompt();
+      if (!mounted) return;
+      fcm.flushPendingNavigation();
     });
   }
 

@@ -22,7 +22,12 @@ class NetworkFailure extends Failure {
 }
 
 class AuthFailure extends Failure {
-  const AuthFailure([super.message = 'Authentication failed']);
+  const AuthFailure([super.message = 'Authentication failed', this.code]);
+
+  final String? code;
+
+  @override
+  List<Object?> get props => [message, code];
 }
 
 class ValidationFailure extends Failure {

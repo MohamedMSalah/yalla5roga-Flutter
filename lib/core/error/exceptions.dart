@@ -20,5 +20,8 @@ class NetworkException extends AppException {
 }
 
 class AuthException extends AppException {
-  const AuthException([super.message = 'Authentication failed']);
+  const AuthException([super.message = 'Authentication failed', this.code]);
+
+  /// Stable machine code (Firebase Auth code or local), for UI localization.
+  final String? code;
 }

@@ -16,7 +16,7 @@ class AuthInterceptor extends Interceptor {
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (attachBackendJwt) {
       final token = _prefs.getString(AppConstants.tokenKey);
-      if (token != null && token.isNotEmpty && token != AppConstants.demoToken) {
+      if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
       }
     }

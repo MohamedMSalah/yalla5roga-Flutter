@@ -59,7 +59,7 @@ class NotificationCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      time,
+                      context.l10n.digits(time),
                       style: TextStyle(
                         color: context.palette.textMuted,
                         fontSize: Responsive.fontCaption,
