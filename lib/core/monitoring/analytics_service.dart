@@ -42,34 +42,31 @@ class AnalyticsService {
     await _analytics.logEvent(name: name, parameters: parameters);
   }
 
-  Future<void> loginStarted({required bool isLogin}) => logEvent(
+  Future<void> loginStarted({required bool isLogin, String method = 'email'}) =>
+      logEvent(
         AnalyticsEvents.loginStarted,
-        parameters: {'method': 'phone', 'mode': isLogin ? 'login' : 'register'},
+        parameters: {'method': method, 'mode': isLogin ? 'login' : 'register'},
       );
 
-  Future<void> loginSuccess() => logEvent(
-        AnalyticsEvents.loginSuccess,
-        parameters: {'method': 'phone'},
-      );
+  Future<void> loginSuccess({String method = 'email'}) =>
+      logEvent(AnalyticsEvents.loginSuccess, parameters: {'method': method});
 
-  Future<void> loginFailed({String? code}) => logEvent(
-        AnalyticsEvents.loginFailed,
-        parameters: {
-          'method': 'phone',
-          if (code != null && code.isNotEmpty) 'error_code': code,
-        },
-      );
+  Future<void> loginFailed({String? code, String method = 'email'}) => logEvent(
+    AnalyticsEvents.loginFailed,
+    parameters: {
+      'method': method,
+      if (code != null && code.isNotEmpty) 'error_code': code,
+    },
+  );
 
   Future<void> createGroup() => logEvent(AnalyticsEvents.createGroup);
 
   Future<void> joinGroup() => logEvent(AnalyticsEvents.joinGroup);
 
   Future<void> createOuting({String? source}) => logEvent(
-        AnalyticsEvents.createOuting,
-        parameters: {
-          if (source != null && source.isNotEmpty) 'source': source,
-        },
-      );
+    AnalyticsEvents.createOuting,
+    parameters: {if (source != null && source.isNotEmpty) 'source': source},
+  );
 
   Future<void> submitVote() => logEvent(AnalyticsEvents.submitVote);
 }

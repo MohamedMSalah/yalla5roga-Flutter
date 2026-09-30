@@ -11,7 +11,6 @@ import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/app_switch.dart';
 import 'package:yalla_5roga/core/widgets/language_choice.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
-import 'package:yalla_5roga/core/widgets/image_source_sheet.dart';
 import 'package:yalla_5roga/features/auth/presentation/pages/auth_page.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
@@ -19,6 +18,7 @@ import 'package:yalla_5roga/features/notifications/presentation/providers/notifi
 import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
 import 'package:yalla_5roga/features/setting/presentation/pages/about_developer_page.dart';
 import 'package:yalla_5roga/features/setting/presentation/providers/settings_provider.dart';
+import 'package:yalla_5roga/features/setting/presentation/pages/edit_profile_page.dart';
 import 'package:yalla_5roga/features/setting/presentation/pages/profile_info_page.dart';
 import 'package:yalla_5roga/features/setting/presentation/widgets/about_developer_card.dart';
 import 'package:yalla_5roga/features/setting/presentation/widgets/profile_header.dart';
@@ -45,13 +45,8 @@ class SettingsPage extends StatelessWidget {
     Get.offAll(() => const AuthPage());
   }
 
-  Future<void> _editImage(BuildContext context) async {
-    final url = await ImageSourceSheet.pick(title: context.l10n.changeProfileImage);
-    if (url == null || !context.mounted) return;
-    await context.read<AuthProvider>().updateProfile(imageUrl: url);
-    if (!context.mounted) return;
-    final error = context.read<AuthProvider>().errorMessage;
-    AppSnackBar.show(error ?? context.l10n.profileUpdated);
+  void _openEditProfile(BuildContext context) {
+    Get.to(() => const EditProfilePage());
   }
 
   Future<void> _deleteAccount(BuildContext context) async {
@@ -84,7 +79,11 @@ class SettingsPage extends StatelessWidget {
   }
 
   Widget _chevron(BuildContext context) {
-    return Icon(context.chevronForward, color: context.palette.border, size: 20.w);
+    return Icon(
+      context.chevronForward,
+      color: context.palette.border,
+      size: 20.w,
+    );
   }
 
   @override
@@ -105,13 +104,17 @@ class SettingsPage extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.slate950, AppColors.brand700, Color(0xFF8B5CF6)],
+              colors: [
+                AppColors.slate950,
+                AppColors.brand700,
+                Color(0xFF8B5CF6),
+              ],
             ),
           ),
           child: ProfileHeader(
             user: user,
             onLogout: () => _logout(context),
-            onEditImage: () => _editImage(context),
+            onEditProfile: () => _openEditProfile(context),
           ),
         ),
         Padding(
@@ -128,11 +131,22 @@ class SettingsPage extends StatelessWidget {
                 title: l10n.accountSettings,
                 children: [
                   SettingsTile(
+                    icon: Icons.manage_accounts_outlined,
+                    title: l10n.editProfile,
+                    subtitle: user?.email ?? l10n.digits(user?.phone ?? ''),
+                    background: AppColors.brand50,
+                    foreground: AppColors.brand600,
+                    trailing: _chevron(context),
+                    onTap: () => _openEditProfile(context),
+                  ),
+                  SettingsTile(
                     icon: Icons.phone_outlined,
                     title: l10n.phone,
-                    subtitle: user?.phone ?? '',
+                    subtitle: l10n.digits(user?.phone ?? ''),
                     background: const Color(0xFFEDE9FE),
                     foreground: const Color(0xFF7C3AED),
+                    trailing: _chevron(context),
+                    onTap: () => _openEditProfile(context),
                   ),
                   SettingsTile(
                     icon: Icons.calendar_today_outlined,
@@ -143,14 +157,18 @@ class SettingsPage extends StatelessWidget {
                   SettingsTile(
                     icon: Icons.bookmark_outline,
                     title: l10n.mySaved,
-                    subtitle: savedOutings.totalCount == 0 ? l10n.mySavedSubtitle : l10n.savedCount(savedOutings.totalCount),
+                    subtitle: savedOutings.totalCount == 0
+                        ? l10n.mySavedSubtitle
+                        : l10n.savedCount(savedOutings.totalCount),
                     background: AppColors.brand50,
                     foreground: AppColors.brand600,
                     trailing: _chevron(context),
                     onTap: () => Get.to(() => const SavedOutingsPage()),
                   ),
                   SettingsTile(
-                    icon: theme.isDark ? Icons.wb_sunny_outlined : Icons.dark_mode_outlined,
+                    icon: theme.isDark
+                        ? Icons.wb_sunny_outlined
+                        : Icons.dark_mode_outlined,
                     title: l10n.darkTheme,
                     subtitle: l10n.useDarkColors,
                     background: const Color(0xFFEDE9FE),
@@ -178,7 +196,9 @@ class SettingsPage extends StatelessWidget {
                     foreground: AppColors.rose500,
                     trailing: AppSwitch(
                       value: context.watch<SettingsProvider>().pushEnabled,
-                      onChanged: context.read<SettingsProvider>().setPushEnabled,
+                      onChanged: context
+                          .read<SettingsProvider>()
+                          .setPushEnabled,
                     ),
                   ),
                   SettingsTile(
@@ -206,9 +226,18 @@ class SettingsPage extends StatelessWidget {
                       () => ProfileInfoPage(
                         title: l10n.helpAndFaq,
                         children: [
-                          ProfileInfoBlock(title: l10n.faqCreateOuting, body: l10n.faqCreateOutingAnswer),
-                          ProfileInfoBlock(title: l10n.faqGroups, body: l10n.faqGroupsAnswer),
-                          ProfileInfoBlock(title: l10n.faqInvite, body: l10n.faqInviteAnswer),
+                          ProfileInfoBlock(
+                            title: l10n.faqCreateOuting,
+                            body: l10n.faqCreateOutingAnswer,
+                          ),
+                          ProfileInfoBlock(
+                            title: l10n.faqGroups,
+                            body: l10n.faqGroupsAnswer,
+                          ),
+                          ProfileInfoBlock(
+                            title: l10n.faqInvite,
+                            body: l10n.faqInviteAnswer,
+                          ),
                         ],
                       ),
                     ),
@@ -219,7 +248,11 @@ class SettingsPage extends StatelessWidget {
                     subtitle: l10n.getInTouch,
                     background: const Color(0xFFE0F2FE),
                     foreground: const Color(0xFF0284C7),
-                    trailing: Icon(Icons.arrow_outward, size: 16.w, color: context.palette.textMuted),
+                    trailing: Icon(
+                      Icons.arrow_outward,
+                      size: 16.w,
+                      color: context.palette.textMuted,
+                    ),
                     onTap: () => _openLink(
                       context,
                       'mailto:${AboutDeveloperCard.contactEmail}?subject=Yalla%205roga',
@@ -241,7 +274,12 @@ class SettingsPage extends StatelessWidget {
                     onTap: () => Get.to(
                       () => ProfileInfoPage(
                         title: l10n.aboutYalla5roga,
-                        children: [ProfileInfoBlock(title: l10n.appName, body: l10n.aboutAppBody)],
+                        children: [
+                          ProfileInfoBlock(
+                            title: l10n.appName,
+                            body: l10n.aboutAppBody,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -254,7 +292,12 @@ class SettingsPage extends StatelessWidget {
                     onTap: () => Get.to(
                       () => ProfileInfoPage(
                         title: l10n.privacyPolicy,
-                        children: [ProfileInfoBlock(title: l10n.privacyPolicy, body: l10n.privacyPolicyBody)],
+                        children: [
+                          ProfileInfoBlock(
+                            title: l10n.privacyPolicy,
+                            body: l10n.privacyPolicyBody,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -267,7 +310,12 @@ class SettingsPage extends StatelessWidget {
                     onTap: () => Get.to(
                       () => ProfileInfoPage(
                         title: l10n.termsAndConditions,
-                        children: [ProfileInfoBlock(title: l10n.termsAndConditions, body: l10n.termsBody)],
+                        children: [
+                          ProfileInfoBlock(
+                            title: l10n.termsAndConditions,
+                            body: l10n.termsBody,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -281,7 +329,7 @@ class SettingsPage extends StatelessWidget {
                   SettingsTile(
                     icon: Icons.computer_outlined,
                     title: l10n.aboutDeveloper,
-                    subtitle: l10n.developerName,
+                    //subtitle: l10n.developerName,
                     background: AppColors.brand50,
                     foreground: AppColors.brand600,
                     trailing: _chevron(context),

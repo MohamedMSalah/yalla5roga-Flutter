@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
+import 'package:yalla_5roga/core/utils/digit_utils.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/utils/input_formatters.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
@@ -36,6 +37,14 @@ class _OtpInputState extends State<OtpInput> {
     super.initState();
     _focusNode = FocusNode()..addListener(_rebuild);
     widget.controller.addListener(_rebuild);
+    if (widget.autofocus) {
+      // Autofocus on TextFormField often loses to the previous field when
+      // this widget is inserted after send-OTP; claim focus after the frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -52,7 +61,9 @@ class _OtpInputState extends State<OtpInput> {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final l10n = context.l10n;
     final code = widget.controller.text;
+    final arabicDisplay = l10n.locale.languageCode == 'ar';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,18 +99,22 @@ class _OtpInputState extends State<OtpInput> {
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: palette.inputFill,
-                          borderRadius: BorderRadius.circular(Responsive.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            Responsive.radiusMd,
+                          ),
                           border: Border.all(
                             color: _focusNode.hasFocus && code.length == i
                                 ? AppColors.brand500
                                 : code.length > i
-                                    ? palette.brandSoftBorder
-                                    : palette.border,
-                            width: _focusNode.hasFocus && code.length == i ? 1.6 : 1,
+                                ? palette.brandSoftBorder
+                                : palette.border,
+                            width: _focusNode.hasFocus && code.length == i
+                                ? 1.6
+                                : 1,
                           ),
                         ),
                         child: Text(
-                          i < code.length ? code[i] : '',
+                          i < code.length ? l10n.digits(code[i]) : '',
                           style: TextStyle(
                             fontSize: 20.sp,
                             fontWeight: FontWeight.w800,
@@ -122,12 +137,17 @@ class _OtpInputState extends State<OtpInput> {
                     textInputAction: TextInputAction.done,
                     validator: widget.validator,
                     inputFormatters: [
-                      InputFormatters.digitsOnly,
-                      InputFormatters.maxLength(widget.length),
+                      InputFormatters.localizedDigits(
+                        arabicDisplay: arabicDisplay,
+                        maxLength: widget.length,
+                      ),
                     ],
                     onChanged: (value) {
                       setState(() {});
-                      if (value.length == widget.length) widget.onCompleted?.call(value);
+                      final western = DigitUtils.westernDigitsOnly(value);
+                      if (western.length == widget.length) {
+                        widget.onCompleted?.call(western);
+                      }
                     },
                     decoration: const InputDecoration(
                       border: InputBorder.none,

@@ -5,19 +5,52 @@ import 'package:yalla_5roga/features/auth/domain/entities/user.dart';
 
 abstract class AuthRepository {
   Future<Either<Failure, User>> login({
-    required String phone,
+    required String email,
     required String password,
   });
 
+  /// Creates an account after the phone OTP has been verified.
   Future<Either<Failure, User>> register({
     required String name,
-    required String phone,
+    required String email,
     required String password,
+    required String phone,
+    required String verificationId,
+    required String smsCode,
   });
+
+  Future<Either<Failure, User>> signInWithGoogle();
+
+  Future<Either<Failure, User>> signInWithApple();
 
   Future<Either<Failure, User>> getCachedUser();
 
   Future<Either<Failure, User>> saveUser(User user);
+
+  /// Updates display name and/or local profile image path, then refreshes cache.
+  Future<Either<Failure, User>> updateProfileData({
+    String? name,
+    String? imageUrl,
+  });
+
+  /// Email/password accounts only. Sends a confirmation link to the new email.
+  Future<Either<Failure, void>> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  });
+
+  Future<Either<Failure, User>> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
+  Future<Either<Failure, User>> updatePhoneNumber({
+    required String verificationId,
+    required String smsCode,
+    required String phone,
+  });
+
+  bool get hasPasswordProvider;
 
   Future<Either<Failure, void>> logout();
 

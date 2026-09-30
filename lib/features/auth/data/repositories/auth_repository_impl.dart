@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:yalla_5roga/core/error/exceptions.dart';
 import 'package:yalla_5roga/core/error/failures.dart';
 import 'package:yalla_5roga/core/network/network_info.dart';
@@ -56,23 +57,13 @@ mixin _AuthFirebaseMixin on AuthRepository {
         await firebaseUser.updateDisplayName(name.trim());
       }
 
-      final token = await firebaseAuth.idToken() ?? '';
-      final resolvedName = (name != null && name.trim().isNotEmpty)
-          ? name.trim()
-          : (firebaseUser.displayName?.trim().isNotEmpty == true
-              ? firebaseUser.displayName!.trim()
-              : phone);
-
-      final user = UserModel(
-        id: firebaseUser.uid,
-        name: resolvedName,
-        phone: firebaseUser.phoneNumber ?? phone,
-        email: firebaseUser.email,
-        token: token,
-        imageUrl: firebaseUser.photoURL,
+      return Right(
+        await _cacheFirebaseUser(
+          firebaseUser,
+          fallbackPhone: phone,
+          name: name,
+        ),
       );
-      await local.cacheUser(user);
-      return Right(user);
     } on AuthException catch (error) {
       return Left(AuthFailure(error.message, error.code));
     } on CacheException catch (error) {
@@ -100,6 +91,75 @@ mixin _AuthFirebaseMixin on AuthRepository {
       return const Left(AuthFailure('Sign out failed'));
     }
   }
+
+  Future<UserModel> _cacheFirebaseUser(
+    fb.User firebaseUser, {
+    String? fallbackPhone,
+    String? name,
+    String? imageUrl,
+  }) async {
+    final token = await firebaseAuth.idToken() ?? '';
+    final phone = firebaseUser.phoneNumber ?? fallbackPhone ?? '';
+    final resolvedName = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : (firebaseUser.displayName?.trim().isNotEmpty == true
+              ? firebaseUser.displayName!.trim()
+              : (firebaseUser.email?.trim().isNotEmpty == true
+                    ? firebaseUser.email!.trim()
+                    : (phone.isNotEmpty ? phone : 'User')));
+
+    String? resolvedImage = imageUrl ?? firebaseUser.photoURL;
+    if (resolvedImage == null || resolvedImage.isEmpty) {
+      try {
+        final cached = await local.getCachedUser();
+        final localImage = cached.imageUrl?.trim();
+        if (localImage != null && localImage.isNotEmpty) {
+          resolvedImage = localImage;
+        }
+      } catch (_) {}
+    }
+
+    final user = UserModel(
+      id: firebaseUser.uid,
+      name: resolvedName,
+      phone: phone,
+      email: firebaseUser.email,
+      token: token,
+      imageUrl: resolvedImage,
+    );
+    await local.cacheUser(user);
+    return user;
+  }
+
+  Future<Either<Failure, User>> _fromFirebaseCredential(
+    Future<fb.UserCredential> Function() action, {
+    String? name,
+    String? fallbackPhone,
+  }) async {
+    try {
+      final credential = await action();
+      final firebaseUser = credential.user ?? firebaseAuth.currentUser;
+      if (firebaseUser == null) {
+        return const Left(AuthFailure('Authentication failed'));
+      }
+      // Reload so linked email/phone/displayName are fresh.
+      await firebaseUser.reload();
+      final refreshed = firebaseAuth.currentUser ?? firebaseUser;
+      return Right(
+        await _cacheFirebaseUser(
+          refreshed,
+          fallbackPhone: fallbackPhone,
+          name: name,
+        ),
+      );
+    } on AuthException catch (error) {
+      return Left(AuthFailure(error.message, error.code));
+    } on CacheException catch (error) {
+      return Left(CacheFailure(error.message));
+    } catch (_) {
+      return const Left(AuthFailure('Authentication failed'));
+    }
+  }
 }
 
 class AuthRepositoryImpl extends AuthRepository with _AuthFirebaseMixin {
@@ -119,21 +179,45 @@ class AuthRepositoryImpl extends AuthRepository with _AuthFirebaseMixin {
 
   @override
   Future<Either<Failure, User>> login({
-    required String phone,
+    required String email,
     required String password,
   }) {
-    return _guard(() => remote.login(phone: phone, password: password));
+    return _fromFirebaseCredential(
+      () => firebaseAuth.signInWithEmail(email: email, password: password),
+    );
   }
 
   @override
   Future<Either<Failure, User>> register({
     required String name,
-    required String phone,
+    required String email,
     required String password,
+    required String phone,
+    required String verificationId,
+    required String smsCode,
   }) {
-    return _guard(
-      () => remote.register(name: name, phone: phone, password: password),
+    return _fromFirebaseCredential(
+      () => firebaseAuth.registerWithEmailAfterPhone(
+        name: name,
+        email: email,
+        password: password,
+        phone: phone,
+        verificationId: verificationId,
+        smsCode: smsCode,
+      ),
+      name: name,
+      fallbackPhone: phone,
     );
+  }
+
+  @override
+  Future<Either<Failure, User>> signInWithGoogle() {
+    return _fromFirebaseCredential(firebaseAuth.signInWithGoogle);
+  }
+
+  @override
+  Future<Either<Failure, User>> signInWithApple() {
+    return _fromFirebaseCredential(firebaseAuth.signInWithApple);
   }
 
   @override
@@ -157,6 +241,100 @@ class AuthRepositoryImpl extends AuthRepository with _AuthFirebaseMixin {
   }
 
   @override
+  bool get hasPasswordProvider => firebaseAuth.hasPasswordProvider;
+
+  @override
+  Future<Either<Failure, User>> updateProfileData({
+    String? name,
+    String? imageUrl,
+  }) async {
+    try {
+      fb.User? firebaseUser = firebaseAuth.currentUser;
+      if (firebaseUser == null) {
+        return const Left(AuthFailure('Not signed in'));
+      }
+      if (name != null && name.trim().isNotEmpty) {
+        firebaseUser = await firebaseAuth.updateDisplayName(name.trim());
+      }
+      return Right(
+        await _cacheFirebaseUser(
+          firebaseUser,
+          name: name,
+          imageUrl: imageUrl,
+          fallbackPhone: firebaseUser.phoneNumber,
+        ),
+      );
+    } on AuthException catch (error) {
+      return Left(AuthFailure(error.message, error.code));
+    } on CacheException catch (error) {
+      return Left(CacheFailure(error.message));
+    } catch (_) {
+      return const Left(AuthFailure('Could not update profile'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> requestEmailChange({
+    required String newEmail,
+    required String currentPassword,
+  }) async {
+    try {
+      await firebaseAuth.requestEmailChange(
+        newEmail: newEmail,
+        currentPassword: currentPassword,
+      );
+      return const Right(null);
+    } on AuthException catch (error) {
+      return Left(AuthFailure(error.message, error.code));
+    } catch (_) {
+      return const Left(AuthFailure('Could not update email'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final firebaseUser = await firebaseAuth.updatePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return Right(await _cacheFirebaseUser(firebaseUser));
+    } on AuthException catch (error) {
+      return Left(AuthFailure(error.message, error.code));
+    } on CacheException catch (error) {
+      return Left(CacheFailure(error.message));
+    } catch (_) {
+      return const Left(AuthFailure('Could not update password'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> updatePhoneNumber({
+    required String verificationId,
+    required String smsCode,
+    required String phone,
+  }) async {
+    try {
+      final firebaseUser = await firebaseAuth.updatePhoneNumber(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      return Right(
+        await _cacheFirebaseUser(firebaseUser, fallbackPhone: phone),
+      );
+    } on AuthException catch (error) {
+      return Left(AuthFailure(error.message, error.code));
+    } on CacheException catch (error) {
+      return Left(CacheFailure(error.message));
+    } catch (_) {
+      return const Left(AuthFailure('Could not update phone number'));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> logout() async {
     try {
       await firebaseAuth.signOut();
@@ -171,23 +349,6 @@ class AuthRepositoryImpl extends AuthRepository with _AuthFirebaseMixin {
       } on CacheException catch (error) {
         return Left(CacheFailure(error.message));
       }
-    }
-  }
-
-  Future<Either<Failure, User>> _guard(Future<UserModel> Function() action) async {
-    try {
-      if (!await networkInfo.isConnected) {
-        return const Left(NetworkFailure());
-      }
-      final user = await action();
-      await local.cacheUser(user);
-      return Right(user);
-    } on AuthException catch (error) {
-      return Left(AuthFailure(error.message));
-    } on CacheException catch (error) {
-      return Left(CacheFailure(error.message));
-    } catch (_) {
-      return const Left(ServerFailure());
     }
   }
 }

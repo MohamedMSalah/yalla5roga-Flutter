@@ -14,7 +14,9 @@ class OutingGoingSheet {
 
   static Future<void> show(Outing event) {
     final context = Get.context;
-    final outings = context == null ? null : Provider.of<OutingsProvider>(context, listen: false);
+    final outings = context == null
+        ? null
+        : Provider.of<OutingsProvider>(context, listen: false);
     return Get.bottomSheet(
       SafeArea(
         child: outings == null
@@ -56,8 +58,20 @@ class _OutingGoingSheetBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.whoIsGoing, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
-          Text(l10n.goingCount(going), style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontSm)),
+          Text(
+            l10n.whoIsGoing,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: Responsive.fontMd,
+            ),
+          ),
+          Text(
+            l10n.goingCount(going),
+            style: TextStyle(
+              color: palette.textMuted,
+              fontSize: Responsive.fontSm,
+            ),
+          ),
           Responsive.spaceMd.gapH,
           Expanded(
             child: members.isEmpty
@@ -73,26 +87,44 @@ class _OutingGoingSheetBody extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final member = members[index];
                       final status = outings.attendanceFor(event.id, member.id);
-                      final name = MemberDisplayName.resolve(member);
+                      final name = l10n.digits(
+                        MemberDisplayName.resolve(member),
+                      );
                       return Row(
                         children: [
-                          AppNetworkImage(url: member.avatar, width: 44.w, height: 44.w, radius: 12.r),
+                          AppNetworkImage.avatar(
+                            url: member.avatar,
+                            width: 44.w,
+                            height: 44.w,
+                            radius: 12.r,
+                          ),
                           12.gapW,
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                                 Text(
                                   AttendanceDisplay.label(status, l10n),
-                                  style: TextStyle(color: palette.textMuted, fontSize: 10.sp),
+                                  style: TextStyle(
+                                    color: palette.textMuted,
+                                    fontSize: 10.sp,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           Icon(
                             AttendanceDisplay.icon(status),
-                            color: AttendanceDisplay.color(status, palette.textMuted),
+                            color: AttendanceDisplay.color(
+                              status,
+                              palette.textMuted,
+                            ),
                             size: 18.w,
                           ),
                         ],

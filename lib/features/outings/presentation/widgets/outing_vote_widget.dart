@@ -8,7 +8,6 @@ import 'package:yalla_5roga/core/widgets/app_badge.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/icon_circle.dart';
-import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 
 /// Full voting card for an outing: header + selectable place options.
@@ -57,11 +56,17 @@ class OutingVoteWidget extends StatelessWidget {
                     children: [
                       Text(
                         outing.title,
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.sp,
+                        ),
                       ),
                       Text(
                         l10n.pickFavoritePlace,
-                        style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp),
+                        style: TextStyle(
+                          color: context.palette.textMuted,
+                          fontSize: 10.sp,
+                        ),
                       ),
                     ],
                   ),
@@ -81,11 +86,6 @@ class OutingVoteWidget extends StatelessWidget {
             compact: compact,
             onSelected: (index) {
               outings.selectVoteFor(outing.id, index);
-              context.read<NotificationsProvider>().emitLocal(
-                    body: l10n.notifPlaceVoted(outing.title),
-                    eventId: outing.id,
-                    action: true,
-                  );
               AppSnackBar.show(l10n.voteUpdated);
             },
           ),
@@ -268,7 +268,10 @@ class _VoteCountdownTextState extends State<VoteCountdownText> {
         final l10n = context.l10n;
         final label = remaining.isNegative || remaining == Duration.zero
             ? l10n.voteEnded
-            : l10n.endsInDuration(remaining.inHours, remaining.inMinutes.remainder(60));
+            : l10n.endsInDuration(
+                remaining.inHours,
+                remaining.inMinutes.remainder(60),
+              );
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -276,7 +279,8 @@ class _VoteCountdownTextState extends State<VoteCountdownText> {
             6.gapW,
             Text(
               label,
-              style: widget.style ??
+              style:
+                  widget.style ??
                   TextStyle(
                     color: AppColors.amber700,
                     fontSize: 10.sp,

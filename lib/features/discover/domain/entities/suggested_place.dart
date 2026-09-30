@@ -1,7 +1,8 @@
 import 'package:yalla_5roga/core/localization/l10n.dart';
+import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 
-enum OutingVibe { food, activity, outdoor, movie }
+export 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart' show OutingVibe;
 
 enum PriceLevel { free, budget, moderate, expensive, luxury }
 
@@ -58,7 +59,7 @@ class SuggestedPlace {
     required this.area,
     required this.vibe,
     required this.coverImageUrl,
-    required this.descriptionKey,
+    this.description = '',
     this.priceLevel = PriceLevel.moderate,
     this.priceMin,
     this.priceMax,
@@ -76,7 +77,7 @@ class SuggestedPlace {
   final String area;
   final OutingVibe vibe;
   final String coverImageUrl;
-  final String descriptionKey;
+  final String description;
   final PriceLevel priceLevel;
   final double? priceMin;
   final double? priceMax;
@@ -97,11 +98,14 @@ class SuggestedPlace {
         area: area,
         latitude: latitude,
         longitude: longitude,
+        imageUrl: coverImageUrl,
+        vibe: vibe,
       );
 
-  String localizedName(L10n l10n) => l10n.suggestedPlaceName(id);
+  /// Display helpers — values come from the API, not local seed maps.
+  String localizedName(L10n l10n) => name;
 
   String localizedArea(L10n l10n) => l10n.suggestedArea(area);
 
-  String localizedDescription(L10n l10n) => l10n.discoverPlaceDescription(descriptionKey);
+  String localizedDescription(L10n l10n) => description;
 }

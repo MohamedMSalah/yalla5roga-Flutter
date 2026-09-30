@@ -1,3 +1,4 @@
+import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place_location.dart';
 
 /// Canonical place used by outings, votes, catalogs, and maps.
@@ -8,6 +9,8 @@ class Place {
     this.id = '',
     this.latitude,
     this.longitude,
+    this.imageUrl = '',
+    this.vibe = OutingVibe.food,
   });
 
   /// Stable id when known; otherwise [placeId] derives a slug from [name].
@@ -16,6 +19,12 @@ class Place {
   final String area;
   final double? latitude;
   final double? longitude;
+
+  /// Cover image from the API when available.
+  final String imageUrl;
+
+  /// Category used for fallback icons when [imageUrl] is empty.
+  final OutingVibe vibe;
 
   String get placeId => id.isNotEmpty ? id : slugForName(name);
 
@@ -34,6 +43,8 @@ class Place {
     String? area,
     double? latitude,
     double? longitude,
+    String? imageUrl,
+    OutingVibe? vibe,
   }) {
     return Place(
       id: id ?? this.id,
@@ -41,6 +52,8 @@ class Place {
       area: area ?? this.area,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      imageUrl: imageUrl ?? this.imageUrl,
+      vibe: vibe ?? this.vibe,
     );
   }
 
@@ -50,6 +63,8 @@ class Place {
         'area': area,
         'latitude': latitude,
         'longitude': longitude,
+        'imageUrl': imageUrl,
+        'vibe': vibe.name,
       };
 
   factory Place.fromJson(Map<String, dynamic> json) {
@@ -59,18 +74,16 @@ class Place {
       area: json['area'] as String? ?? '',
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
+      imageUrl: json['imageUrl'] as String? ?? json['coverImageUrl'] as String? ?? '',
+      vibe: OutingVibe.values.firstWhere(
+        (item) => item.name == json['vibe'],
+        orElse: () => OutingVibe.food,
+      ),
     );
   }
 
   static String slugForName(String name) {
     final lower = name.toLowerCase().trim();
-    if (lower.contains('brunch')) return 'brunch-room';
-    if (lower.contains('lucille')) return 'lucilles';
-    if (lower.contains('tap')) return 'tap-east';
-    if (lower.contains('zed')) return 'zed-park';
-    if (lower.contains('pasta') || lower.contains("o's")) return 'os-pasta';
-    if (lower.contains('left bank')) return 'left-bank';
-    if (lower.contains('festival')) return 'cairo-festival';
     return lower.replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
   }
 

@@ -3,7 +3,7 @@ import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.da
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
-import 'package:yalla_5roga/core/widgets/app_network_image.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/place_cover_image.dart';
 
 class SuggestedPlaceTile extends StatelessWidget {
   const SuggestedPlaceTile({
@@ -26,8 +26,8 @@ class SuggestedPlaceTile extends StatelessWidget {
       radius: 18,
       child: Row(
         children: [
-          AppNetworkImage(
-            url: place.imageUrl,
+          PlaceCoverImage.fromSuggested(
+            place: place,
             width: thumb,
             height: thumb,
             radius: 14.r,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
-import 'package:yalla_5roga/core/widgets/app_network_image.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/place_cover_image.dart';
 
 /// Horizontal featured place card used in Discover carousels.
 class DiscoverPlaceCard extends StatelessWidget {
@@ -34,7 +34,7 @@ class DiscoverPlaceCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              AppNetworkImage(url: place.coverImageUrl, fit: BoxFit.cover),
+              PlaceCoverImage.fromSuggested(place: place, fit: BoxFit.cover),
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

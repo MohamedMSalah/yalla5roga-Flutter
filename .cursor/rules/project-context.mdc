@@ -54,7 +54,7 @@ index.html       # design preview only
 
 | Folder | Purpose |
 |---|---|
-| `constants/` | `AppConstants`, `ApiConstants` (incl. placeholders), `AssetConstants`, `AvatarPlaceholders` |
+| `constants/` | `AppConstants`, `ApiConstants` (incl. placeholders), `AssetConstants` |
 | `di/` | `AppDependencies.create()` + `RepositoryFactory` |
 | `network/` | `ApiClient`, interceptors, `NetworkInfo`, `guardRemote` |
 | `error/` | `Failure` (domain) + `AppException` (data) |
@@ -76,7 +76,7 @@ index.html       # design preview only
 | `outings` | full stack | CRUD, votes, attendance, chat, saved/drafts, geocoding |
 | `discover` | full stack | Places via `DiscoverRepository` |
 | `notifications` | full stack | Feed + read + local emit; FCM via `PushMessagingRepository` |
-| `unread` | data/domain | Shared `/me/unread-counts` |
+| `unread` | data/domain | Shared `/user/unread-counts` |
 | `setting` | presentation | Live settings tab |
 
 ---
@@ -117,10 +117,12 @@ Until the Node backend exists, Dio calls may fail and providers should surface e
 
 ### Auth & push
 
-- Phone OTP via Firebase, folded into `AuthRepository` (`sendOtp`, `verifyOtpAndCache`, session)
-- Presentation uses domain `PhoneVerification` / `PhoneAuthErrorCodes` only
+- Email/password via Firebase (`login` / `register`), folded into `AuthRepository`
+- Signup requires Egyptian phone OTP verification before linking email/password
+- Google & Apple sign-in via Firebase behind `AuthRepository` (UI uses icons only)
+- Presentation uses domain `PhoneVerification` / `AuthErrorCodes` only
 - FCM behind `PushMessagingRepository`; UI uses `PushAuthorizationStatus`
-- REST login/register remain on the remote auth path (no demo-user fallback)
+- Optional REST login/register remain on the remote auth path for a future Node backend
 
 ### Local storage keys (`AppConstants`)
 

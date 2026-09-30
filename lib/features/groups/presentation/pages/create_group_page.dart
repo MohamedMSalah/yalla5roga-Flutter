@@ -45,13 +45,18 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   Future<void> _pickImage() async {
-    final path = await ImageSourceSheet.pick(title: context.l10n.changeGroupImage);
+    final path = await ImageSourceSheet.pick(
+      title: context.l10n.changeGroupImage,
+    );
     if (path == null || !mounted) return;
     context.read<GroupsProvider>().setCreateImage(path);
   }
 
   void _addPhone() {
-    final error = context.read<GroupsProvider>().addCreatePhone(_phoneController.text, context.l10n);
+    final error = context.read<GroupsProvider>().addCreatePhone(
+      _phoneController.text,
+      context.l10n,
+    );
     if (error != null) {
       AppSnackBar.show(error);
       return;
@@ -88,10 +93,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
 
     return Scaffold(
       // AppPageBar — create group
-      appBar: AppPageBar(
-        title: l10n.createGroup,
-        backIcon: Icons.close,
-      ),
+      appBar: AppPageBar(title: l10n.createGroup, backIcon: Icons.close),
       body: SafeArea(
         top: false,
         child: Column(
@@ -116,21 +118,40 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_a_photo_outlined, color: AppColors.brand600, size: 28.w),
+                                  Icon(
+                                    Icons.add_a_photo_outlined,
+                                    color: AppColors.brand600,
+                                    size: 28.w,
+                                  ),
                                   8.gapH,
-                                  Text(l10n.uploadPhoto, style: TextStyle(color: AppColors.brand600, fontWeight: FontWeight.w800)),
+                                  Text(
+                                    l10n.uploadPhoto,
+                                    style: TextStyle(
+                                      color: AppColors.brand600,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
                                 ],
                               ),
                             )
                           : Stack(
                               children: [
-                                AppNetworkImage(url: image, width: double.infinity, height: 160.h, radius: 22.r),
+                                AppNetworkImage(
+                                  url: image,
+                                  width: double.infinity,
+                                  height: 160.h,
+                                  radius: 22.r,
+                                ),
                                 Positioned(
                                   right: 12.w,
                                   bottom: 12.h,
                                   child: CircleAvatar(
                                     backgroundColor: AppColors.brand600,
-                                    child: Icon(Icons.camera_alt_outlined, color: Colors.white, size: 18.w),
+                                    child: Icon(
+                                      Icons.camera_alt_outlined,
+                                      color: Colors.white,
+                                      size: 18.w,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -175,8 +196,13 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                           for (final phone in phones)
                             Chip(
                               label: Text(
-                                MemberDisplayName.resolvePhone(phone),
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11.sp),
+                                l10n.digits(
+                                  MemberDisplayName.resolvePhone(phone),
+                                ),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11.sp,
+                                ),
                               ),
                               onDeleted: () => groups.removeCreatePhone(phone),
                               backgroundColor: palette.surfaceMuted,

@@ -213,9 +213,6 @@ class CreateOutingProvider extends ChangeNotifier {
 
   void applySuggestionTitle(L10n l10n) {
     _locale = l10n.locale;
-    if (nameController.text.trim().isEmpty && !_specialEvent) {
-      nameController.text = l10n.defaultOutingName;
-    }
   }
 
   void syncLocale(L10n l10n) {

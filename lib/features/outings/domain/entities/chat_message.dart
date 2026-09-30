@@ -46,6 +46,3 @@ class ChatMessage {
     );
   }
 }
-
-/// Backward-compatible alias used across existing UI.
-typedef DemoChatMessage = ChatMessage;

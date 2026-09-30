@@ -1,5 +1,6 @@
 import 'package:flutter_contacts/flutter_contacts.dart' hide PermissionStatus;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:yalla_5roga/core/utils/digit_utils.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
 
@@ -59,19 +60,20 @@ class MemberDisplayName {
     _permissionDenied = false;
   }
 
-  static String resolve(
-    GroupMember member, {
-    String? fallbackPhone,
-  }) {
+  static String resolve(GroupMember member, {String? fallbackPhone}) {
     final phone = member.phone ?? fallbackPhone;
-    if (phone != null && phone.isNotEmpty && Validators.isValidEgyptianPhone(phone)) {
+    if (phone != null &&
+        phone.isNotEmpty &&
+        Validators.isValidEgyptianPhone(phone)) {
       final normalized = Validators.normalizePhone(phone);
       final contactName = _contactNamesByPhone[normalized];
       if (contactName != null && contactName.isNotEmpty) return contactName;
     }
 
     final registered = member.name.trim();
-    if (registered.isNotEmpty && registered != phone && !_looksLikePhone(registered)) {
+    if (registered.isNotEmpty &&
+        registered != phone &&
+        !_looksLikePhone(registered)) {
       return registered;
     }
 
@@ -94,7 +96,6 @@ class MemberDisplayName {
   }
 
   static bool _looksLikePhone(String value) {
-    final digits = value.replaceAll(RegExp(r'\D'), '');
-    return digits.length >= 10;
+    return DigitUtils.westernDigitsOnly(value).length >= 10;
   }
 }

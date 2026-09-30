@@ -37,7 +37,7 @@ class SplashPreview extends StatelessWidget {
             child: Container(
               width: 148.w,
               height: 148.w,
-              padding: EdgeInsets.all(14.w),
+              padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(32.r),
@@ -49,37 +49,70 @@ class SplashPreview extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  Row(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: 124.w,
+                  height: 124.w,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      AppBadge(label: l10n.fridayPlan),
-                      const Spacer(),
-                      Icon(Icons.more_horiz, color: AppColors.slate400, size: 16.w),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: AlignmentDirectional.centerStart,
+                                child: AppBadge(label: l10n.splashPreviewBadge),
+                              ),
+                            ),
+                          ),
+                          4.gapW,
+                          Icon(
+                            Icons.more_horiz,
+                            color: AppColors.slate400,
+                            size: 16.w,
+                          ),
+                        ],
+                      ),
+                      const IconCircle(
+                        icon: Icons.location_on_outlined,
+                        background: AppColors.brand100,
+                        foreground: AppColors.brand600,
+                        size: 48,
+                        radius: 16,
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            l10n.splashPreviewTitle,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.slate900,
+                              fontWeight: FontWeight.w800,
+                              fontSize: Responsive.fontSm,
+                            ),
+                          ),
+                          Text(
+                            l10n.splashPreviewSubtitle,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.slate400,
+                              fontSize: Responsive.fontCaption,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const Spacer(),
-                  const IconCircle(
-                    icon: Icons.location_on_outlined,
-                    background: AppColors.brand100,
-                    foreground: AppColors.brand600,
-                    size: 52,
-                    radius: 16,
-                  ),
-                  const Spacer(),
-                  Text(
-                    l10n.zedParkPicnic,
-                    style: TextStyle(
-                      color: AppColors.slate900,
-                      fontWeight: FontWeight.w800,
-                      fontSize: Responsive.fontSm,
-                    ),
-                  ),
-                  Text(
-                    l10n.friendsAreIn,
-                    style: TextStyle(color: AppColors.slate400, fontSize: Responsive.fontCaption),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -106,12 +139,20 @@ class SplashPreview extends StatelessWidget {
           Positioned(
             right: 12.w,
             top: 20.h,
-            child: _pill(l10n.votedAll, Colors.white, AppColors.brand700),
+            child: _pill(
+              l10n.splashPreviewVoted,
+              Colors.white,
+              AppColors.brand700,
+            ),
           ),
           Positioned(
             left: 18.w,
             bottom: 8.h,
-            child: _pill(l10n.seeYouThere, const Color(0xFF8B5CF6), Colors.white),
+            child: _pill(
+              l10n.seeYouThere,
+              const Color(0xFF8B5CF6),
+              Colors.white,
+            ),
           ),
         ],
       ),
@@ -125,12 +166,19 @@ class SplashPreview extends StatelessWidget {
         color: background,
         borderRadius: BorderRadius.circular(999.r),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 12.w),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 12.w,
+          ),
         ],
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontSize: Responsive.fontCaption, fontWeight: FontWeight.w800),
+        style: TextStyle(
+          color: color,
+          fontSize: Responsive.fontCaption,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

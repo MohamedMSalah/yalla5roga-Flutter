@@ -23,8 +23,9 @@ class FeaturedGroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final groupOutings = context.watch<OutingsProvider>().forGroup(group.id);
-    final needsVote = context.watch<OutingsProvider>().needsYourVote.where((item) => item.groupId == group.id);
+    final outings = context.watch<OutingsProvider>();
+    final groupOutings = outings.forGroup(group.id);
+    final needsVote = outings.needsYourVote.where((item) => item.groupId == group.id);
     final nextOuting = needsVote.isNotEmpty
         ? needsVote.first
         : groupOutings.isEmpty
@@ -76,7 +77,10 @@ class FeaturedGroupCard extends StatelessWidget {
                   ),
                 ),
                 8.gapW,
-                AvatarStack(urls: group.avatars.take(2).toList(), extra: 6),
+                AvatarStack(
+                  urls: group.avatars.take(2).toList(),
+                  extra: (group.memberCount - 2).clamp(0, 99),
+                ),
               ],
             ),
           ),
@@ -100,13 +104,19 @@ class FeaturedGroupCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            nextOuting?.title ?? group.decision ?? l10n.whereBrunch,
+                            nextOuting?.title ?? group.decision ?? l10n.whereShouldWeGo,
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ],
                       ),
                     ),
-                    AppBadge(label: l10n.votedCount(group.people.isEmpty ? 0 : group.people.length - 1, group.people.length)),
+                    if (nextOuting != null)
+                      AppBadge(
+                        label: l10n.votedCount(
+                          outings.votedCountFor(nextOuting.id),
+                          group.memberCount,
+                        ),
+                      ),
                   ],
                 ),
                 12.gapH,

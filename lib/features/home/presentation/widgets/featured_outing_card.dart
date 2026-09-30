@@ -56,7 +56,10 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      AppNetworkImage(url: slide.image),
+                      AppNetworkImage(
+                        url: slide.image,
+                        placeholderIcon: Icons.explore_outlined,
+                      ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -70,14 +73,21 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
                         left: 16.w,
                         top: 16.h,
                         child: Container(
-                          padding: Responsive.padding(horizontal: 10, vertical: 6),
+                          padding: Responsive.padding(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(999.r),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.calendar_today, size: 12.w, color: AppColors.brand700),
+                              Icon(
+                                Icons.calendar_today,
+                                size: 12.w,
+                                color: AppColors.brand700,
+                              ),
                               6.gapW,
                               Text(
                                 l10n.digits(slide.date),
@@ -121,7 +131,10 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
                                   ),
                                   Text(
                                     l10n.digits(slide.meta),
-                                    style: TextStyle(color: Colors.white70, fontSize: Responsive.fontSm),
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: Responsive.fontSm,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -152,7 +165,9 @@ class _FeaturedOutingCardState extends State<FeaturedOutingCard> {
                 width: (i == index ? 20 : 6).w,
                 height: 6.h,
                 decoration: BoxDecoration(
-                  color: i == index ? AppColors.brand600 : context.palette.border,
+                  color: i == index
+                      ? AppColors.brand600
+                      : context.palette.border,
                   borderRadius: BorderRadius.circular(999.r),
                 ),
               ),

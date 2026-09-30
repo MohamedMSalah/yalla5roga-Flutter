@@ -6,10 +6,11 @@ import 'package:yalla_5roga/core/network/api_payload.dart';
 import 'package:yalla_5roga/features/auth/data/models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
-  Future<UserModel> login({required String phone, required String password});
+  Future<UserModel> login({required String email, required String password});
 
   Future<UserModel> register({
     required String name,
+    required String email,
     required String phone,
     required String password,
   });
@@ -21,12 +22,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final ApiClient _client;
 
   @override
-  Future<UserModel> login({
-    required String phone,
-    required String password,
-  }) {
+  Future<UserModel> login({required String email, required String password}) {
     return _postUser(ApiConstants.login, {
-      'phone': phone,
+      'email': email,
       'password': password,
     });
   }
@@ -34,11 +32,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> register({
     required String name,
+    required String email,
     required String phone,
     required String password,
   }) {
     return _postUser(ApiConstants.register, {
       'name': name,
+      'email': email,
       'phone': phone,
       'password': password,
     });
@@ -46,7 +46,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   Future<UserModel> _postUser(String path, Map<String, dynamic> data) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>(path, data: data);
+      final response = await _client.post<Map<String, dynamic>>(
+        path,
+        data: data,
+      );
       return UserModel.fromJson(apiPayload(response.data));
     } on DioException catch (error) {
       if (error.error is AppException) {

@@ -18,7 +18,6 @@ import 'package:yalla_5roga/core/widgets/phone_text_field.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/group_details_skeleton.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/group_place_suggest_section.dart';
-import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
@@ -51,7 +50,9 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
   }
 
   Future<void> _changeImage(BuildContext context, GroupsProvider groups) async {
-    final url = await ImageSourceSheet.pick(title: context.l10n.changeGroupImage);
+    final url = await ImageSourceSheet.pick(
+      title: context.l10n.changeGroupImage,
+    );
     if (url == null || !context.mounted) return;
     groups.updateImage(groupId, url);
     AppSnackBar.show(context.l10n.groupImageUpdated);
@@ -61,46 +62,61 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
     final phoneController = TextEditingController();
     try {
       final added = await Get.bottomSheet<String>(
-      SafeArea(
-        child: Builder(
-          builder: (context) {
-            final l10n = context.l10n;
-            final palette = context.palette;
-            return Container(
-              padding: Responsive.padding(all: 20),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.addByPhone, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
-                  Responsive.spaceMd.gapH,
-                  PhoneTextField(
-                    controller: phoneController,
-                    validate: false,
+        SafeArea(
+          child: Builder(
+            builder: (context) {
+              final l10n = context.l10n;
+              final palette = context.palette;
+              return Container(
+                padding: Responsive.padding(all: 20),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(24.r),
                   ),
-                  Responsive.spaceMd.gapH,
-                  CustomButton(
-                    label: l10n.addPhone,
-                    onPressed: () {
-                      final error = Validators.phone(phoneController.text, l10n);
-                      if (error != null) {
-                        AppSnackBar.show(error);
-                        return;
-                      }
-                      Get.back(result: Validators.normalizePhone(phoneController.text));
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.addByPhone,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: Responsive.fontMd,
+                      ),
+                    ),
+                    Responsive.spaceMd.gapH,
+                    PhoneTextField(
+                      controller: phoneController,
+                      validate: false,
+                    ),
+                    Responsive.spaceMd.gapH,
+                    CustomButton(
+                      label: l10n.addPhone,
+                      onPressed: () {
+                        final error = Validators.phone(
+                          phoneController.text,
+                          l10n,
+                        );
+                        if (error != null) {
+                          AppSnackBar.show(error);
+                          return;
+                        }
+                        Get.back(
+                          result: Validators.normalizePhone(
+                            phoneController.text,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
-      ),
-    );
+      );
 
       if (added == null || !context.mounted) return;
       final l10n = context.l10n;
@@ -110,11 +126,7 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
         AppSnackBar.show(error);
         return;
       }
-      final display = MemberDisplayName.resolvePhone(added);
-      context.read<NotificationsProvider>().emitLocal(
-            body: l10n.notifMemberAdded(display, groups.byId(groupId).name),
-            groupId: groupId,
-          );
+      final display = l10n.digits(MemberDisplayName.resolvePhone(added));
       AppSnackBar.show(l10n.memberAdded(display));
     } finally {
       phoneController.dispose();
@@ -133,7 +145,8 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
       );
     }
     final group = groups.byId(groupId);
-    final canManage = group.myRole == GroupRole.owner || group.myRole == GroupRole.admin;
+    final canManage =
+        group.myRole == GroupRole.owner || group.myRole == GroupRole.admin;
     final groupOutings = context.watch<OutingsProvider>().forGroup(group.id);
 
     return Scaffold(
@@ -147,14 +160,23 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
             onTap: canManage ? () => _changeImage(context, groups) : null,
             child: Stack(
               children: [
-                AppNetworkImage(url: group.image, width: double.infinity, height: 180.h, radius: 22.r),
+                AppNetworkImage(
+                  url: group.image,
+                  width: double.infinity,
+                  height: 180.h,
+                  radius: 22.r,
+                ),
                 if (canManage)
                   Positioned(
                     right: 12.w,
                     bottom: 12.h,
                     child: CircleAvatar(
                       backgroundColor: AppColors.brand600,
-                      child: Icon(Icons.camera_alt_outlined, color: Colors.white, size: 18.w),
+                      child: Icon(
+                        Icons.camera_alt_outlined,
+                        color: Colors.white,
+                        size: 18.w,
+                      ),
                     ),
                   ),
               ],
@@ -167,10 +189,22 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(group.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontLg)),
                     Text(
-                      l10n.membersOutings(group.people.length, groupOutings.length),
-                      style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontSm),
+                      group.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: Responsive.fontLg,
+                      ),
+                    ),
+                    Text(
+                      l10n.membersOutings(
+                        group.people.length,
+                        groupOutings.length,
+                      ),
+                      style: TextStyle(
+                        color: palette.textMuted,
+                        fontSize: Responsive.fontSm,
+                      ),
                     ),
                   ],
                 ),
@@ -201,7 +235,13 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
           Responsive.spaceLg.gapH,
           GroupPlaceSuggestSection(group: group),
           Responsive.spaceLg.gapH,
-          Text(l10n.groupOutings, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
+          Text(
+            l10n.groupOutings,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: Responsive.fontMd,
+            ),
+          ),
           Responsive.spaceSm.gapH,
           if (groupOutings.isEmpty)
             AppEmptyState(
@@ -213,14 +253,22 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
             for (final outing in groupOutings) ...[
               OutingListTile(
                 title: outing.title,
-                subtitle: l10n.digits('${outing.date} · ${outing.time} · ${outing.meta}'),
+                subtitle: l10n.digits(
+                  '${outing.date} · ${outing.time} · ${outing.meta}',
+                ),
                 image: outing.image,
                 onTap: () => Get.to(() => EventPage(event: outing)),
               ),
               8.gapH,
             ],
           Responsive.spaceLg.gapH,
-          Text(l10n.members, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
+          Text(
+            l10n.members,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: Responsive.fontMd,
+            ),
+          ),
           Responsive.spaceSm.gapH,
           if (group.people.isEmpty)
             AppEmptyState(
@@ -235,17 +283,31 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
                 radius: 16,
                 child: Row(
                   children: [
-                    AppNetworkImage(url: person.avatar, width: 44.w, height: 44.w, radius: 12.r),
+                    AppNetworkImage.avatar(
+                      url: person.avatar,
+                      width: 44.w,
+                      height: 44.w,
+                      radius: 12.r,
+                    ),
                     12.gapW,
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            MemberDisplayName.resolve(person),
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody),
+                            l10n.digits(MemberDisplayName.resolve(person)),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: Responsive.fontBody,
+                            ),
                           ),
-                          Text(groups.roleLabel(person.role, l10n), style: TextStyle(color: palette.textMuted, fontSize: 10.sp)),
+                          Text(
+                            groups.roleLabel(person.role, l10n),
+                            style: TextStyle(
+                              color: palette.textMuted,
+                              fontSize: 10.sp,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -253,9 +315,17 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
                       IconButton(
                         onPressed: () {
                           groups.removeMember(groupId, person);
-                          AppSnackBar.show(l10n.memberRemoved(MemberDisplayName.resolve(person)));
+                          AppSnackBar.show(
+                            l10n.memberRemoved(
+                              l10n.digits(MemberDisplayName.resolve(person)),
+                            ),
+                          );
                         },
-                        icon: Icon(Icons.remove_circle_outline, color: AppColors.rose500, size: 20.w),
+                        icon: Icon(
+                          Icons.remove_circle_outline,
+                          color: AppColors.rose500,
+                          size: 20.w,
+                        ),
                       ),
                   ],
                 ),

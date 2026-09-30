@@ -12,7 +12,6 @@ import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/avatar_stack.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
-import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/outing_chat_page.dart';
@@ -37,18 +36,7 @@ class _EventPageState extends State<EventPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final outings = context.read<OutingsProvider>();
-      final before = outings.findById(widget.event.id);
-      final changed = await outings.refreshLifecycle();
-      if (!changed || !mounted) return;
-      final after = outings.findById(widget.event.id);
-      if (before?.status == OutingStatus.voting && after?.status == OutingStatus.upcoming) {
-        final place = after?.location?.name ?? '';
-        context.read<NotificationsProvider>().emitLocal(
-              body: context.l10n.notifVotingEnded(place, after!.title),
-              outingId: after.id,
-            );
-      }
+      await context.read<OutingsProvider>().refreshLifecycle();
     });
   }
 
@@ -64,7 +52,8 @@ class _EventPageState extends State<EventPage> {
     final going = outings.goingCountFor(live.id);
     final goingAvatars = [
       for (final member in outings.membersForOuting(live))
-        if (outings.attendanceFor(live.id, member.id) == AttendanceStatus.going &&
+        if (outings.attendanceFor(live.id, member.id) ==
+                AttendanceStatus.going &&
             member.avatar.trim().isNotEmpty)
           member.avatar,
     ];
@@ -85,9 +74,18 @@ class _EventPageState extends State<EventPage> {
         child: ListView(
           padding: Responsive.pagePadding(),
           children: [
-            AppNetworkImage(url: live.image, width: double.infinity, height: 220.h, radius: 24.r),
+            AppNetworkImage(
+              url: live.image,
+              width: double.infinity,
+              height: 220.h,
+              radius: 24.r,
+              placeholderIcon: Icons.explore_outlined,
+            ),
             Responsive.spaceMd.gapH,
-            Text(live.title, style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.w800)),
+            Text(
+              live.title,
+              style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.w800),
+            ),
             Responsive.spaceXs.gapH,
             Wrap(
               spacing: 8.w,
@@ -99,11 +97,19 @@ class _EventPageState extends State<EventPage> {
                     OutingStatus.past => l10n.past,
                     _ => l10n.confirmed,
                   },
-                  color: live.status == OutingStatus.voting ? AppColors.amber100 : AppColors.emerald500,
-                  textColor: live.status == OutingStatus.voting ? AppColors.amber700 : Colors.white,
+                  color: live.status == OutingStatus.voting
+                      ? AppColors.amber100
+                      : AppColors.emerald500,
+                  textColor: live.status == OutingStatus.voting
+                      ? AppColors.amber700
+                      : Colors.white,
                 ),
                 if (live.occasion == OutingOccasion.birthday)
-                  AppBadge(label: l10n.birthday, color: AppColors.brand50, textColor: AppColors.brand700),
+                  AppBadge(
+                    label: l10n.birthday,
+                    color: AppColors.brand50,
+                    textColor: AppColors.brand700,
+                  ),
                 if (live.occasion == OutingOccasion.wedding)
                   AppBadge(
                     label: l10n.wedding,
@@ -113,17 +119,43 @@ class _EventPageState extends State<EventPage> {
               ],
             ),
             Responsive.spaceSm.gapH,
-            Text(live.meta, style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontBody)),
+            Text(
+              live.meta,
+              style: TextStyle(
+                color: palette.textMuted,
+                fontSize: Responsive.fontBody,
+              ),
+            ),
             Responsive.spaceMd.gapH,
             Row(
               children: [
-                Icon(Icons.event, size: Responsive.iconMd, color: AppColors.brand600),
+                Icon(
+                  Icons.event,
+                  size: Responsive.iconMd,
+                  color: AppColors.brand600,
+                ),
                 8.gapW,
-                Text(live.date, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
+                Text(
+                  live.date,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: Responsive.fontBody,
+                  ),
+                ),
                 const Spacer(),
-                Icon(Icons.schedule, size: Responsive.iconMd, color: AppColors.brand600),
+                Icon(
+                  Icons.schedule,
+                  size: Responsive.iconMd,
+                  color: AppColors.brand600,
+                ),
                 8.gapW,
-                Text(live.time, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
+                Text(
+                  live.time,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: Responsive.fontBody,
+                  ),
+                ),
               ],
             ),
             Responsive.spaceMd.gapH,
@@ -152,7 +184,10 @@ class _EventPageState extends State<EventPage> {
                     Expanded(
                       child: Text(
                         l10n.goingCount(going),
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontSm),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: Responsive.fontSm,
+                        ),
                       ),
                     ),
                     AppBadge(
@@ -196,7 +231,9 @@ class _EventPageState extends State<EventPage> {
   Future<void> _toggleSaved(BuildContext context, Outing live) async {
     final added = await context.read<SavedOutingsProvider>().toggle(live);
     if (!context.mounted) return;
-    AppSnackBar.show(added ? context.l10n.outingSaved : context.l10n.outingRemoved);
+    AppSnackBar.show(
+      added ? context.l10n.outingSaved : context.l10n.outingRemoved,
+    );
   }
 }
 

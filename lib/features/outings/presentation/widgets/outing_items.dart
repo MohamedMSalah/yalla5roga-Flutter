@@ -34,7 +34,13 @@ class OutingItems extends StatelessWidget {
         for (final outing in items) ...[
           OutingListTile(
             title: outing.title,
-            subtitle: '${l10n.digits('${outing.date} · ${outing.time}')} · ${l10n.goingCount(outing.going)}',
+            subtitle: l10n.digits(
+              [
+                if (outing.date.isNotEmpty) outing.date,
+                if (outing.time.isNotEmpty) outing.time,
+                l10n.goingCount(outing.going),
+              ].join(' · '),
+            ),
             image: outing.image,
             onTap: () => Get.to(() => EventPage(event: outing)),
           ),

@@ -4,11 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
-import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/place_cover_image.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
 
 class DiscoverPlaceDetailsPage extends StatelessWidget {
@@ -40,8 +40,9 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                     itemCount: gallery.length,
                     separatorBuilder: (_, _) => Responsive.spaceSm.gapW,
                     itemBuilder: (context, index) {
-                      return AppNetworkImage(
+                      return PlaceCoverImage(
                         url: gallery[index].imageUrl,
+                        vibe: place.vibe,
                         width: 280.w,
                         height: 210.h,
                         radius: 18.r,
@@ -77,20 +78,22 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                     fontSize: Responsive.fontSm,
                   ),
                 ),
-                Responsive.spaceMd.gapH,
-                Text(
-                  l10n.aboutPlace,
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd),
-                ),
-                Responsive.spaceXs.gapH,
-                Text(
-                  place.localizedDescription(l10n),
-                  style: TextStyle(
-                    color: palette.textSecondary,
-                    height: 1.45,
-                    fontSize: Responsive.fontSm,
+                if (place.localizedDescription(l10n).trim().isNotEmpty) ...[
+                  Responsive.spaceMd.gapH,
+                  Text(
+                    l10n.aboutPlace,
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd),
                   ),
-                ),
+                  Responsive.spaceXs.gapH,
+                  Text(
+                    place.localizedDescription(l10n),
+                    style: TextStyle(
+                      color: palette.textSecondary,
+                      height: 1.45,
+                      fontSize: Responsive.fontSm,
+                    ),
+                  ),
+                ],
                 if (place.prices.isNotEmpty) ...[
                   Responsive.spaceLg.gapH,
                   Text(

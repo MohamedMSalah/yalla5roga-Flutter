@@ -36,12 +36,12 @@ class GroupMember {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'avatar': avatar,
-        'role': role.name,
-        'phone': phone,
-      };
+    'id': id,
+    'name': name,
+    'avatar': avatar,
+    'role': role.name,
+    'phone': phone,
+  };
 
   factory GroupMember.fromJson(Map<String, dynamic> json) {
     return GroupMember(
@@ -56,6 +56,3 @@ class GroupMember {
     );
   }
 }
-
-/// Backward-compatible alias used across existing UI.
-typedef DemoMember = GroupMember;

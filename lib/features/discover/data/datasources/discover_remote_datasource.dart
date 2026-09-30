@@ -66,7 +66,7 @@ class DiscoverRemoteDataSource implements DiscoverDataSource {
         orElse: () => OutingVibe.food,
       ),
       coverImageUrl: apiString(json['coverImageUrl']) ?? apiString(json['imageUrl']) ?? '',
-      descriptionKey: apiString(json['descriptionKey']) ?? apiString(json['id']) ?? '',
+      description: apiString(json['description']) ?? apiString(json['descriptionKey']) ?? '',
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       featured: apiBool(json['featured']),

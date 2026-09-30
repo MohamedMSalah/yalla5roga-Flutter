@@ -6,10 +6,7 @@ import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
 import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
 class NotificationsProvider extends ChangeNotifier {
-  NotificationsProvider({
-    required this.repository,
-    required this.unreadCounts,
-  });
+  NotificationsProvider({required this.repository, required this.unreadCounts});
 
   final NotificationsRepository repository;
   final UnreadCountsRepository unreadCounts;
@@ -29,11 +26,15 @@ class NotificationsProvider extends ChangeNotifier {
 
   List<NotificationItem> get earlierItems => earlierFrom(visible);
 
-  static List<NotificationItem> todayFrom(List<NotificationItem> items) =>
-      [for (final item in items) if (!item.isEarlier) item];
+  static List<NotificationItem> todayFrom(List<NotificationItem> items) => [
+    for (final item in items)
+      if (!item.isEarlier) item,
+  ];
 
-  static List<NotificationItem> earlierFrom(List<NotificationItem> items) =>
-      [for (final item in items) if (item.isEarlier) item];
+  static List<NotificationItem> earlierFrom(List<NotificationItem> items) => [
+    for (final item in items)
+      if (item.isEarlier) item,
+  ];
 
   int get filter => _filter;
 
@@ -51,9 +52,8 @@ class NotificationsProvider extends ChangeNotifier {
 
   String? get errorMessage => _errorMessage;
 
-  List<NotificationItem> get visible => _filter == 0
-      ? items
-      : _items.where((item) => item.unread).toList();
+  List<NotificationItem> get visible =>
+      _filter == 0 ? items : _items.where((item) => item.unread).toList();
 
   void setFilter(int value) {
     if (_filter == value) return;
@@ -65,31 +65,6 @@ class NotificationsProvider extends ChangeNotifier {
     _unreadCount = counts.unreadNotificationCount;
     _errorMessage = null;
     notifyListeners();
-  }
-
-  Future<void> emitLocal({
-    required String body,
-    String? outingId,
-    String? eventId,
-    String? groupId,
-    bool action = false,
-    String? image,
-  }) async {
-    final result = await repository.pushLocal(
-      body: body,
-      outingId: outingId ?? eventId,
-      groupId: groupId,
-      action: action,
-      image: image,
-    );
-    result.fold(
-      (_) {},
-      (item) {
-        _items = [item, ..._items];
-        _unreadCount = _items.where((entry) => entry.unread).length;
-        notifyListeners();
-      },
-    );
   }
 
   Future<void> refresh() async {
@@ -106,7 +81,11 @@ class NotificationsProvider extends ChangeNotifier {
     countsResult.fold<void>(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'notificationsCounts');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.load,
+          context: 'notificationsCounts',
+        );
       },
       (counts) {
         _unreadCount = counts.unreadNotificationCount;
@@ -121,7 +100,11 @@ class NotificationsProvider extends ChangeNotifier {
     feedResult.fold<void>(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'notificationsFeed');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.load,
+          context: 'notificationsFeed',
+        );
       },
       (feed) {
         _items = feed.items;
@@ -146,7 +129,11 @@ class NotificationsProvider extends ChangeNotifier {
       return result.fold(
         (failure) {
           _errorMessage = failure.message;
-          AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'markAllRead');
+          AppErrorFeedback.report(
+            failure,
+            kind: AppErrorKind.send,
+            context: 'markAllRead',
+          );
           return false;
         },
         (count) {
@@ -165,7 +152,11 @@ class NotificationsProvider extends ChangeNotifier {
       return result.fold(
         (failure) {
           _errorMessage = failure.message;
-          AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'markRead');
+          AppErrorFeedback.report(
+            failure,
+            kind: AppErrorKind.send,
+            context: 'markRead',
+          );
           return false;
         },
         (count) {

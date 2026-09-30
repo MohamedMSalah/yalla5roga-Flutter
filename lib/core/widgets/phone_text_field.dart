@@ -26,25 +26,40 @@ class PhoneTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    // Keep phone rows LTR so "+20" stays on the left of the number in Arabic UI.
     return CustomTextField(
       controller: controller,
       label: label ?? l10n.phone,
       hint: hint ?? l10n.phoneHint,
       keyboardType: TextInputType.phone,
       textInputAction: textInputAction,
+      textDirection: TextDirection.ltr,
       prefix: Padding(
-        padding: EdgeInsets.only(left: 12.w, right: 8.w),
+        padding: EdgeInsetsDirectional.only(start: 12.w, end: 8.w),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.phone_outlined, size: 18.w, color: AppColors.brand600),
             6.gapW,
-            Text('+20', style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
+            Text(
+              l10n.phoneCountryCode,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: Responsive.fontBody,
+              ),
+            ),
           ],
         ),
       ),
-      inputFormatters: [InputFormatters.digitsOnly, InputFormatters.maxLength(11)],
-      validator: validator ?? (validate ? (value) => Validators.phone(value, l10n) : null),
+      inputFormatters: [
+        InputFormatters.localizedDigits(
+          arabicDisplay: l10n.locale.languageCode == 'ar',
+          maxLength: 11,
+        ),
+      ],
+      validator:
+          validator ??
+          (validate ? (value) => Validators.phone(value, l10n) : null),
     );
   }
 }

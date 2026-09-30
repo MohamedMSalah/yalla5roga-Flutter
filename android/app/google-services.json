@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "847978310366-60jrimb1rgn3tkrrdf09hpcvcsnspjqf.apps.googleusercontent.com",
+          "client_id": "847978310366-1uvtoda7jddgvkokcnd03rqcg21antj7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.yalla_5roga",
+            "certificate_hash": "b23ed73e65643bb58d2dad4af2c5300a619e8e23"
+          }
+        },
+        {
+          "client_id": "847978310366-vfkb3pogif76e92mhj15shcpv8q6tts2.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -29,6 +37,13 @@
             {
               "client_id": "847978310366-60jrimb1rgn3tkrrdf09hpcvcsnspjqf.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "847978310366-jdef4dcmnifvbvaejftvt6jl6kgbouv9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.yalla5roga"
+              }
             }
           ]
         }

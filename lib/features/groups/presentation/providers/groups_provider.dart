@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:yalla_5roga/core/constants/avatar_placeholders.dart';
 import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
@@ -12,10 +11,7 @@ import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
 import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
 class GroupsProvider extends ChangeNotifier {
-  GroupsProvider({
-    required this.repository,
-    required this.unreadCounts,
-  });
+  GroupsProvider({required this.repository, required this.unreadCounts});
 
   final GroupsRepository repository;
   final UnreadCountsRepository unreadCounts;
@@ -82,7 +78,8 @@ class GroupsProvider extends ChangeNotifier {
     return null;
   }
 
-  Group byId(String id) => findById(id) ?? (_groups.isNotEmpty ? _groups.first : _emptyGroup(id));
+  Group byId(String id) =>
+      findById(id) ?? (_groups.isNotEmpty ? _groups.first : _emptyGroup(id));
 
   static Group _emptyGroup(String id) {
     return Group(
@@ -102,7 +99,11 @@ class GroupsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'loadGroups');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.load,
+          context: 'loadGroups',
+        );
       },
       (groups) {
         _groups = List.of(groups);
@@ -173,14 +174,18 @@ class GroupsProvider extends ChangeNotifier {
     };
   }
 
-  Future<Group?> createGroup(String name, {required String ownerName, String? ownerAvatar}) async {
+  Future<Group?> createGroup(
+    String name, {
+    required String ownerName,
+    String? ownerAvatar,
+  }) async {
     if (name.trim().isEmpty) return null;
     if (_createImage == null) return null;
     final people = [
       GroupMember(
         id: 'me',
         name: ownerName,
-        avatar: ownerAvatar ?? AvatarPlaceholders.fallback,
+        avatar: ownerAvatar ?? '',
         role: GroupRole.owner,
       ),
       for (final phone in _createPhones) _memberFromPhone(phone),
@@ -201,7 +206,11 @@ class GroupsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'createGroup');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'createGroup',
+        );
       },
       (value) {
         created = value;
@@ -220,7 +229,11 @@ class GroupsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'updateGroupImage');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'updateGroupImage',
+        );
       },
       (group) {
         _groups = [
@@ -247,7 +260,11 @@ class GroupsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'addMember');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'addMember',
+        );
       },
       (updated) {
         _groups = [
@@ -267,7 +284,11 @@ class GroupsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'removeMember');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'removeMember',
+        );
       },
       (updated) {
         _groups = [
@@ -301,13 +322,14 @@ class GroupsProvider extends ChangeNotifier {
       _finishInitialLoad();
       return;
     }
-    result.fold<void>(
-      (failure) {
-        _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'groupsRefresh');
-      },
-      applyCounts,
-    );
+    result.fold<void>((failure) {
+      _errorMessage = failure.message;
+      AppErrorFeedback.report(
+        failure,
+        kind: AppErrorKind.load,
+        context: 'groupsRefresh',
+      );
+    }, applyCounts);
 
     _finishInitialLoad();
   }
@@ -329,14 +351,21 @@ class GroupsProvider extends ChangeNotifier {
     final success = result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'groupMarkRead');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'groupMarkRead',
+        );
         return false;
       },
       (read) {
         _unreadGroupCount = read.unreadGroupCount;
         _groups = [
           for (final group in _groups)
-            if (group.id == read.groupId) group.copyWith(unread: read.unreadCount) else group,
+            if (group.id == read.groupId)
+              group.copyWith(unread: read.unreadCount)
+            else
+              group,
         ];
         return true;
       },
@@ -369,11 +398,6 @@ class GroupsProvider extends ChangeNotifier {
         role: known.role,
       );
     }
-    return GroupMember(
-      id: phone,
-      name: phone,
-      phone: phone,
-      avatar: AvatarPlaceholders.urls[phone.hashCode.abs() % AvatarPlaceholders.urls.length],
-    );
+    return GroupMember(id: phone, name: phone, phone: phone, avatar: '');
   }
 }

@@ -18,6 +18,7 @@ class CustomTextField extends StatelessWidget {
     this.onToggleObscure,
     this.inputFormatters,
     this.textInputAction,
+    this.textDirection,
   });
 
   final TextEditingController controller;
@@ -32,6 +33,7 @@ class CustomTextField extends StatelessWidget {
   final VoidCallback? onToggleObscure;
   final List<TextInputFormatter>? inputFormatters;
   final TextInputAction? textInputAction;
+  final TextDirection? textDirection;
 
   @override
   Widget build(BuildContext context) {
@@ -48,58 +50,73 @@ class CustomTextField extends StatelessWidget {
           ),
         ),
         Responsive.spaceSm.gapH,
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          validator: validator,
-          inputFormatters: inputFormatters,
-          textInputAction: textInputAction,
-          style: TextStyle(
-            fontSize: Responsive.fontBody,
-            fontWeight: FontWeight.w600,
-            color: palette.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: palette.hint,
-              fontWeight: FontWeight.w500,
+        _maybeDirectional(
+          textDirection,
+          TextFormField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            validator: validator,
+            inputFormatters: inputFormatters,
+            textInputAction: textInputAction,
+            textDirection: textDirection,
+            style: TextStyle(
               fontSize: Responsive.fontBody,
+              fontWeight: FontWeight.w600,
+              color: palette.textPrimary,
             ),
-            filled: true,
-            fillColor: palette.inputFill,
-            prefixIcon: prefix ?? (prefixIcon == null ? null : Icon(prefixIcon, size: 18.w, color: palette.textMuted)),
-            suffixIcon: onToggleObscure == null
-                ? suffix
-                : IconButton(
-                    onPressed: onToggleObscure,
-                    icon: Icon(
-                      obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                      size: 18.w,
-                      color: palette.textMuted,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: palette.hint,
+                fontWeight: FontWeight.w500,
+                fontSize: Responsive.fontBody,
+              ),
+              filled: true,
+              fillColor: palette.inputFill,
+              prefixIcon:
+                  prefix ??
+                  (prefixIcon == null
+                      ? null
+                      : Icon(prefixIcon, size: 18.w, color: palette.textMuted)),
+              suffixIcon: onToggleObscure == null
+                  ? suffix
+                  : IconButton(
+                      onPressed: onToggleObscure,
+                      icon: Icon(
+                        obscureText
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        size: 18.w,
+                        color: palette.textMuted,
+                      ),
                     ),
-                  ),
-            contentPadding: Responsive.padding(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Responsive.radiusMd),
-              borderSide: BorderSide(color: palette.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Responsive.radiusMd),
-              borderSide: BorderSide(color: AppColors.brand500, width: 1.4.w),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Responsive.radiusMd),
-              borderSide: const BorderSide(color: AppColors.rose500),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(Responsive.radiusMd),
-              borderSide: const BorderSide(color: AppColors.rose500),
+              contentPadding: Responsive.padding(horizontal: 16, vertical: 14),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Responsive.radiusMd),
+                borderSide: BorderSide(color: palette.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Responsive.radiusMd),
+                borderSide: BorderSide(color: AppColors.brand500, width: 1.4.w),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Responsive.radiusMd),
+                borderSide: const BorderSide(color: AppColors.rose500),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Responsive.radiusMd),
+                borderSide: const BorderSide(color: AppColors.rose500),
+              ),
             ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _maybeDirectional(TextDirection? direction, Widget child) {
+    if (direction == null) return child;
+    return Directionality(textDirection: direction, child: child);
   }
 }

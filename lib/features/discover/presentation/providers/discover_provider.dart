@@ -18,19 +18,19 @@ class DiscoverProvider extends ChangeNotifier {
   int get filter => _filter;
 
   OutingVibe? get vibe => switch (_filter) {
-        1 => OutingVibe.food,
-        2 => OutingVibe.activity,
-        3 => OutingVibe.outdoor,
-        4 => OutingVibe.movie,
-        _ => null,
-      };
+    1 => OutingVibe.food,
+    2 => OutingVibe.activity,
+    3 => OutingVibe.outdoor,
+    4 => OutingVibe.movie,
+    _ => null,
+  };
 
   List<SuggestedPlace> get places => List.unmodifiable(_places);
 
   List<SuggestedPlace> get featured => [
-        for (final place in _featuredAll)
-          if (vibe == null || place.vibe == vibe) place,
-      ];
+    for (final place in _featuredAll)
+      if (vibe == null || place.vibe == vibe) place,
+  ];
 
   List<SuggestedPlace> get featuredPlaces => featured;
 
@@ -38,7 +38,15 @@ class DiscoverProvider extends ChangeNotifier {
 
   String? get errorMessage => _errorMessage;
 
-  List<Place> catalogPlaces() => repository.catalogPlaces();
+  /// Places available for pickers — from the API cache, with image + vibe.
+  List<Place> catalogPlaces() {
+    final byId = <String, Place>{};
+    for (final place in [..._featuredAll, ..._places]) {
+      byId[place.id] = place.toOutingPlace();
+    }
+    if (byId.isNotEmpty) return byId.values.toList(growable: false);
+    return repository.catalogPlaces();
+  }
 
   SuggestedPlace? findById(String id) {
     for (final place in _places) {
@@ -60,19 +68,19 @@ class DiscoverProvider extends ChangeNotifier {
                 area: '',
                 vibe: OutingVibe.food,
                 coverImageUrl: '',
-                descriptionKey: id,
               ));
   }
 
   Future<void> load() async {
     final featured = await repository.getFeaturedPlaces();
-    featured.fold(
-      (failure) {
-        _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'discoverFeatured');
-      },
-      (items) => _featuredAll = List.of(items),
-    );
+    featured.fold((failure) {
+      _errorMessage = failure.message;
+      AppErrorFeedback.report(
+        failure,
+        kind: AppErrorKind.load,
+        context: 'discoverFeatured',
+      );
+    }, (items) => _featuredAll = List.of(items));
     await _reloadPlaces(notify: false);
     _hasLoaded = true;
     notifyListeners();
@@ -89,7 +97,11 @@ class DiscoverProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'discoverPlaces');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.load,
+          context: 'discoverPlaces',
+        );
       },
       (items) {
         _places = List.of(items);

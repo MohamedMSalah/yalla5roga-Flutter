@@ -22,7 +22,6 @@ class _AuthPageState extends State<AuthPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      // Always start on phone step — never show OTP until Send OTP succeeds.
       context.read<AuthProvider>().resetAuthForm();
     });
   }
@@ -61,7 +60,9 @@ class _AuthPageState extends State<AuthPage> {
             AuthHeader(
               eyebrow: isLogin ? l10n.welcomeBack : l10n.welcomeNew,
               title: isLogin ? l10n.letsGetYouOut : l10n.joinTheFun,
-              subtitle: isLogin ? l10n.authLoginSubtitle : l10n.authSignupSubtitle,
+              subtitle: isLogin
+                  ? l10n.authLoginSubtitle
+                  : l10n.authSignupSubtitle,
             ),
             Responsive.spaceLg.gapH,
             const AuthTabs(),
@@ -71,11 +72,15 @@ class _AuthPageState extends State<AuthPage> {
             Text.rich(
               TextSpan(
                 text: isLogin ? '${l10n.newHere} ' : '${l10n.alreadyMember} ',
-                style: TextStyle(color: context.palette.textMuted, fontSize: 12.sp),
+                style: TextStyle(
+                  color: context.palette.textMuted,
+                  fontSize: 12.sp,
+                ),
                 children: [
                   WidgetSpan(
                     child: GestureDetector(
-                      onTap: () => context.read<AuthProvider>().setLogin(!isLogin),
+                      onTap: () =>
+                          context.read<AuthProvider>().setLogin(!isLogin),
                       child: Text(
                         isLogin ? l10n.createYourAccount : l10n.login,
                         style: TextStyle(

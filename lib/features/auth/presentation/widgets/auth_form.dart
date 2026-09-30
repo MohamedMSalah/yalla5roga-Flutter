@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
-import 'package:yalla_5roga/features/shell/presentation/pages/main_shell.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/utils/input_formatters.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
@@ -11,6 +11,8 @@ import 'package:yalla_5roga/core/widgets/custom_textfield.dart';
 import 'package:yalla_5roga/core/widgets/otp_input.dart';
 import 'package:yalla_5roga/core/widgets/phone_text_field.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
+import 'package:yalla_5roga/features/auth/presentation/widgets/auth_social_buttons.dart';
+import 'package:yalla_5roga/features/shell/presentation/pages/main_shell.dart';
 
 class AuthForm extends StatefulWidget {
   const AuthForm({super.key});
@@ -22,8 +24,11 @@ class AuthForm extends StatefulWidget {
 class _AuthFormState extends State<AuthForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -35,6 +40,8 @@ class _AuthFormState extends State<AuthForm> {
   void dispose() {
     _phoneController.removeListener(_onPhoneChanged);
     _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     _phoneController.dispose();
     _otpController.dispose();
     super.dispose();
@@ -50,9 +57,11 @@ class _AuthFormState extends State<AuthForm> {
 
   String _authError(AuthProvider auth) {
     final l10n = context.l10n;
-    return l10n.phoneAuthError(
+    return l10n.authError(
       auth.errorCode,
-      fallback: auth.errorMessage ?? l10n.otpSendFailed,
+      fallback:
+          auth.errorMessage ??
+          (auth.isLogin ? l10n.loginFailed : l10n.registerFailed),
     );
   }
 
@@ -65,13 +74,13 @@ class _AuthFormState extends State<AuthForm> {
       AppSnackBar.show(_authError(auth));
       return;
     }
-    AppSnackBar.show(context.l10n.otpSent(phone));
+    AppSnackBar.show(context.l10n.otpSent(context.l10n.digits(phone)));
   }
 
   Future<void> _sendOtp() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    if (!auth.isLogin && !auth.agreeTerms) {
+    if (!auth.agreeTerms) {
       AppSnackBar.show(context.l10n.termsRequired);
       return;
     }
@@ -83,32 +92,48 @@ class _AuthFormState extends State<AuthForm> {
       AppSnackBar.show(_authError(auth));
       return;
     }
-    AppSnackBar.show(context.l10n.otpSent(phone));
+    AppSnackBar.show(context.l10n.otpSent(context.l10n.digits(phone)));
   }
 
-  Future<void> _submit() async {
+  Future<void> _submitLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+    if (!mounted) return;
+    if (!ok) {
+      AppSnackBar.show(_authError(auth));
+      return;
+    }
+    Get.offAll(() => const MainShell());
+  }
+
+  Future<void> _submitRegister() async {
     if (!_formKey.currentState!.validate()) return;
     final l10n = context.l10n;
     final auth = context.read<AuthProvider>();
-    if (!auth.isLogin && !auth.agreeTerms) {
+    if (!auth.agreeTerms) {
       AppSnackBar.show(l10n.termsRequired);
       return;
     }
+    if (!auth.otpSent) {
+      AppSnackBar.show(l10n.verifyPhoneFirst);
+      return;
+    }
 
-    final otp = _otpController.text.trim();
-    final ok = await auth.verifyOtp(
-      smsCode: otp,
-      name: auth.isLogin ? null : _nameController.text.trim(),
+    final ok = await auth.register(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      phone: Validators.normalizePhone(_phoneController.text),
+      smsCode: Validators.normalizeOtp(_otpController.text),
     );
 
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(
-        l10n.phoneAuthError(
-          auth.errorCode,
-          fallback: auth.errorMessage ?? (auth.isLogin ? l10n.loginFailed : l10n.registerFailed),
-        ),
-      );
+      AppSnackBar.show(_authError(auth));
       return;
     }
     Get.offAll(() => const MainShell());
@@ -138,47 +163,73 @@ class _AuthFormState extends State<AuthForm> {
               label: l10n.name,
               hint: l10n.nameHint,
               prefixIcon: Icons.person_outline,
+              textInputAction: TextInputAction.next,
               validator: (value) => Validators.required(value, l10n),
             ),
             Responsive.spaceMd.gapH,
           ],
-          PhoneTextField(controller: _phoneController),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: otpSent
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Responsive.spaceMd.gapH,
-                      OtpInput(
-                        controller: _otpController,
-                        label: l10n.otp,
-                        length: Validators.otpLength,
-                        validator: (value) => Validators.otp(value, l10n),
-                        action: TextButton(
-                          onPressed: auth.isLoading ? null : _resendOtp,
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            l10n.resendOtp,
-                            style: TextStyle(
-                              color: AppColors.brand600,
-                              fontSize: Responsive.fontSm,
-                              fontWeight: FontWeight.w800,
+          CustomTextField(
+            controller: _emailController,
+            label: l10n.email,
+            hint: l10n.emailHint,
+            prefixIcon: Icons.mail_outline,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            inputFormatters: [InputFormatters.noSpaces, InputFormatters.email],
+            validator: (value) => Validators.email(value, l10n),
+          ),
+          Responsive.spaceMd.gapH,
+          CustomTextField(
+            controller: _passwordController,
+            label: l10n.password,
+            hint: l10n.passwordHint,
+            prefixIcon: Icons.lock_outline,
+            obscureText: _obscurePassword,
+            textInputAction: isLogin
+                ? TextInputAction.done
+                : TextInputAction.next,
+            onToggleObscure: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
+            validator: (value) => Validators.password(value, l10n),
+          ),
+          if (!isLogin) ...[
+            Responsive.spaceMd.gapH,
+            PhoneTextField(controller: _phoneController),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              alignment: Alignment.topCenter,
+              child: otpSent
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Responsive.spaceMd.gapH,
+                        OtpInput(
+                          controller: _otpController,
+                          label: l10n.otp,
+                          length: Validators.otpLength,
+                          validator: (value) => Validators.otp(value, l10n),
+                          action: TextButton(
+                            onPressed: auth.isLoading ? null : _resendOtp,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              l10n.resendOtp,
+                              style: TextStyle(
+                                color: AppColors.brand600,
+                                fontSize: Responsive.fontSm,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  )
-                : const SizedBox(width: double.infinity),
-          ),
-          if (!isLogin) ...[
+                      ],
+                    )
+                  : const SizedBox(width: double.infinity),
+            ),
             Responsive.spaceSm.gapH,
             Row(
               children: [
@@ -190,19 +241,32 @@ class _AuthFormState extends State<AuthForm> {
                 Expanded(
                   child: Text(
                     l10n.agreeTerms,
-                    style: TextStyle(color: context.palette.textMuted, fontSize: Responsive.fontSm),
+                    style: TextStyle(
+                      color: context.palette.textMuted,
+                      fontSize: Responsive.fontSm,
+                    ),
                   ),
                 ),
               ],
             ),
           ],
           Responsive.spaceMd.gapH,
-          CustomButton(
-            label: otpSent ? (isLogin ? l10n.login : l10n.register) : l10n.sendOtp,
-            icon: otpSent ? Icons.arrow_forward : Icons.sms_outlined,
-            isLoading: auth.isLoading,
-            onPressed: otpSent ? _submit : _sendOtp,
-          ),
+          if (isLogin)
+            CustomButton(
+              label: l10n.login,
+              icon: Icons.arrow_forward,
+              isLoading: auth.isLoading,
+              onPressed: _submitLogin,
+            )
+          else
+            CustomButton(
+              label: otpSent ? l10n.register : l10n.sendOtp,
+              icon: otpSent ? Icons.person_add_alt_1 : Icons.sms_outlined,
+              isLoading: auth.isLoading,
+              onPressed: otpSent ? _submitRegister : _sendOtp,
+            ),
+          Responsive.spaceLg.gapH,
+          const AuthSocialButtons(),
         ],
       ),
     );

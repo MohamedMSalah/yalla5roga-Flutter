@@ -69,6 +69,3 @@ class Group {
     );
   }
 }
-
-/// Backward-compatible alias used across existing UI.
-typedef DemoGroup = Group;

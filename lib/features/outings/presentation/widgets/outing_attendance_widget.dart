@@ -7,7 +7,6 @@ import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
-import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 
 /// Attendance RSVP (I'm In / Not In) — separate from place voting.
@@ -49,10 +48,6 @@ class _OutingAttendanceWidgetState extends State<OutingAttendanceWidget> {
       AppSnackBar.show(context.l10n.attendanceClosed);
       return;
     }
-    context.read<NotificationsProvider>().emitLocal(
-          body: context.l10n.notifAttendanceChanged(widget.outing.title),
-          outingId: widget.outing.id,
-        );
     AppSnackBar.show(context.l10n.attendanceUpdated);
   }
 
@@ -64,7 +59,8 @@ class _OutingAttendanceWidgetState extends State<OutingAttendanceWidget> {
     final userId = context.watch<AuthProvider>().user?.id;
     final outing = outings.findById(widget.outing.id) ?? widget.outing;
     final mine = outings.myAttendance(outing.id, userId);
-    final isCreator = outing.createdById != null && outing.createdById == userId;
+    final isCreator =
+        outing.createdById != null && outing.createdById == userId;
     final open = outings.canChangeAttendance(outing.id);
 
     return Container(
@@ -77,7 +73,13 @@ class _OutingAttendanceWidgetState extends State<OutingAttendanceWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.attendanceTitle, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontSm)),
+          Text(
+            l10n.attendanceTitle,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: Responsive.fontSm,
+            ),
+          ),
           8.gapH,
           if (isCreator) ...[
             _StatusChip(
@@ -155,7 +157,9 @@ class _AttendanceButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? color.withValues(alpha: 0.12) : context.palette.surfaceMuted,
+      color: selected
+          ? color.withValues(alpha: 0.12)
+          : context.palette.surfaceMuted,
       borderRadius: BorderRadius.circular(14.r),
       child: InkWell(
         onTap: enabled ? onTap : null,
@@ -169,10 +173,17 @@ class _AttendanceButton extends StatelessWidget {
                 SizedBox(
                   width: 16.w,
                   height: 16.w,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: color),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: color,
+                  ),
                 )
               else
-                Icon(icon, size: 18.w, color: selected ? color : context.palette.textMuted),
+                Icon(
+                  icon,
+                  size: 18.w,
+                  color: selected ? color : context.palette.textMuted,
+                ),
               6.gapW,
               Flexible(
                 child: Text(
@@ -211,7 +222,14 @@ class _StatusChip extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: 20.w),
         8.gapW,
-        Text(label, style: TextStyle(fontWeight: FontWeight.w800, color: color, fontSize: 13.sp)),
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: color,
+            fontSize: 13.sp,
+          ),
+        ),
       ],
     );
   }

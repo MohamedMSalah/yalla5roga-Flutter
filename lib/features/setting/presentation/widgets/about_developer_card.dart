@@ -33,46 +33,37 @@ class AboutDeveloperCard extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 28.r,
-                  backgroundColor: palette.brandSoft,
-                  foregroundColor: AppColors.brand600,
-                  backgroundImage: avatarAsset == null ? null : AssetImage(avatarAsset!),
-                  child: avatarAsset == null
-                      ? Text(l10n.developerInitials, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.sp))
-                      : null,
-                ),
-                12.gapW,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.developerTitle,
-                        style: TextStyle(color: palette.textSecondary, fontSize: 12.sp, fontWeight: FontWeight.w700),
-                      ),
-                      Responsive.spaceXs.gapH,
-                      Text(
-                        l10n.developerTagline,
-                        style: TextStyle(color: palette.textMuted, fontSize: 10.sp),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            Text(
+              l10n.developerTitle,
+              style: TextStyle(
+                color: palette.textSecondary,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+              ),
             ),
+            Responsive.spaceXs.gapH,
+            Text(
+              l10n.developerTagline,
+              style: TextStyle(color: palette.textMuted, fontSize: 10.sp),
+            ),
+
             12.gapH,
             Text(
               l10n.developerDescription,
-              style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontSm, height: 1.45),
+              style: TextStyle(
+                color: palette.textMuted,
+                fontSize: Responsive.fontSm,
+                height: 1.45,
+              ),
             ),
             Responsive.spaceSm.gapH,
             Text(
               l10n.developerShortDescription,
-              style: TextStyle(color: palette.textMuted, fontSize: Responsive.fontSm, height: 1.45),
+              style: TextStyle(
+                color: palette.textMuted,
+                fontSize: Responsive.fontSm,
+                height: 1.45,
+              ),
             ),
           ],
         ),
@@ -82,7 +73,11 @@ class AboutDeveloperCard extends StatelessWidget {
           subtitle: l10n.viewMyProjects,
           background: context.palette.surfaceMuted,
           foreground: context.palette.textPrimary,
-          trailing: Icon(Icons.open_in_new, size: 16.w, color: palette.textMuted),
+          trailing: Icon(
+            Icons.open_in_new,
+            size: 16.w,
+            color: palette.textMuted,
+          ),
           onTap: () => _open(context, githubUrl),
         ),
         SettingsTile(
@@ -91,7 +86,11 @@ class AboutDeveloperCard extends StatelessWidget {
           subtitle: l10n.viewMyPortfolio,
           background: AppColors.brand50,
           foreground: AppColors.brand600,
-          trailing: Icon(Icons.open_in_new, size: 16.w, color: palette.textMuted),
+          trailing: Icon(
+            Icons.open_in_new,
+            size: 16.w,
+            color: palette.textMuted,
+          ),
           onTap: () => _open(context, portfolioUrl),
         ),
         SettingsTile(
@@ -100,8 +99,13 @@ class AboutDeveloperCard extends StatelessWidget {
           subtitle: l10n.getInTouch,
           background: const Color(0xFFE0F2FE),
           foreground: const Color(0xFF0284C7),
-          trailing: Icon(Icons.arrow_outward, size: 16.w, color: palette.textMuted),
-          onTap: () => _open(context, 'mailto:$contactEmail?subject=Yalla%205roga'),
+          trailing: Icon(
+            Icons.arrow_outward,
+            size: 16.w,
+            color: palette.textMuted,
+          ),
+          onTap: () =>
+              _open(context, 'mailto:$contactEmail?subject=Yalla%205roga'),
         ),
       ],
     );

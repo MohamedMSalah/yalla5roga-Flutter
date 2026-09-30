@@ -13,12 +13,12 @@ class ApiConstants {
   static const String login = '/auth/login';
   static const String register = '/auth/register';
 
-  // Me
-  static const String unreadCounts = '/me/unread-counts';
-  static const String savedOutings = '/me/saved-outings';
-  static const String fcmToken = '/me/fcm-token';
+  // User
+  static const String unreadCounts = '/user/unread-counts';
+  static const String savedOutings = '/user/saved-outings';
+  static const String fcmToken = '/user/fcm-token';
 
-  static String savedOuting(String id) => '/me/saved-outings/$id';
+  static String savedOuting(String id) => '/user/saved-outings/$id';
 
   // Notifications
   static const String notifications = '/notifications';
@@ -42,11 +42,14 @@ class ApiConstants {
 
   static String outingVotes(String outingId) => '/outings/$outingId/votes';
 
-  static String outingAttendance(String outingId) => '/outings/$outingId/attendance';
+  static String outingAttendance(String outingId) =>
+      '/outings/$outingId/attendance';
 
-  static String outingChatMessages(String outingId) => '/outings/$outingId/chat/messages';
+  static String outingChatMessages(String outingId) =>
+      '/outings/$outingId/chat/messages';
 
-  static String outingChatRead(String outingId) => '/outings/$outingId/chat/read';
+  static String outingChatRead(String outingId) =>
+      '/outings/$outingId/chat/read';
 
   // Discover / places (placeholders)
   static const String places = '/places';

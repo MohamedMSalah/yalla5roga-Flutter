@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:yalla_5roga/core/constants/avatar_placeholders.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
@@ -11,12 +10,12 @@ class ProfileHeader extends StatelessWidget {
     super.key,
     required this.user,
     required this.onLogout,
-    required this.onEditImage,
+    required this.onEditProfile,
   });
 
   final User? user;
   final VoidCallback onLogout;
-  final VoidCallback onEditImage;
+  final VoidCallback onEditProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +41,22 @@ class ProfileHeader extends StatelessWidget {
                   ),
                   Text(
                     l10n.settings,
-                    style: TextStyle(color: Colors.white, fontSize: Responsive.fontLg, fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: Responsive.fontLg,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ),
             ),
+            AppIconButton(
+              icon: Icons.edit_outlined,
+              background: Colors.white.withValues(alpha: 0.16),
+              foreground: Colors.white,
+              onTap: onEditProfile,
+            ),
+            8.gapW,
             AppIconButton(
               icon: Icons.logout,
               background: Colors.white.withValues(alpha: 0.16),
@@ -56,40 +66,65 @@ class ProfileHeader extends StatelessWidget {
           ],
         ),
         Responsive.spaceMd.gapH,
-        Stack(
-          children: [
-            Container(
-              width: avatar,
-              height: avatar,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(26.r),
-                border: Border.all(color: Colors.white, width: 4.w),
+        GestureDetector(
+          onTap: onEditProfile,
+          child: Stack(
+            children: [
+              Container(
+                width: avatar,
+                height: avatar,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26.r),
+                  border: Border.all(color: Colors.white, width: 4.w),
+                ),
+                child: AppNetworkImage.avatar(
+                  url: user?.imageUrl ?? '',
+                  width: avatar,
+                  height: avatar,
+                  radius: 22.r,
+                ),
               ),
-              child: AppNetworkImage(url: user?.imageUrl ?? AvatarPlaceholders.fallback, radius: 22.r),
-            ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: GestureDetector(
-                onTap: onEditImage,
+              Positioned(
+                right: 0,
+                bottom: 0,
                 child: CircleAvatar(
                   radius: 12.r,
                   backgroundColor: AppColors.brand600,
-                  child: Icon(Icons.edit_outlined, size: Responsive.iconSm, color: Colors.white),
+                  child: Icon(
+                    Icons.edit_outlined,
+                    size: Responsive.iconSm,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         12.gapH,
         Text(
           user?.name ?? '',
-          style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-        Text(
-          user?.phone ?? '',
-          style: TextStyle(color: AppColors.brand100, fontSize: Responsive.fontSm),
-        ),
+        if ((user?.email ?? '').trim().isNotEmpty)
+          Text(
+            user!.email!,
+            style: TextStyle(
+              color: AppColors.brand100,
+              fontSize: Responsive.fontSm,
+            ),
+          ),
+        if ((user?.phone ?? '').trim().isNotEmpty)
+          Text(
+            l10n.digits(user!.phone),
+            style: TextStyle(
+              color: AppColors.brand100,
+              fontSize: Responsive.fontSm,
+            ),
+          ),
       ],
     );
   }

@@ -1,6 +1,6 @@
 import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 
-/// Active place suggestion on a group (demo + in-memory).
+/// Active place suggestion on a group.
 class GroupPlaceSuggestion {
   const GroupPlaceSuggestion({
     required this.id,

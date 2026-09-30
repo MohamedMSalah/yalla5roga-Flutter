@@ -23,14 +23,29 @@ class OutingListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final details = Row(
       children: [
-        AppNetworkImage(url: image, width: 48.w, height: 48.w, radius: 12.r),
+        AppNetworkImage(
+          url: image,
+          width: 48.w,
+          height: 48.w,
+          radius: 12.r,
+          placeholderIcon: Icons.explore_outlined,
+        ),
         12.gapW,
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp)),
-              Text(subtitle, style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp)),
+              Text(
+                title,
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.sp),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: context.palette.textMuted,
+                  fontSize: 10.sp,
+                ),
+              ),
             ],
           ),
         ),
@@ -45,9 +60,21 @@ class OutingListTile extends StatelessWidget {
           Expanded(
             child: trailing == null || onTap == null
                 ? details
-                : GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: details),
+                : GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onTap,
+                    child: details,
+                  ),
           ),
-          if (trailing != null) ...[8.gapW, trailing!] else Icon(context.chevronForward, color: context.palette.border, size: 20.w),
+          if (trailing != null) ...[
+            8.gapW,
+            trailing!,
+          ] else
+            Icon(
+              context.chevronForward,
+              color: context.palette.border,
+              size: 20.w,
+            ),
         ],
       ),
     );

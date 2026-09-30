@@ -36,7 +36,6 @@ class SplashPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // LanguageChoice — English / العربية (same as Settings)
                   Row(
                     children: [
                       Container(
@@ -46,7 +45,11 @@ class SplashPage extends StatelessWidget {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12.r),
                         ),
-                        child: SvgPicture.asset(AssetConstants.logo, width: 20.w, height: 20.w),
+                        child: SvgPicture.asset(
+                          AssetConstants.logo,
+                          width: 20.w,
+                          height: 20.w,
+                        ),
                       ),
                       Responsive.spaceSm.gapW,
                       Text(
@@ -57,12 +60,15 @@ class SplashPage extends StatelessWidget {
                           fontSize: 18.sp,
                         ),
                       ),
+
                       const Spacer(),
+
+                      // LanguageChoice — English / العربية (same as Settings)
                       const LanguageChoice(onBrand: true),
                     ],
                   ),
                   28.gapH,
-                  // SplashPreview — sample outing card
+                  // SplashPreview — decorative marketing card
                   const SplashPreview(),
                   const Spacer(),
                   Container(
@@ -94,7 +100,11 @@ class SplashPage extends StatelessWidget {
                   12.gapH,
                   Text(
                     l10n.splashBody,
-                    style: TextStyle(color: AppColors.brand100, height: 1.5, fontSize: Responsive.fontBody),
+                    style: TextStyle(
+                      color: AppColors.brand100,
+                      height: 1.5,
+                      fontSize: Responsive.fontBody,
+                    ),
                   ),
                   Responsive.spaceLg.gapH,
                   // CustomButton — Get started → AuthPage

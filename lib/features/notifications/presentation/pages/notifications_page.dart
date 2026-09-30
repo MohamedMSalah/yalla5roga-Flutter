@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
 import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
@@ -8,11 +9,11 @@ import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/segmented_tabs.dart';
-import 'package:yalla_5roga/features/notifications/presentation/widgets/notifications_skeleton.dart';
 import 'package:yalla_5roga/features/groups/presentation/pages/group_details_page.dart';
 import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/widgets/notification_card.dart';
+import 'package:yalla_5roga/features/notifications/presentation/widgets/notifications_skeleton.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 
@@ -46,7 +47,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void _markAllWhenReady() {
     final notifications = _notifications;
-    if (!mounted || notifications == null || _markedOnOpen || !notifications.hasLoaded) return;
+    if (!mounted ||
+        notifications == null ||
+        _markedOnOpen ||
+        !notifications.hasLoaded)
+      return;
     _markedOnOpen = true;
     notifications.removeListener(_markAllWhenReady);
     notifications.markAllRead();
@@ -64,7 +69,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
       return;
     }
     if (item.groupId != null) {
-      // TODO: Get.to GroupDetailsPage from GET /groups/{item.groupId} when group CRUD exists.
       Get.to(() => GroupDetailsPage(groupId: item.groupId!));
     }
   }
@@ -86,45 +90,63 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: Responsive.pagePadding(),
-          children: [
-            Row(
-              children: [
-                AppIconButton(icon: context.chevronBack, onTap: Get.back),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(l10n.notifications, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
-                      Text(l10n.unreadUpdates(unreadCount), style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp)),
-                    ],
-                  ),
-                ),
-                CustomButton(
-                  label: unreadCount == 0 ? l10n.allRead : l10n.markAllRead,
-                  size: AppButtonSize.small,
-                  expand: false,
-                  variant: AppButtonVariant.light,
-                  isLoading: notifications.isUpdating,
-                  onPressed: unreadCount == 0 ? null : _markAll,
-                ),
-              ],
-            ),
-            Responsive.spaceMd.gapH,
-            if (notifications.isInitialLoading || (notifications.isLoading && notifications.items.isEmpty))
-              const NotificationsSkeleton()
-            else
-              SegmentedTabs(
-                labels: [l10n.all, l10n.unread],
-                index: notifications.filter,
-                onChanged: notifications.setFilter,
-                badges: {1: l10n.n(unreadCount)},
+        child: RefreshIndicator(
+          color: AppColors.brand600,
+          onRefresh: notifications.refresh,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: Responsive.pagePadding(),
+            children: [
+              Row(
                 children: [
-                  _feed(notifications.items, unreadOnly: false),
-                  _feed(unread, unreadOnly: true),
+                  AppIconButton(icon: context.chevronBack, onTap: Get.back),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
+                          l10n.notifications,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: Responsive.fontMd,
+                          ),
+                        ),
+                        Text(
+                          l10n.unreadUpdates(unreadCount),
+                          style: TextStyle(
+                            color: context.palette.textMuted,
+                            fontSize: 10.sp,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CustomButton(
+                    label: unreadCount == 0 ? l10n.allRead : l10n.markAllRead,
+                    size: AppButtonSize.small,
+                    expand: false,
+                    variant: AppButtonVariant.light,
+                    isLoading: notifications.isUpdating,
+                    onPressed: unreadCount == 0 ? null : _markAll,
+                  ),
                 ],
               ),
-          ],
+              Responsive.spaceMd.gapH,
+              if (notifications.isInitialLoading ||
+                  (notifications.isLoading && notifications.items.isEmpty))
+                const NotificationsSkeleton()
+              else
+                SegmentedTabs(
+                  labels: [l10n.all, l10n.unread],
+                  index: notifications.filter,
+                  onChanged: notifications.setFilter,
+                  badges: {1: l10n.n(unreadCount)},
+                  children: [
+                    _feed(notifications.items, unreadOnly: false),
+                    _feed(unread, unreadOnly: true),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -134,9 +156,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final l10n = context.l10n;
     if (items.isEmpty) {
       return AppEmptyState(
-        icon: unreadOnly ? Icons.mark_email_read_outlined : Icons.notifications_none_outlined,
+        icon: unreadOnly
+            ? Icons.mark_email_read_outlined
+            : Icons.notifications_none_outlined,
         message: unreadOnly ? l10n.noUnreadNotifications : l10n.noNotifications,
-        subtitle: unreadOnly ? l10n.noUnreadNotificationsHint : l10n.noNotificationsHint,
+        subtitle: unreadOnly
+            ? l10n.noUnreadNotificationsHint
+            : l10n.noNotificationsHint,
         compact: true,
       );
     }

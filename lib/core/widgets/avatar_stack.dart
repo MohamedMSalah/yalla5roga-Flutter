@@ -18,10 +18,7 @@ class AvatarStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final side = size.w;
-    final items = [
-      ...urls.take(3),
-      if (extra > 0) '__extra__',
-    ];
+    final items = [...urls.take(3), if (extra > 0) '__extra__'];
     if (items.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
@@ -40,7 +37,10 @@ class AvatarStack extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.brand600,
                         shape: BoxShape.circle,
-                        border: Border.all(color: context.palette.surface, width: 2.w),
+                        border: Border.all(
+                          color: context.palette.surface,
+                          width: 2.w,
+                        ),
                       ),
                       child: Text(
                         '+${context.l10n.n(extra)}',
@@ -52,7 +52,7 @@ class AvatarStack extends StatelessWidget {
                       ),
                     )
                   : ClipOval(
-                      child: AppNetworkImage(
+                      child: AppNetworkImage.avatar(
                         url: items[i],
                         width: side,
                         height: side,

@@ -8,13 +8,4 @@ abstract class NotificationsRepository {
   Future<Either<Failure, int>> markAllRead();
 
   Future<Either<Failure, int>> markRead(String id);
-
-  /// Local / demo push used while the backend notification writer is unavailable.
-  Future<Either<Failure, NotificationItem>> pushLocal({
-    required String body,
-    String? outingId,
-    String? groupId,
-    bool action = false,
-    String? image,
-  });
 }

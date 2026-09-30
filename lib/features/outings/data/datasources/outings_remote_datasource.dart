@@ -157,7 +157,7 @@ class OutingsRemoteDataSource implements OutingsDataSource {
       title: apiString(json['title']) ?? '',
       meta: apiString(json['meta']) ?? '',
       date: apiString(json['date']) ?? '',
-      time: apiString(json['time']) ?? '6:30 PM',
+      time: apiString(json['time']) ?? '',
       going: apiInt(json['going']),
       groupId: apiString(json['groupId']),
       location: json['location'] is Map
