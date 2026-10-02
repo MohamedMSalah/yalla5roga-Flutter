@@ -11,6 +11,7 @@ class Group {
     required this.avatars,
     required this.image,
     required this.people,
+    this.bio = '',
     this.lastMessage,
     this.unread = 0,
     this.featured = false,
@@ -26,6 +27,9 @@ class Group {
   final List<String> avatars;
   final String image;
   final List<GroupMember> people;
+
+  /// Optional group description / bio from the API.
+  final String bio;
   final String? lastMessage;
   final int unread;
   final bool featured;
@@ -38,6 +42,8 @@ class Group {
 
   int get outingCount => outings;
 
+  bool get isOwner => myRole == GroupRole.owner;
+
   Group copyWith({
     String? image,
     List<GroupMember>? people,
@@ -45,6 +51,7 @@ class Group {
     int? unread,
     String? name,
     String? preview,
+    String? bio,
     String? lastMessage,
     bool? featured,
     String? decision,
@@ -61,6 +68,7 @@ class Group {
       avatars: avatars ?? this.avatars,
       image: image ?? this.image,
       people: people ?? this.people,
+      bio: bio ?? this.bio,
       lastMessage: lastMessage ?? this.lastMessage,
       unread: unread ?? this.unread,
       featured: featured ?? this.featured,

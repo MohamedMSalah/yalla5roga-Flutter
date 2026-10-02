@@ -22,4 +22,6 @@ class AppConstants {
 
   static const Duration splashDuration = Duration(seconds: 2);
   static const int minPasswordLength = 8;
+  static const int minNameLength = 3;
+  static const int maxNameLength = 30;
 }

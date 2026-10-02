@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:yalla_5roga/core/config/app_config.dart';
+import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/utils/input_formatters.dart';
@@ -71,7 +73,7 @@ class _AuthFormState extends State<AuthForm> {
     final ok = await auth.resendOtp(phone);
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(_authError(auth));
+      AppSnackBar.showError(_authError(auth));
       return;
     }
     AppSnackBar.show(context.l10n.otpSent(context.l10n.digits(phone)));
@@ -80,8 +82,8 @@ class _AuthFormState extends State<AuthForm> {
   Future<void> _sendOtp() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    if (!auth.agreeTerms) {
-      AppSnackBar.show(context.l10n.termsRequired);
+    if (!AppConfig.useMockData && !auth.agreeTerms) {
+      AppSnackBar.showError(context.l10n.termsRequired);
       return;
     }
     final phone = Validators.normalizePhone(_phoneController.text);
@@ -89,7 +91,7 @@ class _AuthFormState extends State<AuthForm> {
     final ok = await auth.sendOtp(phone);
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(_authError(auth));
+      AppSnackBar.showError(_authError(auth));
       return;
     }
     AppSnackBar.show(context.l10n.otpSent(context.l10n.digits(phone)));
@@ -104,39 +106,50 @@ class _AuthFormState extends State<AuthForm> {
     );
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(_authError(auth));
+      AppSnackBar.showError(_authError(auth));
       return;
     }
     Get.offAll(() => const MainShell());
   }
 
   Future<void> _submitRegister() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.isLoading) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = context.l10n;
-    final auth = context.read<AuthProvider>();
-    if (!auth.agreeTerms) {
-      AppSnackBar.show(l10n.termsRequired);
+    if (!AppConfig.useMockData && !auth.agreeTerms) {
+      AppSnackBar.showError(l10n.termsRequired);
       return;
     }
-    if (!auth.otpSent) {
-      AppSnackBar.show(l10n.verifyPhoneFirst);
+    if (!AppConfig.useMockData && !auth.otpSent) {
+      AppSnackBar.showError(l10n.verifyPhoneFirst);
       return;
     }
 
+    FocusScope.of(context).unfocus();
     final ok = await auth.register(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
       phone: Validators.normalizePhone(_phoneController.text),
-      smsCode: Validators.normalizeOtp(_otpController.text),
+      smsCode: AppConfig.useMockData
+          ? '123456'
+          : Validators.normalizeOtp(_otpController.text),
     );
 
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(_authError(auth));
+      AppSnackBar.showError(_authError(auth));
       return;
     }
     Get.offAll(() => const MainShell());
+  }
+
+  void _onOtpCompleted(String code) {
+    if (code.length != Validators.otpLength) return;
+    final auth = context.read<AuthProvider>();
+    if (auth.isLoading || !auth.otpSent) return;
+    _submitRegister();
   }
 
   @override
@@ -164,7 +177,10 @@ class _AuthFormState extends State<AuthForm> {
               hint: l10n.nameHint,
               prefixIcon: Icons.person_outline,
               textInputAction: TextInputAction.next,
-              validator: (value) => Validators.required(value, l10n),
+              inputFormatters: [
+                InputFormatters.maxLength(AppConstants.maxNameLength),
+              ],
+              validator: (value) => Validators.name(value, l10n),
             ),
             Responsive.spaceMd.gapH,
           ],
@@ -190,7 +206,9 @@ class _AuthFormState extends State<AuthForm> {
                 : TextInputAction.next,
             onToggleObscure: () =>
                 setState(() => _obscurePassword = !_obscurePassword),
-            validator: (value) => Validators.password(value, l10n),
+            validator: (value) => isLogin
+                ? Validators.required(value, l10n)
+                : Validators.password(value, l10n),
           ),
           if (!isLogin) ...[
             Responsive.spaceMd.gapH,
@@ -209,6 +227,7 @@ class _AuthFormState extends State<AuthForm> {
                           label: l10n.otp,
                           length: Validators.otpLength,
                           validator: (value) => Validators.otp(value, l10n),
+                          onCompleted: _onOtpCompleted,
                           action: TextButton(
                             onPressed: auth.isLoading ? null : _resendOtp,
                             style: TextButton.styleFrom(
@@ -260,10 +279,16 @@ class _AuthFormState extends State<AuthForm> {
             )
           else
             CustomButton(
-              label: otpSent ? l10n.register : l10n.sendOtp,
-              icon: otpSent ? Icons.person_add_alt_1 : Icons.sms_outlined,
+              label: AppConfig.useMockData || otpSent
+                  ? l10n.register
+                  : l10n.sendOtp,
+              icon: AppConfig.useMockData || otpSent
+                  ? Icons.person_add_alt_1
+                  : Icons.sms_outlined,
               isLoading: auth.isLoading,
-              onPressed: otpSent ? _submitRegister : _sendOtp,
+              onPressed: AppConfig.useMockData || otpSent
+                  ? _submitRegister
+                  : _sendOtp,
             ),
           Responsive.spaceLg.gapH,
           const AuthSocialButtons(),

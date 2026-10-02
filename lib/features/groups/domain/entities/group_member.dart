@@ -48,10 +48,7 @@ class GroupMember {
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       avatar: json['avatar'] as String? ?? '',
-      role: GroupRole.values.firstWhere(
-        (item) => item.name == json['role'],
-        orElse: () => GroupRole.member,
-      ),
+      role: GroupRole.fromApi(json['role'] as String?),
       phone: json['phone'] as String?,
     );
   }

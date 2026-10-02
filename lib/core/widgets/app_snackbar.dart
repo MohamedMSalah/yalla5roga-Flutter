@@ -7,15 +7,28 @@ class AppSnackBar {
   const AppSnackBar._();
 
   static void show(String message) {
+    _present(message, duration: const Duration(milliseconds: 1800));
+  }
+
+  /// Longer toast for auth / validation errors so the full message is readable.
+  static void showError(String message) {
+    _present(message, duration: const Duration(milliseconds: 3600), wide: true);
+  }
+
+  static void _present(
+    String message, {
+    required Duration duration,
+    bool wide = false,
+  }) {
     Get.closeCurrentSnackbar();
     Get.showSnackbar(
       GetSnackBar(
-        messageText: _ToastBubble(message: message),
+        messageText: _ToastBubble(message: message, wide: wide),
         backgroundColor: Colors.transparent,
         snackStyle: SnackStyle.FLOATING,
-        margin: Responsive.padding(horizontal: 36, bottom: 28),
+        margin: Responsive.padding(horizontal: 28, bottom: 28),
         padding: EdgeInsets.zero,
-        duration: const Duration(milliseconds: 1800),
+        duration: duration,
         snackPosition: SnackPosition.BOTTOM,
         animationDuration: const Duration(milliseconds: 250),
       ),
@@ -24,15 +37,16 @@ class AppSnackBar {
 }
 
 class _ToastBubble extends StatelessWidget {
-  const _ToastBubble({required this.message});
+  const _ToastBubble({required this.message, this.wide = false});
 
   final String message;
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 280.w),
+        constraints: BoxConstraints(maxWidth: wide ? 320.w : 280.w),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: AppColors.slate950.withValues(alpha: 0.92),
@@ -47,6 +61,7 @@ class _ToastBubble extends StatelessWidget {
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
                 fontSize: 13.sp,
+                height: 1.35,
               ),
             ),
           ),

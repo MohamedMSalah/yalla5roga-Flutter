@@ -71,7 +71,6 @@ class L10n {
   String get today => _t('Today', 'اليوم');
   String get all => _t('All', 'الكل');
   String get owner => _t('Owner', 'المالك');
-  String get admin => _t('Admin', 'مشرف');
   String get member => _t('Member', 'عضو');
   String get members => _t('Members', 'الأعضاء');
   String get nothingHere => _t('Nothing here yet', 'لا يوجد شيء هنا بعد');
@@ -167,10 +166,36 @@ class L10n {
   String get phoneCountryCode => digits('+20');
   String get email => _t('Email', 'البريد الإلكتروني');
   String get emailHint => _t('name@example.com', 'name@example.com');
+  String get nameTooShort => digits(
+    _t(
+      'Name must be at least 3 characters',
+      'يجب أن يكون الاسم 3 أحرف على الأقل',
+    ),
+  );
+  String get nameTooLong => digits(
+    _t('Name must be at most 30 characters', 'يجب ألا يزيد الاسم عن 30 حرفاً'),
+  );
+  String get passwordRequirements => digits(
+    _t(
+      'Use at least 8 characters with 1 uppercase, 1 lowercase, 1 number, and 1 symbol',
+      'استخدم 8 أحرف على الأقل مع حرف كبير وحرف صغير ورقم ورمز',
+    ),
+  );
+  String get editPassword => _t('Edit password', 'تعديل كلمة المرور');
+  String get cancelEditPassword =>
+      _t('Cancel password edit', 'إلغاء تعديل كلمة المرور');
+  String get confirmWithPassword => _t(
+    'Enter your current password to confirm changes',
+    'أدخل كلمة المرور الحالية لتأكيد التغييرات',
+  );
   String get invalidEmail =>
       _t('Enter a valid email address', 'أدخل بريداً إلكترونياً صالحاً');
-  String get passwordHint =>
-      digits(_t('At least 8 characters', '8 أحرف على الأقل'));
+  String get passwordHint => digits(
+    _t(
+      '8+ chars, upper, lower, number, symbol',
+      '8+ أحرف، كبير وصغير ورقم ورمز',
+    ),
+  );
   String get nameHint => _t('Ahmed Hassan', 'أحمد حسن');
   String get forgotPassword => _t('Forgot password?', 'نسيت كلمة المرور؟');
   String get orContinueWith => _t('Or continue with', 'أو المتابعة عبر');
@@ -183,12 +208,28 @@ class L10n {
     'تحقق من رقم هاتفك قبل إنشاء الحساب',
   );
   String get emailAlreadyInUse => _t(
-    'An account already exists for this email',
-    'يوجد حساب بالفعل لهذا البريد',
+    'This email is already registered. Try logging in instead.',
+    'هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول.',
+  );
+  String get phoneAlreadyInUse => _t(
+    'This phone number is already linked to another account.',
+    'رقم الهاتف هذا مرتبط بحساب آخر بالفعل.',
+  );
+  String get accountExistsDifferentMethod => _t(
+    'An account already exists with a different sign-in method. Try Google, Apple, or email login.',
+    'يوجد حساب بنفس البيانات بطريقة دخول مختلفة. جرّب Google أو Apple أو البريد.',
+  );
+  String get accountDisabled => _t(
+    'This account has been disabled. Contact support if you need help.',
+    'تم تعطيل هذا الحساب. تواصل مع الدعم إذا احتجت مساعدة.',
+  );
+  String get signInMethodNotEnabled => _t(
+    'This sign-in method is not available right now.',
+    'طريقة تسجيل الدخول هذه غير متاحة حالياً.',
   );
   String get incorrectEmailOrPassword => _t(
-    'Incorrect email or password',
-    'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+    'Incorrect email or password. Check your details and try again.',
+    'البريد الإلكتروني أو كلمة المرور غير صحيحة. راجع بياناتك وحاول مرة أخرى.',
   );
   String get socialSignInCancelled =>
       _t('Sign in cancelled', 'تم إلغاء تسجيل الدخول');
@@ -211,12 +252,7 @@ class L10n {
   String get requiredField => _t('This field is required', 'هذا الحقل مطلوب');
   String get invalidPhone =>
       _t('Enter a valid Egyptian phone number', 'أدخل رقم هاتف مصري صالح');
-  String get passwordTooShort => digits(
-    _t(
-      'Password must be at least 8 characters',
-      'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
-    ),
-  );
+  String get passwordTooShort => passwordRequirements;
   String get loginFailed => _t('Login failed', 'فشل تسجيل الدخول');
   String get registerFailed => _t('Registration failed', 'فشل إنشاء الحساب');
   String get welcomeBack => _t('Welcome back', 'أهلاً بعودتك');
@@ -379,6 +415,12 @@ class L10n {
       'verification-failed' => otpVerificationFailed,
       'invalid-email' => invalidEmail,
       'email-already-in-use' => emailAlreadyInUse,
+      'credential-already-in-use' ||
+      'provider-already-linked' => phoneAlreadyInUse,
+      'account-exists-with-different-credential' =>
+        accountExistsDifferentMethod,
+      'user-disabled' => accountDisabled,
+      'operation-not-allowed' => signInMethodNotEnabled,
       'weak-password' => passwordTooShort,
       'user-not-found' ||
       'wrong-password' ||
@@ -514,6 +556,35 @@ class L10n {
     'لا توجد خروجات بعد. أنشئ الأولى.',
   );
   String get chooseGroup => _t('Choose a group', 'اختر مجموعة');
+  String get groupInfo => _t('Group info', 'معلومات المجموعة');
+  String get groupActions => _t('Group actions', 'إجراءات المجموعة');
+  String get groupBio => _t('About', 'عن المجموعة');
+  String get groupBioHint =>
+      _t('What is this group about?', 'عن ماذا تدور هذه المجموعة؟');
+  String get noGroupBio => _t('No description yet', 'لا يوجد وصف بعد');
+  String get activeVotes => _t('Active votes', 'التصويتات النشطة');
+  String get activeVoting => _t('Active voting', 'التصويت النشط');
+  String get noActiveVotes => _t(
+    'No active votes yet. Start an outing to vote together.',
+    'لا توجد تصويتات نشطة بعد. ابدأ خرجة للتصويت معاً.',
+  );
+  String get noActiveVotesHint => _t(
+    'When a group starts voting, it will show up here.',
+    'لما تبدأ مجموعة تصويت، هيظهر هنا.',
+  );
+  String get removeMember => _t('Remove', 'إزالة');
+  String get removeMemberTitle => _t('Remove Member?', 'إزالة العضو؟');
+  String removeMemberMessage(String name) => _t(
+    'Are you sure you want to remove $name from this group?',
+    'هل أنت متأكد أنك تريد إزالة $name من هذه المجموعة؟',
+  );
+  String get leaveGroup => _t('Leave Group', 'مغادرة المجموعة');
+  String get leaveGroupTitle => _t('Leave Group?', 'مغادرة المجموعة؟');
+  String get leaveGroupMessage => _t(
+    'Are you sure you want to leave this group?',
+    'هل أنت متأكد أنك تريد مغادرة هذه المجموعة؟',
+  );
+  String get leftGroup => _t('You left the group', 'غادرت المجموعة');
 
   // --- Outings ---
   String get makeAMemory => _t('Make a memory', 'اصنع ذكرى');
@@ -719,11 +790,20 @@ class L10n {
   String get eventName => _t('Event name', 'اسم المناسبة');
   String get invitePeopleHint =>
       _t('Choose people from your groups', 'اختر أشخاصاً من مجموعاتك');
-  String get selectAll => _t('Select all', 'تحديد الكل');
+  String get selectAll => _t('Select all', 'اختيار الكل');
   String get clearSelection => _t('Clear', 'مسح');
   String guestsInvited(int count) {
     final c = n(count);
     return _t('$c guests invited', 'تمت دعوة $c ضيوف');
+  }
+
+  /// Summary under the invite button on create special event.
+  String youInvitedPeopleToEvent(int count, String occasionLabel) {
+    final c = n(count);
+    return _t(
+      'You invited $c people to your $occasionLabel',
+      'لقد دعوت $c أشخاص إلى $occasionLabel',
+    );
   }
 
   String get guestsRequired =>
@@ -777,6 +857,11 @@ class L10n {
       _t('Great! Let’s choose the location', 'رائع! لنختار المكان الآن');
   String get outingChat => _t('Outing chat', 'محادثة الخروجة');
   String get writeMessage => _t('Write a message', 'اكتب رسالة');
+  String get mentionSomeone => _t('Mention someone', 'أشّر على شخص');
+  String get mentionAll => _t('Mention all', 'أشّر على الجميع');
+  String get mentionAllLabel => _t('Everyone', 'الجميع');
+  String get noMembersToMention =>
+      _t('No group members to mention', 'لا يوجد أعضاء للإشارة إليهم');
   String get chooseLocation => _t('Choose a location', 'اختر المكان');
   String get pickAPlace => _t('Where should we meet?', 'هنتقابل فين؟');
   String get locationHint =>

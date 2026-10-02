@@ -50,13 +50,14 @@ class OutingChatProvider extends ChangeNotifier {
 
   Future<void> loadMessages(String outingId) async {
     final result = await repository.getMessages(outingId);
-    result.fold(
-      (failure) {
-        _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'loadMessages');
-      },
-      (messages) => _threads[outingId] = List.of(messages),
-    );
+    result.fold((failure) {
+      _errorMessage = failure.message;
+      AppErrorFeedback.report(
+        failure,
+        kind: AppErrorKind.load,
+        context: 'loadMessages',
+      );
+    }, (messages) => _threads[outingId] = List.of(messages));
     notifyListeners();
   }
 
@@ -78,13 +79,14 @@ class OutingChatProvider extends ChangeNotifier {
       _finishInitialLoad();
       return;
     }
-    result.fold<void>(
-      (failure) {
-        _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'chatUnread');
-      },
-      applyCounts,
-    );
+    result.fold<void>((failure) {
+      _errorMessage = failure.message;
+      AppErrorFeedback.report(
+        failure,
+        kind: AppErrorKind.load,
+        context: 'chatUnread',
+      );
+    }, applyCounts);
 
     _finishInitialLoad();
   }
@@ -106,7 +108,11 @@ class OutingChatProvider extends ChangeNotifier {
     final success = result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'chatMarkRead');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'chatMarkRead',
+        );
         return false;
       },
       (read) {
@@ -127,20 +133,30 @@ class OutingChatProvider extends ChangeNotifier {
     return outing.isPastOuting || outing.status == OutingStatus.past;
   }
 
-  Future<bool> send(String outingId, String text, L10n l10n) async {
+  Future<bool> send(
+    String outingId,
+    String text,
+    L10n l10n, {
+    String? senderId,
+    String? senderName,
+  }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return false;
     if (isChatClosed(outingId)) return false;
     final result = await repository.sendMessage(
       outingId: outingId,
       text: trimmed,
-      senderId: 'me',
-      senderName: l10n.you,
+      senderId: senderId ?? 'me',
+      senderName: senderName ?? l10n.you,
     );
     return result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'sendChat');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'sendChat',
+        );
         notifyListeners();
         return false;
       },
@@ -156,12 +172,17 @@ class OutingChatProvider extends ChangeNotifier {
 
   Future<void> _progressDelivery(String outingId, String messageId) async {
     await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!_updateStatus(outingId, messageId, MessageDeliveryStatus.delivered)) return;
+    if (!_updateStatus(outingId, messageId, MessageDeliveryStatus.delivered))
+      return;
     await Future<void>.delayed(const Duration(milliseconds: 900));
     _updateStatus(outingId, messageId, MessageDeliveryStatus.seen);
   }
 
-  bool _updateStatus(String outingId, String messageId, MessageDeliveryStatus status) {
+  bool _updateStatus(
+    String outingId,
+    String messageId,
+    MessageDeliveryStatus status,
+  ) {
     final thread = _threads[outingId];
     if (thread == null) return false;
     final index = thread.indexWhere((message) => message.id == messageId);

@@ -33,6 +33,17 @@ abstract class AuthRepository {
     String? imageUrl,
   });
 
+  /// Confirms the signed-in user's password with Firebase (email/password accounts).
+  Future<Either<Failure, void>> confirmPassword({required String password});
+
+  /// Syncs changed profile fields to the app backend.
+  Future<Either<Failure, User>> syncProfileToBackend({
+    String? name,
+    String? email,
+    String? phone,
+    String? imageUrl,
+  });
+
   /// Email/password accounts only. Sends a confirmation link to the new email.
   Future<Either<Failure, void>> requestEmailChange({
     required String newEmail,
@@ -69,7 +80,7 @@ abstract class AuthRepository {
     String? name,
   });
 
-  Future<Either<Failure, String?>> idToken();
+  Future<Either<Failure, String?>> idToken({bool forceRefresh = false});
 
   Future<Either<Failure, void>> signOutFirebase();
 }

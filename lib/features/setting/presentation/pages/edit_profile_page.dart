@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/utils/input_formatters.dart';
@@ -36,6 +37,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
+  bool _editingPassword = false;
   late final String _initialEmail;
   late final String _initialPhone;
   late final String _initialName;
@@ -119,8 +121,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool get _imageChanged => (_imagePath ?? '') != (_initialImage ?? '');
 
   bool get _wantsPasswordChange =>
-      _newPasswordController.text.isNotEmpty ||
-      _confirmPasswordController.text.isNotEmpty;
+      _editingPassword &&
+      (_newPasswordController.text.isNotEmpty ||
+          _confirmPasswordController.text.isNotEmpty);
+
+  bool get _hasAnyChange =>
+      _nameChanged ||
+      _emailChanged ||
+      _phoneChanged ||
+      _imageChanged ||
+      _wantsPasswordChange;
+
+  void _toggleEditPassword() {
+    setState(() {
+      _editingPassword = !_editingPassword;
+      if (!_editingPassword) {
+        _newPasswordController.clear();
+        _confirmPasswordController.clear();
+      }
+    });
+  }
 
   Future<void> _sendPhoneOtp() async {
     if (!_formKey.currentState!.validate()) return;
@@ -130,7 +150,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final ok = await auth.sendOtp(phone);
     if (!mounted) return;
     if (!ok) {
-      AppSnackBar.show(_authError(auth));
+      AppSnackBar.showError(_authError(auth));
       return;
     }
     AppSnackBar.show(context.l10n.otpSent(context.l10n.digits(phone)));
@@ -142,37 +162,56 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final auth = context.read<AuthProvider>();
     final hasPassword = auth.hasPasswordProvider;
 
-    if (_phoneChanged && !auth.otpSent) {
-      AppSnackBar.show(l10n.verifyPhoneFirst);
+    if (!_hasAnyChange) {
+      Get.back();
       return;
     }
 
-    if ((_emailChanged || _wantsPasswordChange) && hasPassword) {
+    if (_phoneChanged && !auth.otpSent) {
+      AppSnackBar.showError(l10n.verifyPhoneFirst);
+      return;
+    }
+
+    if (hasPassword) {
       if (_currentPasswordController.text.isEmpty) {
-        AppSnackBar.show(l10n.requiredField);
+        AppSnackBar.showError(l10n.confirmWithPassword);
+        return;
+      }
+      final confirmed = await auth.confirmPassword(
+        _currentPasswordController.text,
+      );
+      if (!mounted) return;
+      if (!confirmed) {
+        AppSnackBar.showError(_authError(auth));
         return;
       }
     }
 
     if (_wantsPasswordChange && hasPassword) {
       if (_newPasswordController.text != _confirmPasswordController.text) {
-        AppSnackBar.show(l10n.passwordsDoNotMatch);
+        AppSnackBar.showError(l10n.passwordsDoNotMatch);
         return;
       }
     }
 
     var changedSomething = false;
+    String? syncedName;
+    String? syncedEmail;
+    String? syncedPhone;
+    String? syncedImage;
 
     if (_nameChanged || _imageChanged) {
       final ok = await auth.updateProfile(
-        name: _nameController.text.trim(),
-        imageUrl: _imagePath,
+        name: _nameChanged ? _nameController.text.trim() : null,
+        imageUrl: _imageChanged ? _imagePath : null,
       );
       if (!mounted) return;
       if (!ok) {
-        AppSnackBar.show(_authError(auth));
+        AppSnackBar.showError(_authError(auth));
         return;
       }
+      if (_nameChanged) syncedName = _nameController.text.trim();
+      if (_imageChanged) syncedImage = _imagePath;
       changedSomething = true;
     }
 
@@ -183,9 +222,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
       if (!mounted) return;
       if (!ok) {
-        AppSnackBar.show(_authError(auth));
+        AppSnackBar.showError(_authError(auth));
         return;
       }
+      syncedEmail = _emailController.text.trim();
       AppSnackBar.show(l10n.emailChangeSent);
       changedSomething = true;
     }
@@ -197,7 +237,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
       if (!mounted) return;
       if (!ok) {
-        AppSnackBar.show(_authError(auth));
+        AppSnackBar.showError(_authError(auth));
         return;
       }
       AppSnackBar.show(l10n.passwordUpdated);
@@ -205,17 +245,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
 
     if (_phoneChanged && auth.otpSent) {
+      final phone = Validators.normalizePhone(_phoneController.text);
       final ok = await auth.changePhoneNumber(
-        phone: _phoneController.text,
+        phone: phone,
         smsCode: Validators.normalizeOtp(_otpController.text),
       );
       if (!mounted) return;
       if (!ok) {
-        AppSnackBar.show(_authError(auth));
+        AppSnackBar.showError(_authError(auth));
         return;
       }
+      syncedPhone = phone;
       AppSnackBar.show(l10n.phoneUpdated);
       changedSomething = true;
+    }
+
+    if (changedSomething &&
+        (syncedName != null ||
+            syncedEmail != null ||
+            syncedPhone != null ||
+            syncedImage != null)) {
+      await auth.syncProfileToBackend(
+        name: syncedName,
+        email: syncedEmail,
+        phone: syncedPhone,
+        imageUrl: syncedImage,
+      );
     }
 
     if (!mounted) return;
@@ -290,7 +345,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
               hint: l10n.nameHint,
               prefixIcon: Icons.person_outline,
               textInputAction: TextInputAction.next,
-              validator: (value) => Validators.required(value, l10n),
+              inputFormatters: [
+                InputFormatters.maxLength(AppConstants.maxNameLength),
+              ],
+              validator: (value) => Validators.name(value, l10n),
             ),
             Responsive.spaceMd.gapH,
             CustomTextField(
@@ -369,18 +427,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             if (hasPassword) ...[
               Responsive.spaceLg.gapH,
               Text(
-                l10n.password,
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: Responsive.fontBody,
-                ),
-              ),
-              Responsive.spaceSm.gapH,
-              Text(
-                l10n.passwordHint,
+                l10n.confirmWithPassword,
                 style: TextStyle(
                   color: context.palette.textMuted,
                   fontSize: Responsive.fontSm,
+                  height: 1.35,
                 ),
               ),
               Responsive.spaceMd.gapH,
@@ -393,41 +444,84 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 onToggleObscure: () =>
                     setState(() => _obscureCurrent = !_obscureCurrent),
                 validator: (value) {
-                  if (!_emailChanged && !_wantsPasswordChange) return null;
+                  if (!_hasAnyChange) return null;
                   return Validators.required(value, l10n);
                 },
               ),
               Responsive.spaceMd.gapH,
-              CustomTextField(
-                controller: _newPasswordController,
-                label: l10n.newPassword,
-                hint: l10n.passwordHint,
-                obscureText: _obscureNew,
-                prefixIcon: Icons.lock_outline,
-                textInputAction: TextInputAction.next,
-                onToggleObscure: () =>
-                    setState(() => _obscureNew = !_obscureNew),
-                validator: (value) {
-                  if (!_wantsPasswordChange) return null;
-                  return Validators.password(value, l10n);
-                },
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  onPressed: auth.isLoading ? null : _toggleEditPassword,
+                  icon: Icon(
+                    _editingPassword ? Icons.close : Icons.lock_reset_outlined,
+                    size: 18.w,
+                    color: AppColors.brand600,
+                  ),
+                  label: Text(
+                    _editingPassword
+                        ? l10n.cancelEditPassword
+                        : l10n.editPassword,
+                    style: TextStyle(
+                      color: AppColors.brand600,
+                      fontWeight: FontWeight.w800,
+                      fontSize: Responsive.fontSm,
+                    ),
+                  ),
+                ),
               ),
-              Responsive.spaceMd.gapH,
-              CustomTextField(
-                controller: _confirmPasswordController,
-                label: l10n.confirmNewPassword,
-                obscureText: _obscureConfirm,
-                prefixIcon: Icons.lock_outline,
-                textInputAction: TextInputAction.done,
-                onToggleObscure: () =>
-                    setState(() => _obscureConfirm = !_obscureConfirm),
-                validator: (value) {
-                  if (!_wantsPasswordChange) return null;
-                  if (value != _newPasswordController.text) {
-                    return l10n.passwordsDoNotMatch;
-                  }
-                  return Validators.password(value, l10n);
-                },
+              AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                alignment: Alignment.topCenter,
+                child: _editingPassword
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Responsive.spaceMd.gapH,
+                          CustomTextField(
+                            controller: _newPasswordController,
+                            label: l10n.newPassword,
+                            hint: l10n.passwordHint,
+                            obscureText: _obscureNew,
+                            prefixIcon: Icons.lock_outline,
+                            textInputAction: TextInputAction.next,
+                            onToggleObscure: () =>
+                                setState(() => _obscureNew = !_obscureNew),
+                            validator: (value) {
+                              if (!_editingPassword) return null;
+                              if ((value ?? '').isEmpty &&
+                                  _confirmPasswordController.text.isEmpty) {
+                                return null;
+                              }
+                              return Validators.password(value, l10n);
+                            },
+                          ),
+                          Responsive.spaceMd.gapH,
+                          CustomTextField(
+                            controller: _confirmPasswordController,
+                            label: l10n.confirmNewPassword,
+                            obscureText: _obscureConfirm,
+                            prefixIcon: Icons.lock_outline,
+                            textInputAction: TextInputAction.done,
+                            onToggleObscure: () => setState(
+                              () => _obscureConfirm = !_obscureConfirm,
+                            ),
+                            validator: (value) {
+                              if (!_editingPassword) return null;
+                              if ((value ?? '').isEmpty &&
+                                  _newPasswordController.text.isEmpty) {
+                                return null;
+                              }
+                              if (value != _newPasswordController.text) {
+                                return l10n.passwordsDoNotMatch;
+                              }
+                              return Validators.password(value, l10n);
+                            },
+                          ),
+                        ],
+                      )
+                    : const SizedBox(width: double.infinity),
               ),
             ],
             Responsive.spaceLg.gapH,

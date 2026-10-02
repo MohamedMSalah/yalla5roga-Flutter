@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:yalla_5roga/core/config/app_config.dart';
 import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
+import 'package:yalla_5roga/core/mock/mock_data.dart';
 import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
@@ -169,18 +171,23 @@ class GroupsProvider extends ChangeNotifier {
   String roleLabel(GroupRole role, L10n l10n) {
     return switch (role) {
       GroupRole.owner => l10n.owner,
-      GroupRole.admin => l10n.admin,
       GroupRole.member => l10n.member,
     };
   }
+
+  bool canManage(Group group) => group.myRole == GroupRole.owner;
 
   Future<Group?> createGroup(
     String name, {
     required String ownerName,
     String? ownerAvatar,
+    String bio = '',
   }) async {
     if (name.trim().isEmpty) return null;
-    if (_createImage == null) return null;
+    final coverImage =
+        _createImage ??
+        (AppConfig.useMockData ? MockData.defaultCoverImage : null);
+    if (coverImage == null) return null;
     final people = [
       GroupMember(
         id: 'me',
@@ -196,8 +203,9 @@ class GroupsProvider extends ChangeNotifier {
       members: people.length,
       outings: 0,
       preview: '',
+      bio: bio.trim(),
       avatars: people.map((person) => person.avatar).toList(),
-      image: _createImage!,
+      image: coverImage,
       people: people,
       myRole: GroupRole.owner,
     );
@@ -298,6 +306,32 @@ class GroupsProvider extends ChangeNotifier {
       },
     );
     notifyListeners();
+  }
+
+  /// Leaves the group. Backend decides ownership transfer if the owner leaves.
+  Future<bool> leaveGroup(String groupId) async {
+    final result = await repository.leaveGroup(groupId);
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'leaveGroup',
+        );
+        notifyListeners();
+        return false;
+      },
+      (_) {
+        _groups = [
+          for (final item in _groups)
+            if (item.id != groupId) item,
+        ];
+        _unreadGroupCount = _groups.fold(0, (sum, group) => sum + group.unread);
+        notifyListeners();
+        return true;
+      },
+    );
   }
 
   void applyCounts(UnreadCounts counts) {

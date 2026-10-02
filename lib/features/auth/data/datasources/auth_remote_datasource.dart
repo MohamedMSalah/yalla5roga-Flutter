@@ -5,14 +5,25 @@ import 'package:yalla_5roga/core/network/api_client.dart';
 import 'package:yalla_5roga/core/network/api_payload.dart';
 import 'package:yalla_5roga/features/auth/data/models/user_model.dart';
 
+/// Backend auth/profile APIs. Identity always comes from the verified
+/// Firebase ID token on the `Authorization` header — never send a UID or
+/// password for the server to trust as identity.
 abstract class AuthRemoteDataSource {
-  Future<UserModel> login({required String email, required String password});
-
-  Future<UserModel> register({
+  /// Creates the PostgreSQL `users` row after Firebase Auth signup.
+  /// Body is profile fields only; UID is taken from the Bearer token.
+  Future<UserModel> createUser({
     required String name,
-    required String email,
-    required String phone,
-    required String password,
+    String? email,
+    String? phone,
+    String? imageUrl,
+  });
+
+  /// PATCH profile with only the fields that changed.
+  Future<UserModel> updateProfile({
+    String? name,
+    String? email,
+    String? phone,
+    String? imageUrl,
   });
 }
 
@@ -22,26 +33,48 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final ApiClient _client;
 
   @override
-  Future<UserModel> login({required String email, required String password}) {
-    return _postUser(ApiConstants.login, {
-      'email': email,
-      'password': password,
+  Future<UserModel> createUser({
+    required String name,
+    String? email,
+    String? phone,
+    String? imageUrl,
+  }) {
+    return _postUser(ApiConstants.register, {
+      'name': name,
+      'email': ?email,
+      'phone': ?phone,
+      'imageUrl': ?imageUrl,
     });
   }
 
   @override
-  Future<UserModel> register({
-    required String name,
-    required String email,
-    required String phone,
-    required String password,
-  }) {
-    return _postUser(ApiConstants.register, {
-      'name': name,
-      'email': email,
-      'phone': phone,
-      'password': password,
-    });
+  Future<UserModel> updateProfile({
+    String? name,
+    String? email,
+    String? phone,
+    String? imageUrl,
+  }) async {
+    final data = <String, dynamic>{
+      'name': ?name,
+      'email': ?email,
+      'phone': ?phone,
+      'imageUrl': ?imageUrl,
+    };
+    if (data.isEmpty) {
+      throw const ServerException('No profile fields to update');
+    }
+    try {
+      final response = await _client.patch<Map<String, dynamic>>(
+        ApiConstants.profile,
+        data: data,
+      );
+      return UserModel.fromJson(apiPayload(response.data));
+    } on DioException catch (error) {
+      if (error.error is AppException) {
+        throw error.error as AppException;
+      }
+      throw ServerException(error.message ?? 'Server error');
+    }
   }
 
   Future<UserModel> _postUser(String path, Map<String, dynamic> data) async {

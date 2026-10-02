@@ -19,6 +19,8 @@ class CustomTextField extends StatelessWidget {
     this.inputFormatters,
     this.textInputAction,
     this.textDirection,
+    this.maxLines = 1,
+    this.minLines,
   });
 
   final TextEditingController controller;
@@ -34,6 +36,8 @@ class CustomTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final TextInputAction? textInputAction;
   final TextDirection? textDirection;
+  final int? maxLines;
+  final int? minLines;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +64,8 @@ class CustomTextField extends StatelessWidget {
             inputFormatters: inputFormatters,
             textInputAction: textInputAction,
             textDirection: textDirection,
+            maxLines: obscureText ? 1 : maxLines,
+            minLines: obscureText ? 1 : minLines,
             style: TextStyle(
               fontSize: Responsive.fontBody,
               fontWeight: FontWeight.w600,
@@ -74,6 +80,7 @@ class CustomTextField extends StatelessWidget {
               ),
               filled: true,
               fillColor: palette.inputFill,
+              alignLabelWithHint: (maxLines ?? 1) > 1,
               prefixIcon:
                   prefix ??
                   (prefixIcon == null

@@ -5,9 +5,33 @@ import 'package:yalla_5roga/core/utils/digit_utils.dart';
 class Validators {
   const Validators._();
 
+  static final RegExp _emailPattern = RegExp(
+    r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$',
+  );
+
+  /// Uppercase, lowercase, digit, and symbol required.
+  static final RegExp _passwordUpper = RegExp(r'[A-Z]');
+  static final RegExp _passwordLower = RegExp(r'[a-z]');
+  static final RegExp _passwordDigit = RegExp(r'[0-9]');
+  static final RegExp _passwordSymbol = RegExp(r'[^A-Za-z0-9]');
+
   static String? required(String? value, L10n l10n) {
     if (value == null || value.trim().isEmpty) {
       return l10n.requiredField;
+    }
+    return null;
+  }
+
+  /// Display / full name: 3–30 characters after trim.
+  static String? name(String? value, L10n l10n) {
+    final requiredError = required(value, l10n);
+    if (requiredError != null) return requiredError;
+    final trimmed = value!.trim();
+    if (trimmed.length < AppConstants.minNameLength) {
+      return l10n.nameTooShort;
+    }
+    if (trimmed.length > AppConstants.maxNameLength) {
+      return l10n.nameTooLong;
     }
     return null;
   }
@@ -44,17 +68,23 @@ class Validators {
     final requiredError = required(value, l10n);
     if (requiredError != null) return requiredError;
     final email = value!.trim();
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+    if (!_emailPattern.hasMatch(email)) {
       return l10n.invalidEmail;
     }
     return null;
   }
 
+  /// Password: min length, upper, lower, digit, and symbol.
   static String? password(String? value, L10n l10n) {
     final requiredError = required(value, l10n);
     if (requiredError != null) return requiredError;
-    if (value!.length < AppConstants.minPasswordLength) {
-      return l10n.passwordTooShort;
+    final password = value!;
+    if (password.length < AppConstants.minPasswordLength ||
+        !_passwordUpper.hasMatch(password) ||
+        !_passwordLower.hasMatch(password) ||
+        !_passwordDigit.hasMatch(password) ||
+        !_passwordSymbol.hasMatch(password)) {
+      return l10n.passwordRequirements;
     }
     return null;
   }

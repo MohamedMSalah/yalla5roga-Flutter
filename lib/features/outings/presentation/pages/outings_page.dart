@@ -11,8 +11,6 @@ import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_pa
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_items.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outings_skeleton.dart';
-import 'package:yalla_5roga/features/outings/presentation/widgets/outing_vote_widget.dart';
-import 'package:yalla_5roga/features/outings/presentation/widgets/vote_card.dart';
 import 'package:yalla_5roga/features/shell/presentation/widgets/shell_loading.dart';
 
 class OutingsPage extends StatefulWidget {
@@ -38,7 +36,6 @@ class _OutingsPageState extends State<OutingsPage> {
 
     final l10n = context.l10n;
     final outings = context.watch<OutingsProvider>();
-    final needsVote = outings.needsYourVote;
 
     return SafeArea(
       child: ListView(
@@ -48,7 +45,10 @@ class _OutingsPageState extends State<OutingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: SectionHeader(eyebrow: l10n.makeAMemory, title: l10n.outingsTitle),
+                child: SectionHeader(
+                  eyebrow: l10n.makeAMemory,
+                  title: l10n.outingsTitle,
+                ),
               ),
               const NotificationButton(),
             ],
@@ -81,30 +81,6 @@ class _OutingsPageState extends State<OutingsPage> {
           ),
           Responsive.spaceSm.gapH,
           const OutingItems(filtered: true),
-          if (needsVote.isNotEmpty) ...[
-            Responsive.spaceLg.gapH,
-            Row(
-              children: [
-                Text(
-                  l10n.needsYourVote.toUpperCase(),
-                  style: TextStyle(
-                    color: context.palette.textMuted,
-                    fontSize: Responsive.fontCaption,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.4,
-                  ),
-                ),
-                const Spacer(),
-                if (outings.voteEndsAt(needsVote.first.id) != null)
-                  VoteCountdownText(endsAt: outings.voteEndsAt(needsVote.first.id)!),
-              ],
-            ),
-            Responsive.spaceSm.gapH,
-            for (final outing in needsVote) ...[
-              VoteCard(outing: outing),
-              Responsive.spaceSm.gapH,
-            ],
-          ],
         ],
       ),
     );

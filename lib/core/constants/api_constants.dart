@@ -9,11 +9,15 @@ class ApiConstants {
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
-  // Auth
-  static const String login = '/auth/login';
+  // Auth — identity from Firebase ID token (Bearer); no passwords in PostgreSQL.
+  // POST register creates/upserts the `users` row using the verified token UID.
   static const String register = '/auth/register';
 
+  /// Unused by the app: login is Firebase-only; APIs use Bearer ID tokens.
+  static const String login = '/auth/login';
+
   // User
+  static const String profile = '/user/profile';
   static const String unreadCounts = '/user/unread-counts';
   static const String savedOutings = '/user/saved-outings';
   static const String fcmToken = '/user/fcm-token';
@@ -32,6 +36,8 @@ class ApiConstants {
   static String group(String groupId) => '/groups/$groupId';
 
   static String groupMembers(String groupId) => '/groups/$groupId/members';
+
+  static String groupLeave(String groupId) => '/groups/$groupId/leave';
 
   static String groupRead(String groupId) => '/groups/$groupId/read';
 

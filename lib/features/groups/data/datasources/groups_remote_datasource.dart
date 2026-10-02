@@ -16,6 +16,7 @@ abstract class GroupsDataSource {
   Future<Group> updateGroup(Group group);
   Future<Group> addMember(String groupId, GroupMember member);
   Future<Group> removeMember(String groupId, String memberId);
+  Future<void> leaveGroup(String groupId);
   Future<GroupReadResult> markRead(String groupId);
   GroupMember? memberById(String id);
   GroupMember? memberByPhone(String phone);
@@ -35,7 +36,9 @@ class GroupsRemoteDataSource implements GroupsDataSource {
   @override
   Future<List<Group>> getGroups() async {
     try {
-      final response = await _client.get<Map<String, dynamic>>(ApiConstants.groups);
+      final response = await _client.get<Map<String, dynamic>>(
+        ApiConstants.groups,
+      );
       final payload = apiPayload(response.data);
       final raw = payload['items'] ?? payload['groups'] ?? payload;
       if (raw is! List) return const [];
@@ -51,7 +54,9 @@ class GroupsRemoteDataSource implements GroupsDataSource {
   @override
   Future<Group> getGroup(String groupId) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>(ApiConstants.group(groupId));
+      final response = await _client.get<Map<String, dynamic>>(
+        ApiConstants.group(groupId),
+      );
       return _groupFromJson(apiPayload(response.data));
     } on DioException catch (error) {
       throw _unwrap(error);
@@ -110,6 +115,17 @@ class GroupsRemoteDataSource implements GroupsDataSource {
   }
 
   @override
+  Future<void> leaveGroup(String groupId) async {
+    try {
+      await _client.post<Map<String, dynamic>>(
+        ApiConstants.groupLeave(groupId),
+      );
+    } on DioException catch (error) {
+      throw _unwrap(error);
+    }
+  }
+
+  @override
   Future<GroupReadResult> markRead(String groupId) async {
     try {
       final response = await _client.post<Map<String, dynamic>>(
@@ -138,7 +154,8 @@ class GroupsRemoteDataSource implements GroupsDataSource {
     final people = <GroupMember>[
       if (peopleRaw is List)
         for (final item in peopleRaw)
-          if (item is Map) GroupMember.fromJson(Map<String, dynamic>.from(item)),
+          if (item is Map)
+            GroupMember.fromJson(Map<String, dynamic>.from(item)),
     ];
     return Group(
       id: apiString(json['id']) ?? '',
@@ -146,6 +163,7 @@ class GroupsRemoteDataSource implements GroupsDataSource {
       members: people.isNotEmpty ? people.length : apiInt(json['members']),
       outings: apiInt(json['outings']),
       preview: apiString(json['preview']) ?? '',
+      bio: apiString(json['bio']) ?? apiString(json['description']) ?? '',
       avatars: [
         for (final item in json['avatars'] as List? ?? const [])
           if (item is String) item,
@@ -156,20 +174,18 @@ class GroupsRemoteDataSource implements GroupsDataSource {
       unread: apiInt(json['unread']),
       featured: apiBool(json['featured']),
       decision: apiString(json['decision']),
-      myRole: GroupRole.values.firstWhere(
-        (role) => role.name == json['myRole'],
-        orElse: () => GroupRole.member,
-      ),
+      myRole: GroupRole.fromApi(apiString(json['myRole'])),
     );
   }
 
   Map<String, dynamic> _groupToJson(Group group) => {
-        'id': group.id,
-        'name': group.name,
-        'image': group.image,
-        'people': [for (final person in group.people) person.toJson()],
-        'myRole': group.myRole.name,
-      };
+    'id': group.id,
+    'name': group.name,
+    'image': group.image,
+    'bio': group.bio,
+    'people': [for (final person in group.people) person.toJson()],
+    'myRole': group.myRole.name,
+  };
 
   AppException _unwrap(DioException error) {
     if (error.error is AppException) return error.error as AppException;

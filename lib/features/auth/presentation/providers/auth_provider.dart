@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
+import 'package:yalla_5roga/core/config/app_config.dart';
 import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/core/error/failures.dart';
 import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
@@ -97,7 +98,7 @@ class AuthProvider extends ChangeNotifier {
     if (_isLoading) return false;
 
     final e164 = Validators.normalizePhone(phone);
-    if (!Validators.isValidEgyptianPhone(e164)) {
+    if (!AppConfig.useMockData && !Validators.isValidEgyptianPhone(e164)) {
       _errorCode = AuthErrorCodes.invalidPhone;
       _errorMessage = 'Enter a valid Egyptian phone number';
       notifyListeners();
@@ -177,9 +178,13 @@ class AuthProvider extends ChangeNotifier {
     required String phone,
     required String smsCode,
   }) async {
-    final verificationId = _verificationId;
-    final pendingPhone = _pendingPhone;
     final e164 = Validators.normalizePhone(phone);
+    final verificationId = AppConfig.useMockData
+        ? (_verificationId ?? 'mock-verification-id')
+        : _verificationId;
+    final pendingPhone = AppConfig.useMockData
+        ? (_pendingPhone ?? e164)
+        : _pendingPhone;
     if (verificationId == null ||
         pendingPhone == null ||
         pendingPhone != e164) {
@@ -314,6 +319,64 @@ class AuthProvider extends ChangeNotifier {
       (user) {
         _user = user;
         _isLoading = false;
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
+  Future<bool> confirmPassword(String password) async {
+    _isLoading = true;
+    _errorMessage = null;
+    _errorCode = null;
+    notifyListeners();
+
+    final result = await repository.confirmPassword(password: password);
+    return result.fold(
+      (failure) {
+        _isLoading = false;
+        _errorMessage = failure.message;
+        _errorCode = failure is AuthFailure ? failure.code : null;
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'confirmPassword',
+        );
+        notifyListeners();
+        return false;
+      },
+      (_) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
+  Future<bool> syncProfileToBackend({
+    String? name,
+    String? email,
+    String? phone,
+    String? imageUrl,
+  }) async {
+    final result = await repository.syncProfileToBackend(
+      name: name,
+      email: email,
+      phone: phone,
+      imageUrl: imageUrl,
+    );
+    return result.fold(
+      (failure) {
+        // Backend may be a placeholder; keep Firebase/local success intact.
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'syncProfileToBackend',
+        );
+        return false;
+      },
+      (user) {
+        _user = user;
         notifyListeners();
         return true;
       },

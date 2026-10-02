@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/utils/input_formatters.dart';
+import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/core/widgets/app_card.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
@@ -20,6 +23,7 @@ import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
+import 'package:yalla_5roga/features/outings/presentation/pages/invite_guests_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/pick_location_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/create_outing_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
@@ -44,11 +48,14 @@ class CreateOutingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Read dependencies in build — Provider.create must not listen to InheritedWidgets.
+    final groups = context.read<GroupsProvider>();
+    final outings = context.read<OutingsProvider>();
+    final discover = context.read<DiscoverProvider>();
+    final l10n = context.l10n;
+
     return ChangeNotifierProvider(
-      create: (context) {
-        final groups = context.read<GroupsProvider>();
-        final outings = context.read<OutingsProvider>();
-        final discover = context.read<DiscoverProvider>();
+      create: (_) {
         final form = CreateOutingProvider(
           groups: groups.groups,
           contacts: groups.contacts,
@@ -62,7 +69,7 @@ class CreateOutingPage extends StatelessWidget {
           draft: draft,
           specialEvent: specialEvent,
         );
-        form.applySuggestionTitle(context.l10n);
+        form.applySuggestionTitle(l10n);
         return form;
       },
       child: const _CreateOutingView(),
@@ -112,6 +119,20 @@ class _CreateOutingView extends StatelessWidget {
     );
     if (picked == null) return;
     form.setTime(picked);
+  }
+
+  Future<void> _inviteGuests(
+    BuildContext context,
+    CreateOutingProvider form,
+  ) async {
+    final selected = await Get.to<Set<String>>(
+      () => InviteGuestsPage(
+        contacts: form.contacts,
+        initialSelectedIds: form.guestIds,
+      ),
+    );
+    if (selected == null || !context.mounted) return;
+    form.setGuests(selected);
   }
 
   Future<void> _pickGroup(
@@ -423,6 +444,10 @@ class _CreateOutingView extends StatelessWidget {
           controller: form.nameController,
           label: form.specialEvent ? l10n.eventName : l10n.outingName,
           prefixIcon: Icons.auto_awesome,
+          inputFormatters: [
+            InputFormatters.maxLength(AppConstants.maxNameLength),
+          ],
+          validator: (value) => Validators.name(value, l10n),
         ),
         Responsive.spaceMd.gapH,
         if (form.specialEvent) ...[
@@ -451,84 +476,26 @@ class _CreateOutingView extends StatelessWidget {
             ),
           ),
           Responsive.spaceMd.gapH,
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.invitePeople,
-                  style: TextStyle(
-                    fontSize: Responsive.fontSm,
-                    fontWeight: FontWeight.w800,
-                    color: context.palette.textSecondary,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: form.toggleSelectAll,
-                child: Text(
-                  form.allGuestsSelected ? l10n.clearSelection : l10n.selectAll,
-                  style: TextStyle(
-                    color: AppColors.brand600,
-                    fontWeight: FontWeight.w800,
-                    fontSize: Responsive.fontSm,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Text(
-            l10n.invitePeopleHint,
-            style: TextStyle(color: context.palette.textMuted, fontSize: 10.sp),
+          CustomButton(
+            label: l10n.invitePeople,
+            icon: Icons.person_add_alt_1_outlined,
+            variant: AppButtonVariant.outlined,
+            onPressed: () => _inviteGuests(context, form),
           ),
           Responsive.spaceSm.gapH,
-          for (final person in form.contacts) ...[
-            AppCard(
-              onTap: () => form.toggleGuest(person.id),
-              color: form.guestIds.contains(person.id)
-                  ? context.palette.brandSoft
-                  : null,
-              borderColor: form.guestIds.contains(person.id)
-                  ? context.palette.brandSoftBorder
-                  : null,
-              child: Row(
-                children: [
-                  AppNetworkImage.avatar(
-                    url: person.avatar,
-                    width: 40.w,
-                    height: 40.w,
-                    radius: 12.r,
-                  ),
-                  12.gapW,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          person.name,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        Text(
-                          context.read<GroupsProvider>().groupsForMember(
-                            person.id,
-                          ),
-                          style: TextStyle(
-                            color: context.palette.textMuted,
-                            fontSize: 10.sp,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Checkbox(
-                    value: form.guestIds.contains(person.id),
-                    activeColor: AppColors.brand600,
-                    onChanged: (_) => form.toggleGuest(person.id),
-                  ),
-                ],
-              ),
+          Text(
+            l10n.youInvitedPeopleToEvent(
+              form.guestIds.length,
+              form.occasion == OutingOccasion.wedding
+                  ? l10n.wedding
+                  : l10n.birthday,
             ),
-            8.gapH,
-          ],
+            style: TextStyle(
+              color: context.palette.textMuted,
+              fontSize: Responsive.fontSm,
+              height: 1.35,
+            ),
+          ),
         ] else ...[
           Text(
             l10n.pickAVibe,

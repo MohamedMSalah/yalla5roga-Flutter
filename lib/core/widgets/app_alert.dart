@@ -12,6 +12,7 @@ class AppAlert {
     required String message,
     required String confirmText,
     required String cancelText,
+    bool destructive = false,
   }) async {
     final result = await Get.dialog<bool>(
       AlertDialog(
@@ -32,6 +33,9 @@ class AppAlert {
             children: [
               CustomButton(
                 label: confirmText,
+                variant: destructive
+                    ? AppButtonVariant.danger
+                    : AppButtonVariant.filled,
                 onPressed: () => Get.back(result: true),
               ),
               Responsive.spaceSm.gapH,

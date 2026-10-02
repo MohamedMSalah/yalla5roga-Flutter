@@ -17,6 +17,9 @@ abstract class GroupsRepository {
 
   Future<Either<Failure, Group>> removeMember(String groupId, String memberId);
 
+  /// Leaves the group as the current user. Backend owns ownership transfer rules.
+  Future<Either<Failure, void>> leaveGroup(String groupId);
+
   Future<Either<Failure, GroupReadResult>> markRead(String groupId);
 
   GroupMember? memberById(String id);

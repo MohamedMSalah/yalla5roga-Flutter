@@ -9,10 +9,7 @@ import 'package:yalla_5roga/features/groups/domain/entities/group_read_result.da
 import 'package:yalla_5roga/features/groups/domain/repositories/groups_repository.dart';
 
 class GroupsRepositoryImpl implements GroupsRepository {
-  const GroupsRepositoryImpl({
-    required this.remote,
-    required this.networkInfo,
-  });
+  const GroupsRepositoryImpl({required this.remote, required this.networkInfo});
 
   final GroupsRemoteDataSource remote;
   final NetworkInfo networkInfo;
@@ -47,7 +44,15 @@ class GroupsRepositoryImpl implements GroupsRepository {
 
   @override
   Future<Either<Failure, Group>> removeMember(String groupId, String memberId) {
-    return guardRemote(networkInfo, () => remote.removeMember(groupId, memberId));
+    return guardRemote(
+      networkInfo,
+      () => remote.removeMember(groupId, memberId),
+    );
+  }
+
+  @override
+  Future<Either<Failure, void>> leaveGroup(String groupId) {
+    return guardRemote(networkInfo, () => remote.leaveGroup(groupId));
   }
 
   @override

@@ -1,42 +1,160 @@
+import 'dart:ui' show DisplayFeatureType;
+
 import 'package:flutter/material.dart';
 
-/// Scales fonts, paddings, and widget sizes from a 375x812 design
-/// so the UI stays consistent on phones, tablets, and desktops.
+/// Scales fonts, paddings, and widget sizes from a 375×812 phone design.
+///
+/// Also detects foldables (hinge/fold display features + near-square wide
+/// heuristic) so an unfolded device scales as a slightly larger phone instead
+/// of jumping to tablet sizing.
 class Responsive {
   Responsive._();
 
   static const double designWidth = 375;
   static const double designHeight = 812;
+
   static const double minScale = 0.82;
-  static const double maxScale = 1.28;
+  static const double maxScalePhone = 1.12;
+  static const double maxScaleFoldOpen = 1.08;
+  static const double maxScaleTablet = 1.18;
+  static const double maxScaleDesktop = 1.22;
+
   static const double tabletBreakpoint = 600;
   static const double desktopBreakpoint = 1024;
+  static const double foldOpenMinWidth = 540;
+
+  /// Max content width used by wide / fold-open layouts.
+  static const double foldContentMaxWidth = 560;
+  static const double tabletContentMaxWidth = 640;
+  static const double desktopContentMaxWidth = 720;
 
   static double _width = designWidth;
   static double _height = designHeight;
+  static double _shortestSide = designWidth;
+  static double _longestSide = designHeight;
   static double _textScale = 1;
+  static bool _hasFoldFeature = false;
+  static bool _isFoldOpen = false;
 
   static void init(BuildContext context) {
     final data = MediaQuery.of(context);
-    _width = data.size.width;
-    _height = data.size.height;
+    final size = data.size;
+    _width = size.width;
+    _height = size.height;
+    _shortestSide = size.shortestSide;
+    _longestSide = size.longestSide;
     _textScale = data.textScaler.scale(1);
+    _hasFoldFeature = data.displayFeatures.any(
+      (feature) =>
+          feature.type == DisplayFeatureType.fold ||
+          feature.type == DisplayFeatureType.hinge,
+    );
+    _isFoldOpen = _detectFoldOpen(data);
+  }
+
+  static bool _detectFoldOpen(MediaQueryData data) {
+    final size = data.size;
+    final shortest = size.shortestSide;
+    final longest = size.longestSide;
+    final aspect = longest / shortest; // always >= 1
+
+    if (_hasFoldFeature) {
+      // Closed fold ≈ phone width; open fold is clearly wider.
+      return size.width >= foldOpenMinWidth;
+    }
+
+    // Fallback for devices that omit fold display features:
+    // unfolded books are wide but near-square, not large tablets.
+    final nearSquareWide =
+        shortest >= 550 &&
+        shortest <= 900 &&
+        aspect <= 1.35 &&
+        size.width >= foldOpenMinWidth &&
+        longest <= 1100;
+    return nearSquareWide;
   }
 
   static double get width => _width;
   static double get height => _height;
+  static double get shortestSide => _shortestSide;
+  static double get longestSide => _longestSide;
 
-  static double get scale {
-    return (_width / designWidth).clamp(minScale, maxScale);
+  static bool get hasFoldFeature => _hasFoldFeature;
+
+  /// True when a foldable is unfolded / used on its wide screen.
+  static bool get isFoldOpen => _isFoldOpen;
+
+  static bool get isMobile => !_isFoldOpen && _width < tabletBreakpoint;
+
+  static bool get isTablet =>
+      !_isFoldOpen && _width >= tabletBreakpoint && _width < desktopBreakpoint;
+
+  static bool get isDesktop => !_isFoldOpen && _width >= desktopBreakpoint;
+
+  /// Wide layout: unfolded fold, tablet, or desktop.
+  static bool get isWideLayout => _isFoldOpen || isTablet || isDesktop;
+
+  /// Width used for `.w` / layout scale (capped on fold-open & large screens).
+  static double get _layoutWidth {
+    if (_isFoldOpen) {
+      // Keep fold-open close to phone proportions instead of tablet blow-up.
+      return _width.clamp(designWidth * minScale, designWidth * 1.22);
+    }
+    if (isDesktop) {
+      return _width.clamp(designWidth * minScale, designWidth * 1.45);
+    }
+    if (isTablet) {
+      return _width.clamp(designWidth * minScale, designWidth * 1.35);
+    }
+    return _width;
   }
 
-  static double get verticalScale {
-    return (_height / designHeight).clamp(minScale, maxScale);
+  /// Height used for `.h` scale.
+  static double get _layoutHeight {
+    if (_isFoldOpen) {
+      return _height.clamp(designHeight * minScale, designHeight * 1.05);
+    }
+    return _height;
   }
 
-  static bool get isMobile => _width < tabletBreakpoint;
-  static bool get isTablet => _width >= tabletBreakpoint && _width < desktopBreakpoint;
-  static bool get isDesktop => _width >= desktopBreakpoint;
+  static double get _maxScale {
+    if (_isFoldOpen) return maxScaleFoldOpen;
+    if (isDesktop) return maxScaleDesktop;
+    if (isTablet) return maxScaleTablet;
+    return maxScalePhone;
+  }
+
+  /// Width-based layout scale.
+  static double get scale =>
+      (_layoutWidth / designWidth).clamp(minScale, _maxScale);
+
+  /// Height-based layout scale.
+  static double get verticalScale =>
+      (_layoutHeight / designHeight).clamp(minScale, _maxScale);
+
+  /// Gentler scale for fonts — uses shortest side so landscape / fold-open
+  /// do not inflate text the way raw width would.
+  static double get fontScale {
+    final reference = _isFoldOpen
+        ? (_shortestSide / designWidth)
+        : (_layoutWidth / designWidth);
+    final maxFont = _isFoldOpen
+        ? maxScaleFoldOpen
+        : isDesktop
+        ? maxScaleTablet
+        : isTablet
+        ? maxScaleTablet
+        : maxScalePhone;
+    return reference.clamp(minScale, maxFont);
+  }
+
+  /// Optional max width for centering content on wide / fold-open screens.
+  static double get contentMaxWidth {
+    if (isDesktop) return desktopContentMaxWidth;
+    if (isTablet) return tabletContentMaxWidth;
+    if (_isFoldOpen) return foldContentMaxWidth;
+    return double.infinity;
+  }
 
   /// Width-based size (containers, icons, horizontal padding).
   static double w(num value) => value * scale;
@@ -46,7 +164,7 @@ class Responsive {
 
   /// Font size, lightly respecting system text scale.
   static double sp(num value) {
-    return (value * scale) * _textScale.clamp(0.9, 1.15);
+    return (value * fontScale) * _textScale.clamp(0.9, 1.15);
   }
 
   /// Radius / border size.
@@ -70,8 +188,19 @@ class Responsive {
     );
   }
 
-  static EdgeInsets pagePadding({double horizontal = 20, double top = 12, double bottom = 24}) {
-    return padding(horizontal: horizontal, top: top, bottom: bottom);
+  static EdgeInsets pagePadding({
+    double horizontal = 20,
+    double top = 12,
+    double bottom = 24,
+  }) {
+    final extra = _isFoldOpen
+        ? 28.0
+        : isTablet
+        ? 16.0
+        : isDesktop
+        ? 24.0
+        : 0.0;
+    return padding(horizontal: horizontal + extra, top: top, bottom: bottom);
   }
 
   // Spacing tokens
@@ -129,4 +258,7 @@ extension ResponsiveContextX on BuildContext {
   double rh(num value) => Responsive.h(value);
   double rsp(num value) => Responsive.sp(value);
   double rr(num value) => Responsive.r(value);
+
+  bool get isFoldOpen => Responsive.isFoldOpen;
+  bool get isWideLayout => Responsive.isWideLayout;
 }

@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_5roga/core/config/app_config.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/di/app_dependencies.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
@@ -37,11 +38,17 @@ class App extends StatelessWidget {
         ChangeNotifierProvider<ThemeProvider>.value(value: deps.theme),
         ChangeNotifierProvider<LocaleProvider>.value(value: deps.locale),
         ChangeNotifierProvider<AuthProvider>.value(value: deps.auth),
-        ChangeNotifierProvider<NotificationsProvider>.value(value: deps.notifications),
+        ChangeNotifierProvider<NotificationsProvider>.value(
+          value: deps.notifications,
+        ),
         ChangeNotifierProvider<FcmProvider>.value(value: deps.fcm),
-        ChangeNotifierProvider<OutingChatProvider>.value(value: deps.outingChat),
+        ChangeNotifierProvider<OutingChatProvider>.value(
+          value: deps.outingChat,
+        ),
         ChangeNotifierProvider<OutingsProvider>.value(value: deps.outings),
-        ChangeNotifierProvider<SavedOutingsProvider>.value(value: deps.savedOutings),
+        ChangeNotifierProvider<SavedOutingsProvider>.value(
+          value: deps.savedOutings,
+        ),
         ChangeNotifierProvider<ShellProvider>.value(value: deps.shell),
         ChangeNotifierProvider<GroupsProvider>.value(value: deps.groups),
         ChangeNotifierProvider<DiscoverProvider>.value(value: deps.discover),
@@ -65,7 +72,9 @@ class App extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: deps.auth.isAuthenticated ? const MainShell() : const SplashPage(),
+            home: deps.auth.isAuthenticated
+                ? const MainShell()
+                : const SplashPage(),
             builder: (context, child) {
               Responsive.init(context);
               final theme = Theme.of(context);
@@ -77,7 +86,11 @@ class App extends StatelessWidget {
                 ),
                 child: Theme(
                   data: theme.copyWith(
-                    textTheme: theme.textTheme.apply(fontSizeFactor: Responsive.scale),
+                    textTheme: theme.textTheme.apply(
+                      // Use fontScale (shortest-side aware) so fold-open /
+                      // landscape do not oversize Material text.
+                      fontSizeFactor: Responsive.fontScale,
+                    ),
                   ),
                   child: _PushBootstrap(
                     child: child ?? const SizedBox.shrink(),
@@ -108,6 +121,7 @@ class _PushBootstrapState extends State<_PushBootstrap> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      if (AppConfig.useMockData) return;
       await AppPermissions.promptNotificationsOnLaunch(context.l10n);
       if (!mounted) return;
       final fcm = context.read<FcmProvider>();

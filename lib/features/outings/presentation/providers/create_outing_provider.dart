@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:yalla_5roga/core/config/app_config.dart';
+import 'package:yalla_5roga/core/localization/l10n.dart';
+import 'package:yalla_5roga/core/mock/mock_data.dart';
+import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
@@ -8,7 +12,6 @@ import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place_location.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/saved_outing.dart';
-import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/pick_location_provider.dart';
 
@@ -30,8 +33,11 @@ class CreateOutingProvider extends ChangeNotifier {
        _group = group,
        _groupLocked = group != null,
        _specialEvent = specialEvent || (draft?.specialEvent ?? false),
-       _draftId = draft?.id ?? 'draft-${DateTime.now().millisecondsSinceEpoch}' {
-    nameController = TextEditingController(text: saved?.title ?? draft?.title ?? '');
+       _draftId =
+           draft?.id ?? 'draft-${DateTime.now().millisecondsSinceEpoch}' {
+    nameController = TextEditingController(
+      text: saved?.title ?? draft?.title ?? '',
+    );
     customPlaceController = TextEditingController();
     customPlaceController.addListener(_onCustomPlaceChanged);
     if (_specialEvent) _occasion = OutingOccasion.birthday;
@@ -152,11 +158,17 @@ class CreateOutingProvider extends ChangeNotifier {
     return DateTime(now.year, now.month + 1, now.day);
   }
 
-  String get resolvedImage => _image ?? (_specialEvent ? _specialEventImage(_occasion) : '');
+  String get resolvedImage {
+    if (_image != null && _image!.isNotEmpty) return _image!;
+    if (_specialEvent) return _specialEventImage(_occasion);
+    if (AppConfig.useMockData) return MockData.defaultCoverImage;
+    return '';
+  }
 
   bool get isCustomPlace => customPlaceController.text.trim().isNotEmpty;
 
-  bool get customPlacePinned => _customLatitude != null && _customLongitude != null;
+  bool get customPlacePinned =>
+      _customLatitude != null && _customLongitude != null;
 
   PlaceLocation? get selectedLocation {
     if (multiPlaceMode && _selectedPlaces.isNotEmpty) {
@@ -176,26 +188,30 @@ class CreateOutingProvider extends ChangeNotifier {
     if (multiPlaceMode && _selectedPlaces.isNotEmpty) {
       return _selectedPlaces.map((place) => place.name).join(' · ');
     }
-    if (customPlaceController.text.trim().isNotEmpty) return customPlaceController.text.trim();
+    if (customPlaceController.text.trim().isNotEmpty)
+      return customPlaceController.text.trim();
     if (_place != null) return '${_place!.name}, ${_place!.area}';
     return '';
   }
 
-  String get formattedDate =>
-      L10n(_locale).digits(DateFormat('EEE, d MMM', _locale.languageCode).format(_date).toUpperCase());
+  String get formattedDate => L10n(_locale).digits(
+    DateFormat('EEE, d MMM', _locale.languageCode).format(_date).toUpperCase(),
+  );
 
   String get shortDate =>
-      L10n(_locale).digits(DateFormat('d MMM', _locale.languageCode).format(_date));
+      L10n(_locale)
+          .digits(DateFormat('d MMM', _locale.languageCode).format(_date));
 
   String get formattedTime {
     final value = DateTime(0, 1, 1, _time.hour, _time.minute);
-    return L10n(_locale).digits(DateFormat('h:mm a', _locale.languageCode).format(value));
+    return L10n(_locale)
+        .digits(DateFormat('h:mm a', _locale.languageCode).format(value));
   }
 
   List<String> get guestNames => [
-        for (final id in _guestIds)
-          if (_memberById(id) != null) _memberById(id)!.name,
-      ];
+    for (final id in _guestIds)
+      if (_memberById(id) != null) _memberById(id)!.name,
+  ];
 
   GroupMember? _memberById(String id) {
     for (final person in _contacts) {
@@ -221,7 +237,9 @@ class CreateOutingProvider extends ChangeNotifier {
 
   void _applyLocation(PlaceLocation location) {
     final match = _catalogPlaces.where(
-      (item) => item.name == location.name && (location.area.isEmpty || item.area == location.area),
+      (item) =>
+          item.name == location.name &&
+          (location.area.isEmpty || item.area == location.area),
     );
     if (match.isNotEmpty) {
       _place = match.first;
@@ -249,8 +267,11 @@ class CreateOutingProvider extends ChangeNotifier {
 
   String? validateStep(L10n l10n) {
     if (_step == 0) {
-      if (nameController.text.trim().isEmpty) return l10n.nameRequired;
-      if (!_specialEvent && _image == null) return l10n.photoRequired;
+      final nameError = Validators.name(nameController.text, l10n);
+      if (nameError != null) return nameError;
+      if (!AppConfig.useMockData && !_specialEvent && _image == null) {
+        return l10n.photoRequired;
+      }
       if (_specialEvent) {
         if (_guestIds.isEmpty) return l10n.guestsRequired;
       } else if (_group == null) {
@@ -265,7 +286,9 @@ class CreateOutingProvider extends ChangeNotifier {
         }
       } else {
         if (locationLabel.isEmpty) return l10n.locationRequired;
-        if (isCustomPlace && !customPlacePinned) return l10n.pickLocationRequired;
+        if (!AppConfig.useMockData && isCustomPlace && !customPlacePinned) {
+          return l10n.pickLocationRequired;
+        }
       }
     }
     return null;
@@ -280,8 +303,11 @@ class CreateOutingProvider extends ChangeNotifier {
   }
 
   String? draftError(L10n l10n) {
-    if (nameController.text.trim().isEmpty) return l10n.nameRequired;
-    if (!_specialEvent && _image == null) return l10n.photoRequired;
+    final nameError = Validators.name(nameController.text, l10n);
+    if (nameError != null) return nameError;
+    if (!AppConfig.useMockData && !_specialEvent && _image == null) {
+      return l10n.photoRequired;
+    }
     if (multiPlaceMode) {
       if (_selectedPlaces.length < 2) return l10n.pickAtLeastTwoPlaces;
       if (_selectedPlaces.length > OutingsProvider.maxVotePlaces) {
@@ -396,6 +422,13 @@ class CreateOutingProvider extends ChangeNotifier {
         ..clear()
         ..addAll(contacts.map((person) => person.id));
     }
+    notifyListeners();
+  }
+
+  void setGuests(Iterable<String> ids) {
+    _guestIds
+      ..clear()
+      ..addAll(ids);
     notifyListeners();
   }
 

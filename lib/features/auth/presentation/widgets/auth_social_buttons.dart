@@ -19,7 +19,7 @@ class AuthSocialButtons extends StatelessWidget {
     if (!context.mounted) return;
     if (!ok) {
       if (auth.errorCode == 'cancelled') return;
-      AppSnackBar.show(
+      AppSnackBar.showError(
         context.l10n.authError(
           auth.errorCode,
           fallback: auth.errorMessage ?? context.l10n.loginFailed,

@@ -1,4 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_5roga/core/config/app_config.dart';
+import 'package:yalla_5roga/core/mock/mock_repositories.dart';
 import 'package:yalla_5roga/core/network/api_client.dart';
 import 'package:yalla_5roga/core/network/network_info.dart';
 import 'package:yalla_5roga/features/auth/data/datasources/auth_local_datasource.dart';
@@ -31,6 +33,7 @@ import 'package:yalla_5roga/features/unread/data/repositories/unread_counts_repo
 import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
 /// Builds API-backed repositories (plus local prefs for saved/drafts).
+/// When [AppConfig.useMockData] is true, returns temporary in-memory mocks.
 class RepositoryFactory {
   const RepositoryFactory({
     required this.apiClient,
@@ -45,6 +48,7 @@ class RepositoryFactory {
   final FirebaseAuthService firebaseAuth;
 
   AuthRepository auth() {
+    if (AppConfig.useMockData) return MockAuthRepository();
     return AuthRepositoryImpl(
       remote: AuthRemoteDataSourceImpl(apiClient),
       local: AuthLocalDataSourceImpl(prefs),
@@ -54,6 +58,7 @@ class RepositoryFactory {
   }
 
   NotificationsRepository notifications() {
+    if (AppConfig.useMockData) return MockNotificationsRepository();
     return NotificationsRepositoryImpl(
       remote: NotificationsRemoteDataSourceImpl(apiClient),
       networkInfo: networkInfo,
@@ -61,6 +66,7 @@ class RepositoryFactory {
   }
 
   UnreadCountsRepository unreadCounts() {
+    if (AppConfig.useMockData) return MockUnreadCountsRepository();
     return UnreadCountsRepositoryImpl(
       remote: UnreadCountsRemoteDataSourceImpl(apiClient),
       networkInfo: networkInfo,
@@ -68,6 +74,7 @@ class RepositoryFactory {
   }
 
   GroupsRepository groups() {
+    if (AppConfig.useMockData) return MockGroupsRepository();
     return GroupsRepositoryImpl(
       remote: GroupsRemoteDataSource(apiClient),
       networkInfo: networkInfo,
@@ -75,6 +82,7 @@ class RepositoryFactory {
   }
 
   OutingChatRepository outingChat() {
+    if (AppConfig.useMockData) return MockOutingChatRepository();
     return OutingChatRepositoryImpl(
       remote: OutingChatRemoteDataSourceImpl(apiClient),
       networkInfo: networkInfo,
@@ -82,6 +90,7 @@ class RepositoryFactory {
   }
 
   OutingsRepository outings() {
+    if (AppConfig.useMockData) return MockOutingsRepository();
     return OutingsRepositoryImpl(
       remote: OutingsRemoteDataSource(apiClient),
       networkInfo: networkInfo,
@@ -89,6 +98,7 @@ class RepositoryFactory {
   }
 
   DiscoverRepository discover() {
+    if (AppConfig.useMockData) return MockDiscoverRepository();
     return DiscoverRepositoryImpl(
       remote: DiscoverRemoteDataSource(apiClient),
       networkInfo: networkInfo,
@@ -96,10 +106,14 @@ class RepositoryFactory {
   }
 
   SavedOutingsRepository savedOutings() {
+    if (AppConfig.useMockData) return MockSavedOutingsRepository();
     return SavedOutingsRepositoryImpl(
       local: SavedOutingsLocalDataSourceImpl(prefs),
     );
   }
 
-  GeocodingRepository geocoding() => GeocodingHttpRepository();
+  GeocodingRepository geocoding() {
+    if (AppConfig.useMockData) return MockGeocodingRepository();
+    return GeocodingHttpRepository();
+  }
 }

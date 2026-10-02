@@ -479,7 +479,7 @@ class FirebaseAuthService {
         );
       case 'email-already-in-use':
         return const AuthException(
-          'An account already exists for this email',
+          'This email is already registered. Try logging in instead.',
           AuthErrorCodes.emailAlreadyInUse,
         );
       case 'weak-password':
@@ -494,37 +494,37 @@ class FirebaseAuthService {
         );
       case 'wrong-password':
         return const AuthException(
-          'Incorrect email or password',
+          'Incorrect email or password. Check your details and try again.',
           AuthErrorCodes.wrongPassword,
         );
       case 'invalid-credential':
         return const AuthException(
-          'Incorrect email or password',
+          'Incorrect email or password. Check your details and try again.',
           AuthErrorCodes.invalidCredential,
         );
       case 'user-disabled':
         return const AuthException(
-          'This account has been disabled',
+          'This account has been disabled. Contact support if you need help.',
           AuthErrorCodes.userDisabled,
         );
       case 'operation-not-allowed':
         return const AuthException(
-          'This sign-in method is not enabled',
+          'This sign-in method is not available right now.',
           AuthErrorCodes.operationNotAllowed,
         );
       case 'account-exists-with-different-credential':
         return const AuthException(
-          'An account already exists with a different sign-in method',
+          'An account already exists with a different sign-in method.',
           AuthErrorCodes.accountExistsWithDifferentCredential,
         );
       case 'credential-already-in-use':
         return const AuthException(
-          'This credential is already linked to another account',
+          'This phone number is already linked to another account.',
           AuthErrorCodes.credentialAlreadyInUse,
         );
       case 'provider-already-linked':
         return const AuthException(
-          'This sign-in method is already linked',
+          'This phone number is already linked to another account.',
           AuthErrorCodes.providerAlreadyLinked,
         );
       case 'requires-recent-login':

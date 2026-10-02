@@ -9,7 +9,8 @@ import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place_vote.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/outings_repository.dart';
 
-export 'package:yalla_5roga/features/outings/domain/entities/place_vote.dart' show VoteOption;
+export 'package:yalla_5roga/features/outings/domain/entities/place_vote.dart'
+    show VoteOption;
 
 class OutingsProvider extends ChangeNotifier {
   OutingsProvider({required this.repository});
@@ -38,18 +39,36 @@ class OutingsProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   List<Outing> get filtered {
-    final status = OutingStatus.values[_filter.clamp(0, OutingStatus.values.length - 1)];
-    return [for (final outing in _outings) if (outing.status == status) outing];
+    final status =
+        OutingStatus.values[_filter.clamp(0, OutingStatus.values.length - 1)];
+    return [
+      for (final outing in _outings)
+        if (outing.status == status) outing,
+    ];
   }
 
   List<Outing> get needsYourVote {
     return [
+      for (final outing in activeVotes)
+        if (!hasVoted(outing.id)) outing,
+    ];
+  }
+
+  /// Open place-voting outings (not expired). Source of truth for active vote UIs.
+  List<Outing> get activeVotes {
+    return [
       for (final outing in _outings)
         if (outing.status == OutingStatus.voting &&
-            !hasVoted(outing.id) &&
             optionsFor(outing.id).isNotEmpty &&
             !isVoteExpired(outing.id))
           outing,
+    ];
+  }
+
+  List<Outing> activeVotesForGroup(String groupId) {
+    return [
+      for (final outing in activeVotes)
+        if (outing.groupId == groupId) outing,
     ];
   }
 
@@ -59,13 +78,14 @@ class OutingsProvider extends ChangeNotifier {
 
   Future<void> load() async {
     final result = await repository.load();
-    result.fold(
-      (failure) {
-        _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'loadOutings');
-      },
-      _applySnapshot,
-    );
+    result.fold((failure) {
+      _errorMessage = failure.message;
+      AppErrorFeedback.report(
+        failure,
+        kind: AppErrorKind.load,
+        context: 'loadOutings',
+      );
+    }, _applySnapshot);
     _hasLoaded = true;
     notifyListeners();
   }
@@ -98,7 +118,8 @@ class OutingsProvider extends ChangeNotifier {
 
   int? voteIndexFor(String outingId) => _votesByOuting[outingId]?.myOptionIndex;
 
-  bool hasVoted(String outingId) => _votesByOuting[outingId]?.myOptionId != null;
+  bool hasVoted(String outingId) =>
+      _votesByOuting[outingId]?.myOptionId != null;
 
   DateTime? voteEndsAt(String outingId) => _votesByOuting[outingId]?.endsAt;
 
@@ -136,16 +157,11 @@ class OutingsProvider extends ChangeNotifier {
   }
 
   /// Stand-in for deep links when the outing is not yet loaded.
-  Outing byId(String id) => findById(id) ?? (_outings.isNotEmpty ? _outings.first : _emptyOuting(id));
+  Outing byId(String id) =>
+      findById(id) ?? (_outings.isNotEmpty ? _outings.first : _emptyOuting(id));
 
   static Outing _emptyOuting(String id) {
-    return Outing(
-      id: id,
-      image: '',
-      title: '',
-      meta: '',
-      date: '',
-    );
+    return Outing(id: id, image: '', title: '', meta: '', date: '');
   }
 
   Map<String, AttendanceStatus> attendanceMapFor(String outingId) {
@@ -153,7 +169,8 @@ class OutingsProvider extends ChangeNotifier {
   }
 
   AttendanceStatus attendanceFor(String outingId, String memberId) {
-    return _attendanceByOuting[outingId]?[memberId] ?? AttendanceStatus.notVoted;
+    return _attendanceByOuting[outingId]?[memberId] ??
+        AttendanceStatus.notVoted;
   }
 
   AttendanceStatus myAttendance(String outingId, String? memberId) {
@@ -166,7 +183,9 @@ class OutingsProvider extends ChangeNotifier {
     if (map == null || map.isEmpty) {
       return findById(outingId)?.going ?? 0;
     }
-    return map.values.where((status) => status == AttendanceStatus.going).length;
+    return map.values
+        .where((status) => status == AttendanceStatus.going)
+        .length;
   }
 
   List<GroupMember> membersForOuting(Outing outing) {
@@ -180,7 +199,11 @@ class OutingsProvider extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> setAttendance(String outingId, String memberId, AttendanceStatus status) async {
+  Future<bool> setAttendance(
+    String outingId,
+    String memberId,
+    AttendanceStatus status,
+  ) async {
     final result = await repository.setAttendance(
       outingId: outingId,
       memberId: memberId,
@@ -189,7 +212,11 @@ class OutingsProvider extends ChangeNotifier {
     return result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'setAttendance');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'setAttendance',
+        );
         notifyListeners();
         return false;
       },
@@ -218,7 +245,11 @@ class OutingsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'submitVote');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'submitVote',
+        );
       },
       (snapshot) {
         _applySnapshot(snapshot);
@@ -233,7 +264,11 @@ class OutingsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'createOuting');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'createOuting',
+        );
       },
       (snapshot) {
         _applySnapshot(snapshot);
@@ -267,7 +302,11 @@ class OutingsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.send, context: 'suggestPlaces');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'suggestPlaces',
+        );
       },
       (snapshot) {
         _applySnapshot(snapshot);
@@ -299,10 +338,15 @@ class OutingsProvider extends ChangeNotifier {
     result.fold(
       (failure) {
         _errorMessage = failure.message;
-        AppErrorFeedback.report(failure, kind: AppErrorKind.load, context: 'refreshLifecycle');
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.load,
+          context: 'refreshLifecycle',
+        );
       },
       (snapshot) {
-        changed = snapshot.outings.length != _outings.length ||
+        changed =
+            snapshot.outings.length != _outings.length ||
             snapshot.outings.map((e) => e.status).join() !=
                 _outings.map((e) => e.status).join();
         _applySnapshot(snapshot);

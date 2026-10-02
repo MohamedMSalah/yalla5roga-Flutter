@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/utils/input_formatters.dart';
 import 'package:yalla_5roga/core/utils/member_display_name.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
@@ -26,7 +28,10 @@ class CreateGroupPage extends StatefulWidget {
 class _CreateGroupPageState extends State<CreateGroupPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _bioController = TextEditingController();
   final _phoneController = TextEditingController();
+
+  static const _maxBioLength = 160;
 
   @override
   void initState() {
@@ -40,6 +45,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   @override
   void dispose() {
     _nameController.dispose();
+    _bioController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -73,6 +79,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       _nameController.text.trim(),
       ownerName: user?.name ?? l10n.guestFallback,
       ownerAvatar: user?.imageUrl,
+      bio: _bioController.text.trim(),
     );
     if (!mounted) return;
     if (group == null) {
@@ -163,7 +170,24 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       label: l10n.groupName,
                       hint: l10n.groupNameHint,
                       prefixIcon: Icons.groups_2_outlined,
-                      validator: (value) => Validators.required(value, l10n),
+                      inputFormatters: [
+                        InputFormatters.maxLength(AppConstants.maxNameLength),
+                      ],
+                      validator: (value) => Validators.name(value, l10n),
+                    ),
+                    Responsive.spaceMd.gapH,
+                    CustomTextField(
+                      controller: _bioController,
+                      label: l10n.groupBio,
+                      hint: l10n.groupBioHint,
+                      prefixIcon: Icons.notes_outlined,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
+                      minLines: 2,
+                      maxLines: 4,
+                      inputFormatters: [
+                        InputFormatters.maxLength(_maxBioLength),
+                      ],
                     ),
                     Responsive.spaceLg.gapH,
                     Text(

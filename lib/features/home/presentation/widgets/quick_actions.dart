@@ -19,18 +19,47 @@ class QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final actions = [
-      _Action(l10n.newOuting, Icons.add, AppColors.brand600, Colors.white, context.palette.brandSoft, () {
-        Get.to(() => const CreateOutingPage());
-      }, highlighted: true),
-      _Action(l10n.specialEvent, Icons.celebration_outlined, const Color(0xFFDB2777), const Color(0xFFFCE7F3), context.palette.surface, () {
-        Get.to(() => const CreateOutingPage(specialEvent: true));
-      }),
-      _Action(l10n.newGroup, Icons.groups_2_outlined, const Color(0xFF7C3AED), const Color(0xFFEDE9FE), context.palette.surface, () {
-        Get.to(() => const CreateGroupPage());
-      }),
-      _Action(l10n.discover, Icons.explore_outlined, const Color(0xFFD97706), const Color(0xFFFEF3C7), context.palette.surface, () {
-        Get.to(() => const DiscoverPage());
-      }),
+      _Action(
+        l10n.newOuting,
+        Icons.add,
+        AppColors.brand600,
+        Colors.white,
+        context.palette.brandSoft,
+        () {
+          Get.to(() => const CreateOutingPage());
+        },
+        highlighted: true,
+      ),
+      _Action(
+        l10n.specialEvent,
+        Icons.celebration_outlined,
+        const Color(0xFFDB2777),
+        const Color(0xFFFCE7F3),
+        context.palette.surface,
+        () {
+          Get.to(() => const CreateOutingPage(specialEvent: true));
+        },
+      ),
+      _Action(
+        l10n.newGroup,
+        Icons.groups_2_outlined,
+        const Color(0xFF7C3AED),
+        const Color(0xFFEDE9FE),
+        context.palette.surface,
+        () {
+          Get.to(() => const CreateGroupPage());
+        },
+      ),
+      _Action(
+        l10n.discover,
+        Icons.explore_outlined,
+        const Color(0xFFD97706),
+        const Color(0xFFFEF3C7),
+        context.palette.surface,
+        () {
+          Get.to(() => const DiscoverPage());
+        },
+      ),
     ];
 
     return Column(
@@ -109,7 +138,9 @@ class _ActionTile extends StatelessWidget {
           color: action.cardColor,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: action.highlighted ? context.palette.brandSoftBorder : context.palette.border,
+            color: action.highlighted
+                ? context.palette.brandSoftBorder
+                : context.palette.border,
           ),
         ),
         child: Column(
@@ -118,17 +149,26 @@ class _ActionTile extends StatelessWidget {
               icon: action.icon,
               size: 36,
               radius: 12.r,
-              background: action.highlighted ? action.foreground : action.background,
+              background: action.highlighted
+                  ? action.foreground
+                  : action.background,
               foreground: action.highlighted ? Colors.white : action.foreground,
             ),
             Responsive.spaceSm.gapH,
-            MarqueeText(
-              text: action.label,
-              style: TextStyle(
-                fontSize: Responsive.fontCaption,
-                fontWeight: FontWeight.w800,
-                height: 1.2,
-                color: action.highlighted ? context.palette.brandStrong : context.palette.textSecondary,
+            SizedBox(
+              width: double.infinity,
+              child: MarqueeText(
+                text: action.label,
+                style: TextStyle(
+                  fontSize: Localizations.localeOf(context).languageCode == 'en'
+                      ? Responsive.fontCaption
+                      : Responsive.sp(8.5),
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                  color: action.highlighted
+                      ? context.palette.brandStrong
+                      : context.palette.textSecondary,
+                ),
               ),
             ),
           ],

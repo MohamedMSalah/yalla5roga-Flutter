@@ -66,6 +66,12 @@ class AppDependencies {
     final prefs = await SharedPreferences.getInstance();
     final networkInfo = NetworkInfoImpl(Connectivity());
 
+    final firebaseAuth = FirebaseAuthService();
+    final authInterceptor = AuthInterceptor(
+      tokenProvider: ({bool forceRefresh = false}) =>
+          firebaseAuth.idToken(forceRefresh: forceRefresh),
+    );
+
     final dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
@@ -78,13 +84,12 @@ class AppDependencies {
       ),
     );
     dio.interceptors.addAll([
-      AuthInterceptor(prefs),
+      authInterceptor,
       AppLogInterceptor(),
       PerformanceInterceptor(),
       ErrorInterceptor(),
     ]);
 
-    final firebaseAuth = FirebaseAuthService();
     final repos = RepositoryFactory(
       apiClient: ApiClient(dio),
       networkInfo: networkInfo,
@@ -128,7 +133,9 @@ class AppDependencies {
     final discover = DiscoverProvider(repository: discoverRepository);
     await discover.load();
 
-    final savedOutings = SavedOutingsProvider(repository: savedOutingsRepository);
+    final savedOutings = SavedOutingsProvider(
+      repository: savedOutingsRepository,
+    );
     await savedOutings.load();
 
     return AppDependencies(

@@ -1,26 +1,38 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/error/exceptions.dart';
 
+typedef IdTokenProvider = Future<String?> Function({bool forceRefresh});
+
+/// Attaches `Authorization: Bearer <Firebase ID token>` on every request.
+///
+/// The backend must verify this token and derive the user UID from it —
+/// never trust a client-supplied identity field.
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor(this._prefs);
+  AuthInterceptor({IdTokenProvider? tokenProvider})
+    : _tokenProvider = tokenProvider;
 
-  final SharedPreferences _prefs;
-
-  /// Flip to true after POST /auth/firebase returns an app JWT.
-  static const attachBackendJwt = false;
+  IdTokenProvider? _tokenProvider;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    if (attachBackendJwt) {
-      final token = _prefs.getString(AppConstants.tokenKey);
-      if (token != null && token.isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $token';
-      }
+    final provider = _tokenProvider;
+    if (provider == null) {
+      handler.next(options);
+      return;
     }
-    handler.next(options);
+
+    provider()
+        .then((token) {
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          handler.next(options);
+        })
+        .catchError((Object error, StackTrace stackTrace) {
+          // Proceed without a token rather than blocking the request pipeline.
+          handler.next(options);
+        });
   }
 }
 
@@ -36,7 +48,9 @@ class AppLogInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (kDebugMode) {
-      debugPrint('[DIO] Error ${err.response?.statusCode} ${err.requestOptions.uri}');
+      debugPrint(
+        '[DIO] Error ${err.response?.statusCode} ${err.requestOptions.uri}',
+      );
     }
     handler.next(err);
   }
@@ -51,12 +65,11 @@ class ErrorInterceptor extends Interceptor {
       DioExceptionType.connectionTimeout ||
       DioExceptionType.sendTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.connectionError =>
-        NetworkException(message),
+      DioExceptionType.connectionError => NetworkException(message),
       _ => switch (err.response?.statusCode) {
-          401 || 403 => AuthException(message),
-          _ => ServerException(message),
-        },
+        401 || 403 => AuthException(message),
+        _ => ServerException(message),
+      },
     };
 
     handler.next(
