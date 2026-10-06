@@ -17,11 +17,11 @@ class PlaceLocation {
   String get label => area.isEmpty ? name : '$name, $area';
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'area': area,
-        'latitude': latitude,
-        'longitude': longitude,
-      };
+    'name': name,
+    'area': area,
+    'latitude': latitude,
+    'longitude': longitude,
+  };
 
   factory PlaceLocation.fromJson(Map<String, dynamic> json) {
     return PlaceLocation(

@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
-import 'package:yalla_5roga/features/discover/presentation/pages/discover_page.dart';
 import 'package:yalla_5roga/features/groups/presentation/pages/create_group_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
 import 'package:yalla_5roga/core/utils/app_launcher.dart';
@@ -48,16 +47,6 @@ class QuickActions extends StatelessWidget {
         context.palette.surface,
         () {
           Get.to(() => const CreateGroupPage());
-        },
-      ),
-      _Action(
-        l10n.discover,
-        Icons.explore_outlined,
-        const Color(0xFFD97706),
-        const Color(0xFFFEF3C7),
-        context.palette.surface,
-        () {
-          Get.to(() => const DiscoverPage());
         },
       ),
     ];

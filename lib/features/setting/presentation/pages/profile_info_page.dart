@@ -52,11 +52,21 @@ class ProfileInfoBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontBody)),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: Responsive.fontBody,
+          ),
+        ),
         Responsive.spaceSm.gapH,
         Text(
           body,
-          style: TextStyle(color: context.palette.textMuted, fontSize: Responsive.fontSm, height: 1.45),
+          style: TextStyle(
+            color: context.palette.textMuted,
+            fontSize: Responsive.fontSm,
+            height: 1.45,
+          ),
         ),
       ],
     );

@@ -3,11 +3,8 @@ import 'package:yalla_5roga/core/constants/api_constants.dart';
 import 'package:yalla_5roga/core/error/exceptions.dart';
 import 'package:yalla_5roga/core/network/api_client.dart';
 import 'package:yalla_5roga/core/network/api_payload.dart';
-import 'package:yalla_5roga/features/groups/data/models/group_read_result_model.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
-import 'package:yalla_5roga/features/groups/domain/entities/group_read_result.dart';
-import 'package:yalla_5roga/features/groups/domain/entities/group_role.dart';
 
 abstract class GroupsDataSource {
   Future<List<Group>> getGroups();
@@ -17,7 +14,6 @@ abstract class GroupsDataSource {
   Future<Group> addMember(String groupId, GroupMember member);
   Future<Group> removeMember(String groupId, String memberId);
   Future<void> leaveGroup(String groupId);
-  Future<GroupReadResult> markRead(String groupId);
   GroupMember? memberById(String id);
   GroupMember? memberByPhone(String phone);
   String groupsForMember(String id);
@@ -126,21 +122,6 @@ class GroupsRemoteDataSource implements GroupsDataSource {
   }
 
   @override
-  Future<GroupReadResult> markRead(String groupId) async {
-    try {
-      final response = await _client.post<Map<String, dynamic>>(
-        ApiConstants.groupRead(groupId),
-      );
-      return GroupReadResultModel.fromJson(
-        apiPayload(response.data),
-        groupId: groupId,
-      );
-    } on DioException catch (error) {
-      throw _unwrap(error);
-    }
-  }
-
-  @override
   GroupMember? memberById(String id) => null;
 
   @override
@@ -150,42 +131,23 @@ class GroupsRemoteDataSource implements GroupsDataSource {
   String groupsForMember(String id) => '';
 
   Group _groupFromJson(Map<String, dynamic> json) {
-    final peopleRaw = json['people'] ?? json['membersList'];
-    final people = <GroupMember>[
-      if (peopleRaw is List)
-        for (final item in peopleRaw)
-          if (item is Map)
-            GroupMember.fromJson(Map<String, dynamic>.from(item)),
-    ];
-    return Group(
-      id: apiString(json['id']) ?? '',
-      name: apiString(json['name']) ?? '',
-      members: people.isNotEmpty ? people.length : apiInt(json['members']),
-      outings: apiInt(json['outings']),
-      preview: apiString(json['preview']) ?? '',
-      bio: apiString(json['bio']) ?? apiString(json['description']) ?? '',
-      avatars: [
-        for (final item in json['avatars'] as List? ?? const [])
-          if (item is String) item,
-      ],
-      image: apiString(json['image']) ?? apiString(json['coverUrl']) ?? '',
-      people: people,
-      lastMessage: apiString(json['lastMessage']),
-      unread: apiInt(json['unread']),
-      featured: apiBool(json['featured']),
-      decision: apiString(json['decision']),
-      myRole: GroupRole.fromApi(apiString(json['myRole'])),
-    );
+    return Group.fromJson({
+      ...json,
+      'id': apiString(json['id']) ?? '',
+      'name': apiString(json['name']) ?? '',
+      'outings': apiInt(json['outings']),
+      'preview': apiString(json['preview']) ?? '',
+      'bio': apiString(json['bio']) ?? apiString(json['description']) ?? '',
+      'image': apiString(json['image']) ?? apiString(json['coverUrl']) ?? '',
+      'lastMessage': apiString(json['lastMessage']),
+      'unread': apiInt(json['unread']),
+      'featured': apiBool(json['featured']),
+      'decision': apiString(json['decision']),
+      'cuserRole': apiString(json['cuserRole']) ?? apiString(json['myRole']),
+    });
   }
 
-  Map<String, dynamic> _groupToJson(Group group) => {
-    'id': group.id,
-    'name': group.name,
-    'image': group.image,
-    'bio': group.bio,
-    'people': [for (final person in group.people) person.toJson()],
-    'myRole': group.myRole.name,
-  };
+  Map<String, dynamic> _groupToJson(Group group) => group.toJson();
 
   AppException _unwrap(DioException error) {
     if (error.error is AppException) return error.error as AppException;

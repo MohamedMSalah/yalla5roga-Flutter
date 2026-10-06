@@ -11,7 +11,6 @@ import 'package:yalla_5roga/core/network/performance_interceptor.dart';
 import 'package:yalla_5roga/core/theme/theme_provider.dart';
 import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
 import 'package:yalla_5roga/core/monitoring/crashlytics_service.dart';
-import 'package:yalla_5roga/core/monitoring/performance_service.dart';
 import 'package:yalla_5roga/core/utils/member_display_name.dart';
 import 'package:yalla_5roga/features/auth/data/datasources/firebase_auth_service.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
@@ -22,7 +21,7 @@ import 'package:yalla_5roga/features/notifications/data/services/fcm_messaging_s
 import 'package:yalla_5roga/features/notifications/data/services/local_notifications_service.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/fcm_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
@@ -59,7 +58,7 @@ class AppDependencies {
   final GroupsProvider groups;
   final DiscoverProvider discover;
   final SettingsProvider settings;
-  final GeocodingRepository geocoding;
+  final LocationRepository geocoding;
   final SharedPreferences prefs;
 
   static Future<AppDependencies> create() async {
@@ -98,12 +97,10 @@ class AppDependencies {
     );
 
     final authRepository = repos.auth();
-    final unreadCountsRepository = repos.unreadCounts();
     final outingsRepository = repos.outings();
     final groupsRepository = repos.groups();
     final discoverRepository = repos.discover();
     final savedOutingsRepository = repos.savedOutings();
-    final outingChatRepository = repos.outingChat();
 
     final auth = AuthProvider(repository: authRepository);
     await auth.restoreSession();
@@ -121,40 +118,25 @@ class AppDependencies {
     final fcm = FcmProvider(messaging: pushMessaging);
     await fcm.initialize();
 
+    // Feature data loads when MainShell mounts — not during splash/auth boot.
     final outings = OutingsProvider(repository: outingsRepository);
-    await PerformanceService.instance.trace('load_outings', outings.load);
-
-    final groups = GroupsProvider(
-      repository: groupsRepository,
-      unreadCounts: unreadCountsRepository,
-    );
-    await PerformanceService.instance.trace('load_groups', groups.loadGroups);
-
+    final shell = ShellProvider();
+    final groups = GroupsProvider(repository: groupsRepository, shell: shell);
     final discover = DiscoverProvider(repository: discoverRepository);
-    await discover.load();
-
     final savedOutings = SavedOutingsProvider(
       repository: savedOutingsRepository,
     );
-    await savedOutings.load();
 
     return AppDependencies(
       theme: ThemeProvider(prefs),
       locale: LocaleProvider(prefs),
       auth: auth,
-      notifications: NotificationsProvider(
-        repository: repos.notifications(),
-        unreadCounts: unreadCountsRepository,
-      ),
+      notifications: NotificationsProvider(repository: repos.notifications()),
       fcm: fcm,
-      outingChat: OutingChatProvider(
-        repository: outingChatRepository,
-        unreadCounts: unreadCountsRepository,
-        outings: outings,
-      ),
+      outingChat: OutingChatProvider(),
       outings: outings,
       savedOutings: savedOutings,
-      shell: ShellProvider(),
+      shell: shell,
       groups: groups,
       discover: discover,
       settings: SettingsProvider(),

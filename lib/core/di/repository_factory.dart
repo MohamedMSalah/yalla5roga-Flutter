@@ -24,13 +24,10 @@ import 'package:yalla_5roga/features/outings/data/repositories/geocoding_http_re
 import 'package:yalla_5roga/features/outings/data/repositories/outing_chat_repository_impl.dart';
 import 'package:yalla_5roga/features/outings/data/repositories/outings_repository_impl.dart';
 import 'package:yalla_5roga/features/outings/data/repositories/saved_outings_repository_impl.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/outing_chat_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/outings_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/saved_outings_repository.dart';
-import 'package:yalla_5roga/features/unread/data/datasources/unread_counts_remote_datasource.dart';
-import 'package:yalla_5roga/features/unread/data/repositories/unread_counts_repository_impl.dart';
-import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
 /// Builds API-backed repositories (plus local prefs for saved/drafts).
 /// When [AppConfig.useMockData] is true, returns temporary in-memory mocks.
@@ -61,14 +58,6 @@ class RepositoryFactory {
     if (AppConfig.useMockData) return MockNotificationsRepository();
     return NotificationsRepositoryImpl(
       remote: NotificationsRemoteDataSourceImpl(apiClient),
-      networkInfo: networkInfo,
-    );
-  }
-
-  UnreadCountsRepository unreadCounts() {
-    if (AppConfig.useMockData) return MockUnreadCountsRepository();
-    return UnreadCountsRepositoryImpl(
-      remote: UnreadCountsRemoteDataSourceImpl(apiClient),
       networkInfo: networkInfo,
     );
   }
@@ -112,8 +101,8 @@ class RepositoryFactory {
     );
   }
 
-  GeocodingRepository geocoding() {
-    if (AppConfig.useMockData) return MockGeocodingRepository();
+  LocationRepository geocoding() {
+    if (AppConfig.useMockData) return MockLocationRepository();
     return GeocodingHttpRepository();
   }
 }

@@ -33,10 +33,7 @@ class OutingChatSkeleton extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!mine) ...[
-            ShimmerCircle(size: 28.w),
-            8.gapW,
-          ],
+          if (!mine) ...[ShimmerCircle(size: 28.w), 8.gapW],
           ShimmerBone(width: width, height: 56.h, radius: 16),
         ],
       ),

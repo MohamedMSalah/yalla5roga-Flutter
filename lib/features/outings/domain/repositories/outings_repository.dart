@@ -22,9 +22,12 @@ class OutingSnapshot {
 }
 
 abstract class OutingsRepository {
-  Future<Either<Failure, OutingSnapshot>> load();
+  Future<Either<Failure, OutingSnapshot>> load({bool forceRefresh = false});
 
-  Future<Either<Failure, OutingSnapshot>> add(Outing outing, {String? creatorId});
+  Future<Either<Failure, OutingSnapshot>> add(
+    Outing outing, {
+    String? creatorId,
+  });
 
   Future<Either<Failure, OutingSnapshot>> suggestPlaces({
     required String groupId,
@@ -37,7 +40,14 @@ abstract class OutingsRepository {
     DateTime? scheduledAt,
   });
 
-  Future<Either<Failure, OutingSnapshot>> selectVote(String outingId, int optionIndex);
+  Future<Either<Failure, OutingSnapshot>> selectVote(
+    String outingId,
+    int optionIndex,
+  );
+
+  Future<Either<Failure, OutingSnapshot>> finalizeVote(String outingId);
+
+  Future<Either<Failure, OutingSnapshot>> clearVotes(String outingId);
 
   Future<Either<Failure, OutingSnapshot>> setAttendance({
     required String outingId,

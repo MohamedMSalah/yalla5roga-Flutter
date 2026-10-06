@@ -232,6 +232,19 @@ class Responsive {
   static double get avatarSm => w(28);
   static double get avatarMd => w(40);
   static double get avatarLg => w(84);
+
+  /// Horizontal active-vote carousel card width.
+  static double get voteCardWidth {
+    if (isDesktop) return w(300);
+    if (isTablet) return w(280);
+    return (_width * 0.72).clamp(w(220), w(280));
+  }
+
+  /// Horizontal active-vote carousel strip height.
+  static double get voteCardHeight {
+    final textScale = _textScale.clamp(1.0, 1.2);
+    return h(175) * textScale;
+  }
 }
 
 extension ResponsiveNumX on num {

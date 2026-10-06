@@ -11,6 +11,7 @@ class AppCard extends StatelessWidget {
     this.color,
     this.borderColor,
     this.radius,
+    this.showBorder = false,
   });
 
   final Widget child;
@@ -21,6 +22,9 @@ class AppCard extends StatelessWidget {
   final Color? borderColor;
   final double? radius;
 
+  /// Cards are borderless by default; keep this for rare emphasis cases.
+  final bool showBorder;
+
   @override
   Widget build(BuildContext context) {
     final card = AnimatedContainer(
@@ -30,12 +34,15 @@ class AppCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? context.palette.surface,
         borderRadius: BorderRadius.circular((radius ?? 22).r),
-        border: Border.all(color: borderColor ?? context.palette.border),
+        border: showBorder
+            ? Border.all(color: borderColor ?? context.palette.border)
+            : null,
         boxShadow: [
           BoxShadow(
             color: context.palette.shadow,
-            blurRadius: 24.w,
-            offset: Offset(0, 10.h),
+            blurRadius: 18.w,
+            spreadRadius: 0,
+            offset: Offset(0, 8.h),
           ),
         ],
       ),

@@ -93,54 +93,58 @@ class _InviteGuestsPageState extends State<InviteGuestsPage> {
                       message: l10n.invitePeopleHint,
                       compact: true,
                     )
-                  : ListView.separated(
+                  : ListView.builder(
                       padding: Responsive.pagePadding(),
                       itemCount: widget.contacts.length,
-                      separatorBuilder: (_, _) => 8.gapH,
                       itemBuilder: (context, index) {
                         final person = widget.contacts[index];
                         final selected = _selected.contains(person.id);
-                        return AppCard(
-                          onTap: () => _toggle(person.id),
-                          color: selected ? context.palette.brandSoft : null,
-                          borderColor: selected
-                              ? context.palette.brandSoftBorder
-                              : null,
-                          child: Row(
-                            children: [
-                              AppNetworkImage.avatar(
-                                url: person.avatar,
-                                width: 40.w,
-                                height: 40.w,
-                                radius: 12.r,
-                              ),
-                              12.gapW,
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      person.name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                    Text(
-                                      groups.groupsForMember(person.id),
-                                      style: TextStyle(
-                                        color: context.palette.textMuted,
-                                        fontSize: 10.sp,
-                                      ),
-                                    ),
-                                  ],
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == widget.contacts.length - 1
+                                ? 0
+                                : 8.h,
+                          ),
+                          child: AppCard(
+                            onTap: () => _toggle(person.id),
+                            color: selected ? context.palette.brandSoft : null,
+                            child: Row(
+                              children: [
+                                AppNetworkImage.avatar(
+                                  url: person.avatar,
+                                  width: 40.w,
+                                  height: 40.w,
+                                  radius: 12.r,
                                 ),
-                              ),
-                              Checkbox(
-                                value: selected,
-                                activeColor: AppColors.brand600,
-                                onChanged: (_) => _toggle(person.id),
-                              ),
-                            ],
+                                12.gapW,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        person.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      Text(
+                                        groups.groupsForMember(person.id),
+                                        style: TextStyle(
+                                          color: context.palette.textMuted,
+                                          fontSize: 10.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Checkbox(
+                                  value: selected,
+                                  activeColor: AppColors.brand600,
+                                  onChanged: (_) => _toggle(person.id),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },

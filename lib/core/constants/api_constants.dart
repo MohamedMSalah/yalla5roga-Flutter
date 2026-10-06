@@ -2,7 +2,7 @@ class ApiConstants {
   const ApiConstants._();
 
   static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
+    'http://10.0.2.2:3000',
     defaultValue: 'https://api.yalla5roga.com',
   );
 
@@ -38,8 +38,6 @@ class ApiConstants {
   static String groupMembers(String groupId) => '/groups/$groupId/members';
 
   static String groupLeave(String groupId) => '/groups/$groupId/leave';
-
-  static String groupRead(String groupId) => '/groups/$groupId/read';
 
   // Outings (placeholders until Node.js backend)
   static const String outings = '/outings';

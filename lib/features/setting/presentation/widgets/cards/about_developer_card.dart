@@ -3,7 +3,8 @@ import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/app_launcher.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
-import 'package:yalla_5roga/features/setting/presentation/widgets/settings_group.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/lists/settings_list.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/settings_tile.dart';
 
 class AboutDeveloperCard extends StatelessWidget {
   const AboutDeveloperCard({super.key});

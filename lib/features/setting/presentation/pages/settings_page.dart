@@ -13,19 +13,22 @@ import 'package:yalla_5roga/core/widgets/language_choice.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/features/auth/presentation/pages/auth_page.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
+import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/setting/presentation/pages/about_developer_page.dart';
 import 'package:yalla_5roga/features/setting/presentation/providers/settings_provider.dart';
 import 'package:yalla_5roga/features/setting/presentation/pages/edit_profile_page.dart';
 import 'package:yalla_5roga/features/setting/presentation/pages/profile_info_page.dart';
-import 'package:yalla_5roga/features/setting/presentation/widgets/about_developer_card.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/cards/about_developer_card.dart';
 import 'package:yalla_5roga/features/setting/presentation/widgets/profile_header.dart';
 import 'package:yalla_5roga/features/setting/presentation/widgets/profile_stats.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/saved_outings_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
-import 'package:yalla_5roga/features/setting/presentation/widgets/settings_group.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/lists/settings_list.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/settings_tile.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -69,6 +72,9 @@ class SettingsPage extends StatelessWidget {
     context.read<NotificationsProvider>().clear();
     context.read<OutingChatProvider>().clear();
     context.read<GroupsProvider>().clear();
+    context.read<OutingsProvider>().clear();
+    context.read<DiscoverProvider>().clear();
+    context.read<SavedOutingsProvider>().clear();
   }
 
   Future<void> _openLink(BuildContext context, String url) async {

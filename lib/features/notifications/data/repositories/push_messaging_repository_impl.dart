@@ -10,7 +10,9 @@ class PushMessagingRepositoryImpl implements PushMessagingRepository {
   final FcmMessagingService messaging;
 
   @override
-  Future<void> initialize({required void Function(PushNotificationPayload) onOpened}) {
+  Future<void> initialize({
+    required void Function(PushNotificationPayload) onOpened,
+  }) {
     return messaging.initialize(onOpened: onOpened);
   }
 
@@ -35,5 +37,6 @@ class PushMessagingRepositoryImpl implements PushMessagingRepository {
   Future<String?> refreshToken() => messaging.refreshToken();
 
   @override
-  Future<PushNotificationPayload?> takeInitialMessage() => messaging.takeInitialMessage();
+  Future<PushNotificationPayload?> takeInitialMessage() =>
+      messaging.takeInitialMessage();
 }

@@ -8,7 +8,6 @@ import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.da
 import 'package:yalla_5roga/features/discover/domain/repositories/discover_repository.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
-import 'package:yalla_5roga/features/groups/domain/entities/group_read_result.dart';
 import 'package:yalla_5roga/features/groups/domain/repositories/groups_repository.dart';
 import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
 import 'package:yalla_5roga/features/notifications/domain/repositories/notifications_repository.dart';
@@ -18,12 +17,10 @@ import 'package:yalla_5roga/features/outings/domain/entities/outing_chat_read_re
 import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/saved_outing.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/outing_chat_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/outings_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/saved_outings_repository.dart';
-import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
-import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
 // Temporary mock repositories for AppConfig.useMockData.
 // Delete this file with lib/core/mock/ when demos are done.
@@ -197,12 +194,17 @@ class MockAuthRepository implements AuthRepository {
 
 class MockGroupsRepository implements GroupsRepository {
   @override
-  Future<Either<Failure, List<Group>>> getGroups() async {
+  Future<Either<Failure, List<Group>>> getGroups({
+    bool forceRefresh = false,
+  }) async {
     return Right(List<Group>.from(MockData.groups));
   }
 
   @override
-  Future<Either<Failure, Group>> getGroup(String groupId) async {
+  Future<Either<Failure, Group>> getGroup(
+    String groupId, {
+    bool forceRefresh = false,
+  }) async {
     final group = MockData.groups.cast<Group?>().firstWhere(
       (g) => g?.id == groupId,
       orElse: () => null,
@@ -225,18 +227,12 @@ class MockGroupsRepository implements GroupsRepository {
     final withId = Group(
       id: id,
       name: created.name,
-      members: created.members,
       outings: created.outings,
-      preview: created.preview,
       bio: created.bio,
-      avatars: created.avatars,
       image: created.image,
-      people: created.people,
-      lastMessage: created.lastMessage,
-      unread: created.unread,
-      featured: created.featured,
-      decision: created.decision,
-      myRole: created.myRole,
+      members: created.members,
+
+      cuserRole: created.cuserRole,
     );
     return Right(MockData.upsertGroup(withId));
   }
@@ -280,11 +276,6 @@ class MockGroupsRepository implements GroupsRepository {
   }
 
   @override
-  Future<Either<Failure, GroupReadResult>> markRead(String groupId) async {
-    return Right(MockData.markGroupRead(groupId));
-  }
-
-  @override
   GroupMember? memberById(String id) => MockData.memberById(id);
 
   @override
@@ -310,7 +301,9 @@ class MockOutingsRepository implements OutingsRepository {
       MockData.specialEventImage(occasion);
 
   @override
-  Future<Either<Failure, OutingSnapshot>> load() async {
+  Future<Either<Failure, OutingSnapshot>> load({
+    bool forceRefresh = false,
+  }) async {
     return Right(MockData.outingSnapshot());
   }
 
@@ -356,6 +349,16 @@ class MockOutingsRepository implements OutingsRepository {
   }
 
   @override
+  Future<Either<Failure, OutingSnapshot>> finalizeVote(String outingId) async {
+    return Right(MockData.finalizeVote(outingId));
+  }
+
+  @override
+  Future<Either<Failure, OutingSnapshot>> clearVotes(String outingId) async {
+    return Right(MockData.clearVotes(outingId));
+  }
+
+  @override
   Future<Either<Failure, OutingSnapshot>> setAttendance({
     required String outingId,
     required String memberId,
@@ -378,14 +381,6 @@ class MockOutingsRepository implements OutingsRepository {
 
 class MockOutingChatRepository implements OutingChatRepository {
   @override
-  Future<Either<Failure, List<ChatMessage>>> getMessages(
-    String outingId,
-  ) async {
-    final messages = MockData.messagesByOuting[outingId] ?? const [];
-    return Right(List<ChatMessage>.from(messages));
-  }
-
-  @override
   Future<Either<Failure, ChatMessage>> sendMessage({
     required String outingId,
     required String text,
@@ -393,11 +388,14 @@ class MockOutingChatRepository implements OutingChatRepository {
     required String senderName,
   }) async {
     return Right(
-      MockData.sendMessage(
+      ChatMessage(
+        id: 'fixed_send',
         outingId: outingId,
-        text: text,
+        sender: senderName,
         senderId: senderId,
-        senderName: senderName,
+        text: text,
+        time: '',
+        isMine: true,
       ),
     );
   }
@@ -406,7 +404,13 @@ class MockOutingChatRepository implements OutingChatRepository {
   Future<Either<Failure, OutingChatReadResult>> markRead(
     String outingId,
   ) async {
-    return Right(MockData.markChatRead(outingId));
+    return Right(
+      OutingChatReadResult(
+        outingId: outingId,
+        unreadCount: 0,
+        unreadChatCount: 0,
+      ),
+    );
   }
 }
 
@@ -414,6 +418,7 @@ class MockDiscoverRepository implements DiscoverRepository {
   @override
   Future<Either<Failure, List<SuggestedPlace>>> getPlaces({
     OutingVibe? vibe,
+    bool forceRefresh = false,
   }) async {
     final all = MockData.suggestedPlaces;
     if (vibe == null) return Right(List<SuggestedPlace>.from(all));
@@ -421,12 +426,17 @@ class MockDiscoverRepository implements DiscoverRepository {
   }
 
   @override
-  Future<Either<Failure, List<SuggestedPlace>>> getFeaturedPlaces() async {
+  Future<Either<Failure, List<SuggestedPlace>>> getFeaturedPlaces({
+    bool forceRefresh = false,
+  }) async {
     return Right(MockData.suggestedPlaces.where((p) => p.featured).toList());
   }
 
   @override
-  Future<Either<Failure, SuggestedPlace>> getPlace(String placeId) async {
+  Future<Either<Failure, SuggestedPlace>> getPlace(
+    String placeId, {
+    bool forceRefresh = false,
+  }) async {
     final place = MockData.suggestedPlaces.cast<SuggestedPlace?>().firstWhere(
       (p) => p?.id == placeId,
       orElse: () => null,
@@ -443,7 +453,9 @@ class MockDiscoverRepository implements DiscoverRepository {
 
 class MockNotificationsRepository implements NotificationsRepository {
   @override
-  Future<Either<Failure, NotificationsFeed>> getNotifications() async {
+  Future<Either<Failure, NotificationsFeed>> getNotifications({
+    bool forceRefresh = false,
+  }) async {
     return Right(MockData.notificationsFeed());
   }
 
@@ -455,13 +467,6 @@ class MockNotificationsRepository implements NotificationsRepository {
   @override
   Future<Either<Failure, int>> markRead(String id) async {
     return Right(MockData.markNotificationRead(id));
-  }
-}
-
-class MockUnreadCountsRepository implements UnreadCountsRepository {
-  @override
-  Future<Either<Failure, UnreadCounts>> fetchCounts() async {
-    return Right(MockData.unreadCounts());
   }
 }
 
@@ -518,13 +523,13 @@ class MockSavedOutingsRepository implements SavedOutingsRepository {
   }
 }
 
-class MockGeocodingRepository implements GeocodingRepository {
+class MockLocationRepository implements LocationRepository {
   @override
   Future<String?> reverseGeocode({
     required double latitude,
     required double longitude,
   }) async {
-    GeocodingHit? best;
+    LocationHit? best;
     var bestDistance = double.infinity;
     for (final hit in MockData.geocodingHits) {
       final dLat = hit.latitude - latitude;
@@ -539,7 +544,7 @@ class MockGeocodingRepository implements GeocodingRepository {
   }
 
   @override
-  Future<List<GeocodingHit>> search(String query) async {
+  Future<List<LocationHit>> search(String query) async {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
     return MockData.geocodingHits

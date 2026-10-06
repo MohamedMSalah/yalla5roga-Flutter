@@ -32,7 +32,10 @@ class ProfileStats extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w800)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w800),
+          ),
           Text(
             label.toUpperCase(),
             style: TextStyle(

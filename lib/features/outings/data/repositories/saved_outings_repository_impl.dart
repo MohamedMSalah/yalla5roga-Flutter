@@ -20,7 +20,9 @@ class SavedOutingsRepositoryImpl implements SavedOutingsRepository {
   }
 
   @override
-  Future<Either<Failure, List<SavedOuting>>> saveOuting(SavedOuting outing) async {
+  Future<Either<Failure, List<SavedOuting>>> saveOuting(
+    SavedOuting outing,
+  ) async {
     return Right(await local.saveOuting(outing));
   }
 
@@ -30,7 +32,9 @@ class SavedOutingsRepositoryImpl implements SavedOutingsRepository {
   }
 
   @override
-  Future<Either<Failure, List<OutingDraft>>> saveDraft(OutingDraft draft) async {
+  Future<Either<Failure, List<OutingDraft>>> saveDraft(
+    OutingDraft draft,
+  ) async {
     return Right(await local.saveDraft(draft));
   }
 

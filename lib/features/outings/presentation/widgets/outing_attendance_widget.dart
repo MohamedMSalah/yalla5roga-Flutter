@@ -5,6 +5,7 @@ import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/widgets/app_card.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
@@ -58,18 +59,14 @@ class _OutingAttendanceWidgetState extends State<OutingAttendanceWidget> {
     final outings = context.watch<OutingsProvider>();
     final userId = context.watch<AuthProvider>().user?.id;
     final outing = outings.findById(widget.outing.id) ?? widget.outing;
-    final mine = outings.myAttendance(outing.id, userId);
+    final mine = outings.cuserAttendance(outing.id, userId);
     final isCreator =
         outing.createdById != null && outing.createdById == userId;
     final open = outings.canChangeAttendance(outing.id);
 
-    return Container(
+    return AppCard(
+      radius: 18,
       padding: EdgeInsets.all(14.w),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.circular(18.r),
-        border: Border.all(color: palette.border),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

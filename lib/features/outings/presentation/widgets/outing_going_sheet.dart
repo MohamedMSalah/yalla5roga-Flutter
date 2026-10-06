@@ -81,53 +81,57 @@ class _OutingGoingSheetBody extends StatelessWidget {
                     subtitle: l10n.noGoingYetHint,
                     compact: true,
                   )
-                : ListView.separated(
+                : ListView.builder(
                     itemCount: members.length,
-                    separatorBuilder: (_, _) => 8.gapH,
                     itemBuilder: (context, index) {
                       final member = members[index];
                       final status = outings.attendanceFor(event.id, member.id);
                       final name = l10n.digits(
                         MemberDisplayName.resolve(member),
                       );
-                      return Row(
-                        children: [
-                          AppNetworkImage.avatar(
-                            url: member.avatar,
-                            width: 44.w,
-                            height: 44.w,
-                            radius: 12.r,
-                          ),
-                          12.gapW,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                Text(
-                                  AttendanceDisplay.label(status, l10n),
-                                  style: TextStyle(
-                                    color: palette.textMuted,
-                                    fontSize: 10.sp,
-                                  ),
-                                ),
-                              ],
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == members.length - 1 ? 0 : 8.h,
+                        ),
+                        child: Row(
+                          children: [
+                            AppNetworkImage.avatar(
+                              url: member.avatar,
+                              width: 44.w,
+                              height: 44.w,
+                              radius: 12.r,
                             ),
-                          ),
-                          Icon(
-                            AttendanceDisplay.icon(status),
-                            color: AttendanceDisplay.color(
-                              status,
-                              palette.textMuted,
+                            12.gapW,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  Text(
+                                    AttendanceDisplay.label(status, l10n),
+                                    style: TextStyle(
+                                      color: palette.textMuted,
+                                      fontSize: 10.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            size: 18.w,
-                          ),
-                        ],
+                            Icon(
+                              AttendanceDisplay.icon(status),
+                              color: AttendanceDisplay.color(
+                                status,
+                                palette.textMuted,
+                              ),
+                              size: 18.w,
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),

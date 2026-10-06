@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:yalla_5roga/core/config/app_config.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
@@ -71,8 +72,13 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
   }
 
   void _create() async {
-    if (!_formKey.currentState!.validate()) return;
     final groups = context.read<GroupsProvider>();
+    if (groups.isCreating) return;
+    if (!_formKey.currentState!.validate()) return;
+    if (groups.createImage == null && !AppConfig.useMockData) {
+      AppSnackBar.show(context.l10n.photoRequired);
+      return;
+    }
     final user = context.read<AuthProvider>().user;
     final l10n = context.l10n;
     final group = await groups.createGroup(
@@ -81,11 +87,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
       ownerAvatar: user?.imageUrl,
       bio: _bioController.text.trim(),
     );
-    if (!mounted) return;
-    if (group == null) {
-      AppSnackBar.show(context.l10n.photoRequired);
-      return;
-    }
+    if (!mounted || group == null) return;
     AppSnackBar.show(context.l10n.groupCreated);
     Get.off(() => GroupDetailsPage(groupId: group.id));
   }
@@ -112,7 +114,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                   padding: Responsive.pagePadding(),
                   children: [
                     GestureDetector(
-                      onTap: _pickImage,
+                      onTap: groups.isCreating ? null : _pickImage,
                       child: image == null
                           ? Container(
                               height: 160.h,
@@ -120,7 +122,13 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                               decoration: BoxDecoration(
                                 color: palette.surfaceMuted,
                                 borderRadius: BorderRadius.circular(22.r),
-                                border: Border.all(color: palette.border),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: palette.shadow,
+                                    blurRadius: 14.w,
+                                    offset: Offset(0, 6.h),
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -209,7 +217,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
                       icon: Icons.person_add_alt_1_outlined,
                       size: AppButtonSize.medium,
                       variant: AppButtonVariant.outlined,
-                      onPressed: _addPhone,
+                      onPressed: groups.isCreating ? null : _addPhone,
                     ),
                     if (phones.isNotEmpty) ...[
                       Responsive.spaceMd.gapH,
@@ -243,6 +251,7 @@ class _CreateGroupPageState extends State<CreateGroupPage> {
               child: CustomButton(
                 label: l10n.createGroup,
                 icon: Icons.check,
+                isLoading: groups.isCreating,
                 onPressed: _create,
               ),
             ),

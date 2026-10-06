@@ -31,15 +31,17 @@ class AuthHeader extends StatelessWidget {
         Responsive.spaceSm.gapH,
         Text(
           title,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            fontSize: 28.sp,
-          ),
+          style: Theme.of(context).textTheme.headlineMedium
+              ?.copyWith(fontWeight: FontWeight.w800, fontSize: 28.sp),
         ),
         Responsive.spaceSm.gapH,
         Text(
           subtitle,
-          style: TextStyle(color: context.palette.textMuted, height: 1.5, fontSize: Responsive.fontBody),
+          style: TextStyle(
+            color: context.palette.textMuted,
+            height: 1.5,
+            fontSize: Responsive.fontBody,
+          ),
         ),
       ],
     );

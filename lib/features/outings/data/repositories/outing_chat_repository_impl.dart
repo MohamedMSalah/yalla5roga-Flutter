@@ -17,11 +17,6 @@ class OutingChatRepositoryImpl implements OutingChatRepository {
   final NetworkInfo networkInfo;
 
   @override
-  Future<Either<Failure, List<ChatMessage>>> getMessages(String outingId) {
-    return guardRemote(networkInfo, () => remote.getMessages(outingId));
-  }
-
-  @override
   Future<Either<Failure, ChatMessage>> sendMessage({
     required String outingId,
     required String text,

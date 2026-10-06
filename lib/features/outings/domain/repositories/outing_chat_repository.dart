@@ -4,7 +4,6 @@ import 'package:yalla_5roga/features/outings/domain/entities/chat_message.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing_chat_read_result.dart';
 
 abstract class OutingChatRepository {
-  Future<Either<Failure, List<ChatMessage>>> getMessages(String outingId);
 
   Future<Either<Failure, ChatMessage>> sendMessage({
     required String outingId,

@@ -35,17 +35,23 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
               children: [
                 SizedBox(
                   height: 210.h,
-                  child: ListView.separated(
+                  child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: gallery.length,
-                    separatorBuilder: (_, _) => Responsive.spaceSm.gapW,
                     itemBuilder: (context, index) {
-                      return PlaceCoverImage(
-                        url: gallery[index].imageUrl,
-                        vibe: place.vibe,
-                        width: 280.w,
-                        height: 210.h,
-                        radius: 18.r,
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          right: index == gallery.length - 1
+                              ? 0
+                              : Responsive.spaceSm,
+                        ),
+                        child: PlaceCoverImage(
+                          url: gallery[index].imageUrl,
+                          vibe: place.vibe,
+                          width: 280.w,
+                          height: 210.h,
+                          radius: 18.r,
+                        ),
                       );
                     },
                   ),
@@ -82,7 +88,10 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                   Responsive.spaceMd.gapH,
                   Text(
                     l10n.aboutPlace,
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: Responsive.fontMd,
+                    ),
                   ),
                   Responsive.spaceXs.gapH,
                   Text(
@@ -98,7 +107,10 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                   Responsive.spaceLg.gapH,
                   Text(
                     l10n.prices,
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: Responsive.fontMd,
+                    ),
                   ),
                   Responsive.spaceSm.gapH,
                   for (final price in place.prices) ...[
@@ -130,7 +142,10 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                   Responsive.spaceLg.gapH,
                   Text(
                     l10n.workingHours,
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: Responsive.fontMd,
+                    ),
                   ),
                   Responsive.spaceSm.gapH,
                   for (final hour in place.hours) ...[
@@ -148,9 +163,13 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
                         Text(
                           hour.isClosed
                               ? l10n.closed
-                              : l10n.digits('${hour.opensAt} – ${hour.closesAt}'),
+                              : l10n.digits(
+                                  '${hour.opensAt} – ${hour.closesAt}',
+                                ),
                           style: TextStyle(
-                            color: hour.isClosed ? palette.textMuted : palette.textSecondary,
+                            color: hour.isClosed
+                                ? palette.textMuted
+                                : palette.textSecondary,
                             fontWeight: FontWeight.w700,
                             fontSize: Responsive.fontSm,
                           ),
@@ -171,7 +190,8 @@ class DiscoverPlaceDetailsPage extends StatelessWidget {
               child: CustomButton(
                 label: l10n.planOutingHere,
                 icon: Icons.event_available_outlined,
-                onPressed: () => Get.to(() => CreateOutingPage(suggestedPlace: place)),
+                onPressed: () =>
+                    Get.to(() => CreateOutingPage(suggestedPlace: place)),
               ),
             ),
           ),

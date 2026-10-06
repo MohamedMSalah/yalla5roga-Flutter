@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
-import 'package:yalla_5roga/features/setting/presentation/widgets/about_developer_card.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/cards/about_developer_card.dart';
 
 class AboutDeveloperPage extends StatelessWidget {
   const AboutDeveloperPage({super.key});

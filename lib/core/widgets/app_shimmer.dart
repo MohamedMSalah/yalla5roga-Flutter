@@ -12,7 +12,8 @@ class AppShimmer extends StatefulWidget {
   State<AppShimmer> createState() => _AppShimmerState();
 }
 
-class _AppShimmerState extends State<AppShimmer> with SingleTickerProviderStateMixin {
+class _AppShimmerState extends State<AppShimmer>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -35,10 +36,7 @@ class _AppShimmerState extends State<AppShimmer> with SingleTickerProviderStateM
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return _ShimmerScope(
-          percent: _controller.value,
-          child: child!,
-        );
+        return _ShimmerScope(percent: _controller.value, child: child!);
       },
       child: widget.child,
     );
@@ -51,11 +49,15 @@ class _ShimmerScope extends InheritedWidget {
   final double percent;
 
   static double of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_ShimmerScope>()?.percent ?? 0.5;
+    return context
+            .dependOnInheritedWidgetOfExactType<_ShimmerScope>()
+            ?.percent ??
+        0.5;
   }
 
   @override
-  bool updateShouldNotify(_ShimmerScope oldWidget) => percent != oldWidget.percent;
+  bool updateShouldNotify(_ShimmerScope oldWidget) =>
+      percent != oldWidget.percent;
 }
 
 class _ShimmerSlide extends GradientTransform {
@@ -96,7 +98,9 @@ class ShimmerBone extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         shape: shape,
-        borderRadius: shape == BoxShape.circle ? null : BorderRadius.circular((radius ?? 8).r),
+        borderRadius: shape == BoxShape.circle
+            ? null
+            : BorderRadius.circular((radius ?? 8).r),
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -121,12 +125,7 @@ class ShimmerCircle extends StatelessWidget {
 }
 
 class ShimmerLine extends StatelessWidget {
-  const ShimmerLine({
-    super.key,
-    this.width,
-    this.height,
-    this.radius = 6,
-  });
+  const ShimmerLine({super.key, this.width, this.height, this.radius = 6});
 
   final double? width;
   final double? height;
@@ -134,11 +133,7 @@ class ShimmerLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShimmerBone(
-      width: width,
-      height: height ?? 10.h,
-      radius: radius,
-    );
+    return ShimmerBone(width: width, height: height ?? 10.h, radius: radius);
   }
 }
 
@@ -190,7 +185,9 @@ class ShimmerTabs extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 8.w),
-                child: Center(child: ShimmerLine(width: 56.w, height: 12.h)),
+                child: Center(
+                  child: ShimmerLine(width: 56.w, height: 12.h),
+                ),
               ),
             ),
         ],
@@ -311,15 +308,27 @@ class ShimmerDiscoverCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.palette.surface,
         borderRadius: BorderRadius.circular(Responsive.radiusLg),
-        border: Border.all(color: context.palette.border),
+        boxShadow: [
+          BoxShadow(
+            color: context.palette.shadow,
+            blurRadius: 18.w,
+            offset: Offset(0, 8.h),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(Responsive.radiusLg)),
-              child: const ShimmerBone(width: double.infinity, height: double.infinity, radius: 0),
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(Responsive.radiusLg),
+              ),
+              child: const ShimmerBone(
+                width: double.infinity,
+                height: double.infinity,
+                radius: 0,
+              ),
             ),
           ),
           Padding(
@@ -348,20 +357,19 @@ class ShimmerDiscoverStrip extends StatelessWidget {
     super.key,
     this.compact = true,
     this.count = 3,
-    this.showPlaces = false,
+    this.showHeader = false,
   });
 
   final bool compact;
   final int count;
-  final bool showPlaces;
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const ShimmerSectionHeader(action: true),
-        12.gapH,
+        if (showHeader) ...[const ShimmerSectionHeader(action: true), 12.gapH],
         SizedBox(
           height: compact ? 196.h : 236.h,
           child: ListView.separated(
@@ -372,14 +380,43 @@ class ShimmerDiscoverStrip extends StatelessWidget {
             itemBuilder: (_, _) => ShimmerDiscoverCard(compact: compact),
           ),
         ),
-        if (showPlaces) ...[
-          Responsive.spaceMd.gapH,
-          ShimmerLine(width: 110.w, height: 9.h),
-          Responsive.spaceSm.gapH,
-          for (var i = 0; i < 3; i++) ...[
-            const ShimmerPlaceTile(),
-            Responsive.spaceSm.gapH,
-          ],
+      ],
+    );
+  }
+}
+
+/// Vertical stack of place-tile placeholders (no section title).
+class ShimmerPlaceList extends StatelessWidget {
+  const ShimmerPlaceList({super.key, this.count = 3});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < count; i++) ...[
+          if (i > 0) Responsive.spaceSm.gapH,
+          const ShimmerPlaceTile(),
+        ],
+      ],
+    );
+  }
+}
+
+/// Vertical stack of outing-tile placeholders (no section title).
+class ShimmerOutingList extends StatelessWidget {
+  const ShimmerOutingList({super.key, this.count = 3});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < count; i++) ...[
+          if (i > 0) 8.gapH,
+          const ShimmerOutingTile(),
         ],
       ],
     );
@@ -396,7 +433,6 @@ class ShimmerNotificationCard extends StatelessWidget {
     return AppCard(
       radius: 20,
       color: unread ? context.palette.brandSoft : context.palette.surface,
-      borderColor: unread ? context.palette.brandSoftBorder : context.palette.border,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -414,7 +450,8 @@ class ShimmerNotificationCard extends StatelessWidget {
                   children: [
                     ShimmerLine(width: 64.w, height: 9.h),
                     const Spacer(),
-                    if (unread) ShimmerBone(width: 64.w, height: 28.h, radius: 8),
+                    if (unread)
+                      ShimmerBone(width: 64.w, height: 28.h, radius: 8),
                   ],
                 ),
               ],

@@ -1,79 +1,105 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
-import 'package:yalla_5roga/core/widgets/app_card.dart';
+import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_shimmer.dart';
+import 'package:yalla_5roga/core/widgets/filter_chip_row.dart';
+import 'package:yalla_5roga/core/widgets/notification_button.dart';
+import 'package:yalla_5roga/core/widgets/section_header.dart';
+import 'package:yalla_5roga/features/groups/presentation/pages/create_group_page.dart';
+import 'package:yalla_5roga/features/groups/presentation/widgets/cards/create_group_card.dart';
 
 class GroupsSkeleton extends StatelessWidget {
   const GroupsSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return SafeArea(
-      child: AppShimmer(
-        child: ListView(
-          physics: const NeverScrollableScrollPhysics(),
-          padding: Responsive.pagePadding(),
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Expanded(child: ShimmerSectionHeader(eyebrow: true, wideTitle: true)),
-                const ShimmerIconButton(),
-              ],
-            ),
-            Responsive.spaceSm.gapH,
-            Row(
-              children: [
-                const ShimmerIconButton(),
-                Responsive.spaceSm.gapW,
-                const ShimmerIconButton(),
-              ],
-            ),
-            Responsive.spaceMd.gapH,
-            const ShimmerChipRow(),
-            Responsive.spaceMd.gapH,
-            const ListCard(
-              children: [
-                ShimmerFeaturedGroup(),
-                ShimmerGroupCard(),
-                ShimmerGroupCard(),
-                _CreateGroupBone(),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CreateGroupBone extends StatelessWidget {
-  const _CreateGroupBone();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(Responsive.spaceMd),
-      decoration: BoxDecoration(
-        color: context.palette.brandSoft,
-        borderRadius: BorderRadius.circular(Responsive.radiusLg),
-        border: Border.all(color: context.palette.brandSoftBorder),
-      ),
-      child: Row(
+      child: ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: Responsive.pagePadding(),
         children: [
-          ShimmerBone(width: 44.w, height: 44.w, radius: 14),
-          12.gapW,
-          Expanded(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SectionHeader(
+                  eyebrow: l10n.yourCircles,
+                  title: l10n.groupsTitle,
+                  subtitle: l10n.activeGroupsFriends(0, 0),
+                ),
+              ),
+              const NotificationButton(),
+            ],
+          ),
+          Responsive.spaceSm.gapH,
+          Row(
+            children: [
+              AppIconButton(icon: Icons.search, onTap: () {}),
+              Responsive.spaceSm.gapW,
+              AppIconButton(
+                icon: Icons.add,
+                background: AppColors.brand600,
+                foreground: Colors.white,
+                onTap: () => Get.to(() => const CreateGroupPage()),
+              ),
+            ],
+          ),
+          Responsive.spaceMd.gapH,
+          Text(
+            l10n.activeVotes,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: Responsive.fontMd,
+            ),
+          ),
+          Responsive.spaceSm.gapH,
+          AppShimmer(
+            child: SizedBox(
+              height: Responsive.voteCardHeight,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 2,
+                separatorBuilder: (_, _) => Responsive.spaceSm.gapW,
+                itemBuilder: (_, _) => SizedBox(
+                  width: Responsive.voteCardWidth,
+                  child: const ShimmerVoteCard(),
+                ),
+              ),
+            ),
+          ),
+          Responsive.spaceMd.gapH,
+          FilterChipRow(
+            labels: [l10n.allGroups, l10n.mostActive, l10n.recentlyAdded],
+            index: 0,
+            onChanged: (_) {},
+          ),
+          Responsive.spaceMd.gapH,
+          Text(
+            l10n.groupsTitle,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: Responsive.fontMd,
+            ),
+          ),
+          Responsive.spaceSm.gapH,
+          AppShimmer(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ShimmerLine(width: 130.w, height: 13.h),
-                Responsive.spaceXs.gapH,
-                ShimmerLine(width: 160.w, height: 9.h),
+                const ShimmerFeaturedGroup(),
+                10.gapH,
+                const ShimmerGroupCard(),
+                10.gapH,
+                const ShimmerGroupCard(),
               ],
             ),
           ),
-          ShimmerBone(width: 16.w, height: 16.w, radius: 4),
+          Responsive.spaceSm.gapH,
+          CreateGroupCard(onTap: () => Get.to(() => const CreateGroupPage())),
         ],
       ),
     );

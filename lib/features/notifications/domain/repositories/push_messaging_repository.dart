@@ -3,7 +3,9 @@ import 'package:yalla_5roga/features/notifications/domain/entities/push_notifica
 
 /// Abstraction over FCM + local notification display.
 abstract class PushMessagingRepository {
-  Future<void> initialize({required void Function(PushNotificationPayload) onOpened});
+  Future<void> initialize({
+    required void Function(PushNotificationPayload) onOpened,
+  });
 
   String? get token;
 

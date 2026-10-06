@@ -75,10 +75,12 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: palette.surface,
-        elevation: 0,
+        elevation: 2,
+        shadowColor: palette.shadow,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: BorderSide(color: palette.border),
+          side: BorderSide.none,
         ),
       ),
       dividerTheme: DividerThemeData(color: palette.border, space: 1),
@@ -89,7 +91,10 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: Colors.transparent,
-        contentTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
         actionTextColor: palette.brand,
         behavior: SnackBarBehavior.floating,
         elevation: 0,
@@ -97,13 +102,17 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: const WidgetStatePropertyAll(Colors.white),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          return states.contains(WidgetState.selected) ? AppColors.brand600 : AppColors.slate200;
+          return states.contains(WidgetState.selected)
+              ? AppColors.brand600
+              : AppColors.slate200;
         }),
         trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          return states.contains(WidgetState.selected) ? AppColors.brand600 : Colors.transparent;
+          return states.contains(WidgetState.selected)
+              ? AppColors.brand600
+              : Colors.transparent;
         }),
         checkColor: const WidgetStatePropertyAll(Colors.white),
       ),
@@ -111,7 +120,10 @@ class AppTheme {
         filled: true,
         fillColor: palette.inputFill,
         hintStyle: TextStyle(color: palette.hint, fontWeight: FontWeight.w500),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: palette.border),

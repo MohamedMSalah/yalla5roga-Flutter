@@ -62,6 +62,20 @@ class Outing {
 
   bool get hasVotePlaces => votePlaces.length >= 2;
 
+  /// Primary vibe from the first vote place (food fallback).
+  OutingVibe get primaryVibe =>
+      votePlaces.isNotEmpty ? votePlaces.first.vibe : OutingVibe.food;
+
+  /// Localized date · time line for cards (empty when both are blank).
+  String dateTimeLine(String Function(String) digits) {
+    final dateText = date.trim();
+    final timeText = time.trim();
+    if (dateText.isEmpty && timeText.isEmpty) return '';
+    if (timeText.isEmpty) return digits(dateText);
+    if (dateText.isEmpty) return digits(timeText);
+    return digits('$dateText · $timeText');
+  }
+
   /// True when status is past or [scheduledAt] has passed.
   bool get isPastOuting {
     if (status == OutingStatus.past) return true;
@@ -71,10 +85,15 @@ class Outing {
   }
 
   /// Final location is hidden while place voting is still open.
-  bool get isLocationHidden => status == OutingStatus.voting && location == null;
+  bool get isLocationHidden =>
+      status == OutingStatus.voting && location == null;
 
   List<String> get _dateParts {
-    return date.replaceAll(',', ' ').split(RegExp(r'\s+')).where((part) => part.isNotEmpty).toList();
+    return date
+        .replaceAll(',', ' ')
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
   }
 
   String get calendarDay => _dateParts.length >= 2 ? _dateParts[1] : date;

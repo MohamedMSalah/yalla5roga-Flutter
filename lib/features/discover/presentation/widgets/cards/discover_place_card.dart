@@ -26,9 +26,19 @@ class DiscoverPlaceCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: SizedBox(
+      child: Container(
         width: width,
         height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(
+              color: context.palette.shadow,
+              blurRadius: 18.w,
+              offset: Offset(0, 8.h),
+            ),
+          ],
+        ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(18.r),
           child: Stack(

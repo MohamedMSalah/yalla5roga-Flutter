@@ -88,7 +88,9 @@ class PushNotificationPayload extends Equatable {
   factory PushNotificationPayload.fromLocalPayload(Map<String, dynamic> map) {
     final data = <String, String>{
       for (final entry in map.entries)
-        if (entry.key != 'title' && entry.key != 'body' && entry.key != 'messageId')
+        if (entry.key != 'title' &&
+            entry.key != 'body' &&
+            entry.key != 'messageId')
           entry.key: entry.value?.toString() ?? '',
     };
 
@@ -111,25 +113,25 @@ class PushNotificationPayload extends Equatable {
   }
 
   Map<String, dynamic> toLocalPayloadMap() => {
-        if (messageId != null) 'messageId': messageId,
-        if (title != null) 'title': title,
-        if (body != null) 'body': body,
-        'type': type.name,
-        if (outingId != null) 'outingId': outingId,
-        if (groupId != null) 'groupId': groupId,
-        if (chatId != null) 'chatId': chatId,
-        ...data,
-      };
+    if (messageId != null) 'messageId': messageId,
+    if (title != null) 'title': title,
+    if (body != null) 'body': body,
+    'type': type.name,
+    if (outingId != null) 'outingId': outingId,
+    if (groupId != null) 'groupId': groupId,
+    if (chatId != null) 'chatId': chatId,
+    ...data,
+  };
 
   @override
   List<Object?> get props => [
-        messageId,
-        title,
-        body,
-        type,
-        outingId,
-        groupId,
-        chatId,
-        data,
-      ];
+    messageId,
+    title,
+    body,
+    type,
+    outingId,
+    groupId,
+    chatId,
+    data,
+  ];
 }

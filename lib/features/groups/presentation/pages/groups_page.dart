@@ -3,18 +3,14 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
-import 'package:yalla_5roga/core/widgets/app_card.dart';
-import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/filter_chip_row.dart';
 import 'package:yalla_5roga/core/widgets/notification_button.dart';
 import 'package:yalla_5roga/core/widgets/section_header.dart';
+import 'package:yalla_5roga/features/groups/presentation/widgets/lists/active_votes_list.dart';
+import 'package:yalla_5roga/features/groups/presentation/widgets/lists/groups_list.dart';
 import 'package:yalla_5roga/features/groups/presentation/pages/create_group_page.dart';
-import 'package:yalla_5roga/features/groups/presentation/pages/group_details_page.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
-import 'package:yalla_5roga/features/groups/presentation/widgets/create_group_card.dart';
-import 'package:yalla_5roga/features/groups/presentation/widgets/group_card.dart';
-import 'package:yalla_5roga/features/groups/presentation/widgets/group_voting_widgets.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/groups_skeleton.dart';
 import 'package:yalla_5roga/features/shell/presentation/widgets/shell_loading.dart';
 
@@ -56,7 +52,6 @@ class _GroupsPageState extends State<GroupsPage> {
     final l10n = context.l10n;
     final palette = context.palette;
     final groups = context.watch<GroupsProvider>();
-    final items = groups.visible;
 
     return SafeArea(
       child: CustomScrollView(
@@ -76,7 +71,7 @@ class _GroupsPageState extends State<GroupsPage> {
                           groups.groups.length,
                           groups.groups.fold<int>(
                             0,
-                            (sum, group) => sum + group.members,
+                            (sum, group) => sum + group.memberCount,
                           ),
                         ),
                       ),
@@ -136,7 +131,7 @@ class _GroupsPageState extends State<GroupsPage> {
                   ],
                 ),
                 Responsive.spaceMd.gapH,
-                const GroupsActiveVotesSection(),
+                const ActiveVotesList(),
                 Responsive.spaceMd.gapH,
                 FilterChipRow(
                   labels: [l10n.allGroups, l10n.mostActive, l10n.recentlyAdded],
@@ -144,42 +139,7 @@ class _GroupsPageState extends State<GroupsPage> {
                   onChanged: groups.setFilter,
                 ),
                 Responsive.spaceMd.gapH,
-                Text(
-                  l10n.groupsTitle,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: Responsive.fontMd,
-                  ),
-                ),
-                Responsive.spaceSm.gapH,
-                if (items.isEmpty)
-                  AppEmptyState(
-                    icon: groups.query.trim().isEmpty
-                        ? Icons.groups_outlined
-                        : Icons.search_off_outlined,
-                    message: groups.query.trim().isEmpty
-                        ? l10n.noGroups
-                        : l10n.noGroupsFound,
-                    subtitle: groups.query.trim().isEmpty
-                        ? l10n.noGroupsHint
-                        : l10n.noGroupsFoundHint,
-                    compact: true,
-                  )
-                else
-                  ListCard(
-                    children: [
-                      for (final group in items)
-                        GroupCard(
-                          group: group,
-                          onTap: () =>
-                              Get.to(() => GroupDetailsPage(groupId: group.id)),
-                        ),
-                      if (groups.query.trim().isEmpty)
-                        CreateGroupCard(
-                          onTap: () => Get.to(() => const CreateGroupPage()),
-                        ),
-                    ],
-                  ),
+                const GroupsList(),
                 Responsive.spaceLg.gapH,
               ]),
             ),

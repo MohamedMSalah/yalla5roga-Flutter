@@ -73,7 +73,9 @@ class OutingChatRemoteDataSourceImpl implements OutingChatDataSource {
         time: apiString(payload['time']) ?? '',
         isMine: true,
         senderId: senderId,
-        sentAt: DateTime.tryParse(apiString(payload['sentAt']) ?? '') ?? DateTime.now(),
+        sentAt:
+            DateTime.tryParse(apiString(payload['sentAt']) ?? '') ??
+            DateTime.now(),
       );
     } on DioException catch (error) {
       throw _unwrap(error);

@@ -22,7 +22,8 @@ class SavedOuting {
       id: event.id,
       title: event.title,
       image: event.image,
-      location: event.location ??
+      location:
+          event.location ??
           PlaceLocation(name: event.meta.split('·').first.trim()),
     );
   }
@@ -39,11 +40,11 @@ class SavedOuting {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'image': image,
-        'location': location.toJson(),
-      };
+    'id': id,
+    'title': title,
+    'image': image,
+    'location': location.toJson(),
+  };
 }
 
 class OutingDraft {
@@ -115,32 +116,30 @@ class OutingDraft {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'image': image,
-        'location': location.toJson(),
-        'date': date.toIso8601String(),
-        'hour': hour,
-        'minute': minute,
-        'vibe': vibe,
-        'groupId': groupId,
-        'occasion': occasion.name,
-        'specialEvent': specialEvent,
-        'guestIds': guestIds,
-        'letVote': letVote,
-        'voteDeadlineHours': voteDeadlineHours,
-        'selectedPlaces': [for (final place in selectedPlaces) place.toJson()],
-      };
+    'id': id,
+    'title': title,
+    'image': image,
+    'location': location.toJson(),
+    'date': date.toIso8601String(),
+    'hour': hour,
+    'minute': minute,
+    'vibe': vibe,
+    'groupId': groupId,
+    'occasion': occasion.name,
+    'specialEvent': specialEvent,
+    'guestIds': guestIds,
+    'letVote': letVote,
+    'voteDeadlineHours': voteDeadlineHours,
+    'selectedPlaces': [for (final place in selectedPlaces) place.toJson()],
+  };
 }
 
 class SavedItem {
   const SavedItem.bookmark(this.outing)
-      : draft = null,
-        kind = SavedKind.bookmark;
+    : draft = null,
+      kind = SavedKind.bookmark;
 
-  const SavedItem.draft(this.draft)
-      : outing = null,
-        kind = SavedKind.draft;
+  const SavedItem.draft(this.draft) : outing = null, kind = SavedKind.draft;
 
   final SavedKind kind;
   final SavedOuting? outing;

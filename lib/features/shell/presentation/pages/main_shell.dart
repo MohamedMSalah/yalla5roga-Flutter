@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_bottom_nav.dart';
 import 'package:yalla_5roga/core/widgets/app_bottom_nav_layout.dart';
+import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/pages/groups_page.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/home/presentation/pages/home_page.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/outings_page.dart';
-import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
+import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
 import 'package:yalla_5roga/features/setting/presentation/pages/settings_page.dart';
 import 'package:yalla_5roga/features/shell/presentation/providers/shell_provider.dart';
 
@@ -25,7 +27,7 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _refreshUnread();
+      if (mounted) _bootstrapShellData();
     });
   }
 
@@ -42,9 +44,16 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     }
   }
 
+  void _bootstrapShellData() {
+    context.read<NotificationsProvider>().refresh();
+    context.read<GroupsProvider>().refresh();
+    context.read<OutingsProvider>().load();
+    context.read<DiscoverProvider>().load();
+    context.read<SavedOutingsProvider>().load();
+  }
+
   void _refreshUnread() {
     context.read<NotificationsProvider>().refresh();
-    context.read<OutingChatProvider>().refresh();
     context.read<GroupsProvider>().refresh();
   }
 
@@ -70,7 +79,10 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
         AppBottomNavItem(icon: Icons.home_rounded, label: l10n.navHome),
         AppBottomNavItem(icon: Icons.groups_2_rounded, label: l10n.navGroups),
         AppBottomNavItem(icon: Icons.explore_outlined, label: l10n.navOutings),
-        AppBottomNavItem(icon: Icons.settings_outlined, label: l10n.navSettings),
+        AppBottomNavItem(
+          icon: Icons.settings_outlined,
+          label: l10n.navSettings,
+        ),
       ],
     );
   }

@@ -36,13 +36,17 @@ class NotificationCard extends StatelessWidget {
     return AppCard(
       onTap: onTap,
       color: unread ? context.palette.brandSoft : context.palette.surface,
-      borderColor: unread ? context.palette.brandSoftBorder : context.palette.border,
       radius: 20,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (image != null)
-            AppNetworkImage(url: image!, width: 44.w, height: 44.w, radius: 12.r)
+            AppNetworkImage(
+              url: image!,
+              width: 44.w,
+              height: 44.w,
+              radius: 12.r,
+            )
           else
             IconCircle(
               icon: icon ?? Icons.notifications_none,
@@ -78,7 +82,10 @@ class NotificationCard extends StatelessWidget {
                         ),
                         child: Text(
                           actionLabel!,
-                          style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                   ],
@@ -89,7 +96,10 @@ class NotificationCard extends StatelessWidget {
           if (unread)
             Padding(
               padding: EdgeInsets.only(left: 4.w, top: 4.h),
-              child: CircleAvatar(radius: 4.r, backgroundColor: AppColors.brand600),
+              child: CircleAvatar(
+                radius: 4.r,
+                backgroundColor: AppColors.brand600,
+              ),
             ),
         ],
       ),

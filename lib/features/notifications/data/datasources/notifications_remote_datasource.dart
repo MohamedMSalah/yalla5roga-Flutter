@@ -13,7 +13,8 @@ abstract class NotificationsRemoteDataSource {
   Future<int> markRead(String id);
 }
 
-class NotificationsRemoteDataSourceImpl implements NotificationsRemoteDataSource {
+class NotificationsRemoteDataSourceImpl
+    implements NotificationsRemoteDataSource {
   const NotificationsRemoteDataSourceImpl(this._client);
 
   final ApiClient _client;
@@ -21,7 +22,9 @@ class NotificationsRemoteDataSourceImpl implements NotificationsRemoteDataSource
   @override
   Future<NotificationsFeedModel> getNotifications() async {
     try {
-      final response = await _client.get<Map<String, dynamic>>(ApiConstants.notifications);
+      final response = await _client.get<Map<String, dynamic>>(
+        ApiConstants.notifications,
+      );
       return NotificationsFeedModel.fromJson(apiPayload(response.data));
     } on DioException catch (error) {
       throw _unwrap(error);

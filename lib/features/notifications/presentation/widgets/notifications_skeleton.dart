@@ -8,32 +8,50 @@ class NotificationsSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppShimmer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ShimmerTabs(count: 2),
-          Responsive.spaceLg.gapH,
-          ShimmerLine(width: 56.w, height: 9.h),
-          Responsive.spaceSm.gapH,
-          const ListCard(
-            children: [
+    final l10n = context.l10n;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.today.toUpperCase(),
+          style: TextStyle(
+            color: context.palette.textMuted,
+            fontSize: Responsive.fontCaption,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.4,
+          ),
+        ),
+        Responsive.spaceSm.gapH,
+        AppShimmer(
+          child: ListCard(
+            children: const [
               ShimmerNotificationCard(unread: true),
               ShimmerNotificationCard(unread: true),
               ShimmerNotificationCard(),
             ],
           ),
-          Responsive.spaceLg.gapH,
-          ShimmerLine(width: 64.w, height: 9.h),
-          Responsive.spaceSm.gapH,
-          const ListCard(
-            children: [
+        ),
+        Responsive.spaceLg.gapH,
+        Text(
+          l10n.earlier.toUpperCase(),
+          style: TextStyle(
+            color: context.palette.textMuted,
+            fontSize: Responsive.fontCaption,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.4,
+          ),
+        ),
+        Responsive.spaceSm.gapH,
+        AppShimmer(
+          child: ListCard(
+            children: const [
               ShimmerNotificationCard(),
               ShimmerNotificationCard(),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

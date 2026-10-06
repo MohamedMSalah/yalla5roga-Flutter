@@ -44,7 +44,8 @@ class NotificationsFeedModel extends NotificationsFeed {
       items: [
         if (rawItems is List)
           for (final item in rawItems)
-            if (item is Map) NotificationModel.fromJson(Map<String, dynamic>.from(item)),
+            if (item is Map)
+              NotificationModel.fromJson(Map<String, dynamic>.from(item)),
       ],
     );
   }

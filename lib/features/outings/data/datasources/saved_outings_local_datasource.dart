@@ -30,7 +30,8 @@ class SavedOutingsLocalDataSourceImpl implements SavedOutingsLocalDataSource {
       if (decoded is List) {
         _saved = [
           for (final item in decoded)
-            if (item is Map) SavedOuting.fromJson(Map<String, dynamic>.from(item)),
+            if (item is Map)
+              SavedOuting.fromJson(Map<String, dynamic>.from(item)),
         ];
       }
     }
@@ -40,7 +41,8 @@ class SavedOutingsLocalDataSourceImpl implements SavedOutingsLocalDataSource {
       if (decoded is List) {
         _drafts = [
           for (final item in decoded)
-            if (item is Map) OutingDraft.fromJson(Map<String, dynamic>.from(item)),
+            if (item is Map)
+              OutingDraft.fromJson(Map<String, dynamic>.from(item)),
         ];
       }
     }
@@ -75,7 +77,10 @@ class SavedOutingsLocalDataSourceImpl implements SavedOutingsLocalDataSource {
 
   @override
   Future<List<SavedOuting>> removeSaved(String id) async {
-    _saved = [for (final item in _saved) if (item.id != id) item];
+    _saved = [
+      for (final item in _saved)
+        if (item.id != id) item,
+    ];
     await _persistSaved();
     return getSaved();
   }
@@ -89,7 +94,10 @@ class SavedOutingsLocalDataSourceImpl implements SavedOutingsLocalDataSource {
 
   @override
   Future<List<OutingDraft>> removeDraft(String id) async {
-    _drafts = [for (final item in _drafts) if (item.id != id) item];
+    _drafts = [
+      for (final item in _drafts)
+        if (item.id != id) item,
+    ];
     await _persistDrafts();
     return getDrafts();
   }

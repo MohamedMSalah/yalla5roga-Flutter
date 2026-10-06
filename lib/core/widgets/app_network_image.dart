@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 
@@ -24,9 +25,9 @@ class AppNetworkImage extends StatelessWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.radius,
-  })  : placeholderIcon = Icons.person_rounded,
-        placeholderColor = AppColors.brand100,
-        placeholderIconColor = AppColors.brand600;
+  }) : placeholderIcon = Icons.person_rounded,
+       placeholderColor = AppColors.brand100,
+       placeholderIconColor = AppColors.brand600;
 
   final String url;
   final double? width;
@@ -41,7 +42,12 @@ class AppNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shortest = [width, height].whereType<double>().fold<double>(24, (a, b) => a < b ? a : b);
+    final finiteWidth = width != null && width!.isFinite ? width! : null;
+    final finiteHeight = height != null && height!.isFinite ? height! : null;
+    final shortest = [
+      finiteWidth,
+      finiteHeight,
+    ].whereType<double>().fold<double>(24, (a, b) => a < b ? a : b);
     final iconSize = (shortest * 0.38).clamp(16.0, 56.0);
     final placeholder = Container(
       width: width,
@@ -54,12 +60,21 @@ class AppNetworkImage extends StatelessWidget {
     final image = url.trim().isEmpty
         ? placeholder
         : _isRemote
-        ? Image.network(
-            url,
+        ? CachedNetworkImage(
+            imageUrl: url,
             width: width,
             height: height,
             fit: fit,
-            errorBuilder: (_, _, _) => placeholder,
+            memCacheWidth: finiteWidth == null
+                ? null
+                : (finiteWidth * 2).round(),
+            memCacheHeight: finiteHeight == null
+                ? null
+                : (finiteHeight * 2).round(),
+            placeholder: (_, _) => placeholder,
+            errorWidget: (_, _, _) => placeholder,
+            fadeInDuration: const Duration(milliseconds: 180),
+            fadeOutDuration: const Duration(milliseconds: 120),
           )
         : Image.file(
             File(url),

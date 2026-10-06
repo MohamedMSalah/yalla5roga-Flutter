@@ -4,9 +4,9 @@ import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/filter_chip_row.dart';
 import 'package:yalla_5roga/core/widgets/section_header.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/lists/featured_places_list.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/lists/nearby_places_list.dart';
 import 'package:yalla_5roga/features/discover/presentation/providers/discover_provider.dart';
-import 'package:yalla_5roga/features/discover/presentation/widgets/discover_featured_carousel.dart';
-import 'package:yalla_5roga/features/discover/presentation/widgets/nearby_places_list.dart';
 
 class DiscoverPage extends StatelessWidget {
   const DiscoverPage({super.key});
@@ -30,20 +30,23 @@ class DiscoverPage extends StatelessWidget {
             ),
             Responsive.spaceMd.gapH,
             FilterChipRow(
-              labels: [l10n.allVibes, l10n.food, l10n.activity, l10n.outdoor, l10n.movie],
+              labels: [
+                l10n.allVibes,
+                l10n.food,
+                l10n.activity,
+                l10n.outdoor,
+                l10n.movie,
+              ],
               index: discover.filter,
               onChanged: discover.setFilter,
             ),
             Responsive.spaceLg.gapH,
-            DiscoverFeaturedCarousel(
+            FeaturedPlacesList(
               places: discover.featured,
               title: l10n.featuredPlaces,
             ),
             Responsive.spaceLg.gapH,
-            NearbyPlacesList(
-              places: discover.places,
-              title: l10n.allPlaces,
-            ),
+            NearbyPlacesList(places: discover.places, title: l10n.allPlaces),
           ],
         ),
       ),

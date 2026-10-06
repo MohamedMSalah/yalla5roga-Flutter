@@ -2,25 +2,15 @@ import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 
-export 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart' show OutingVibe;
+export 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart'
+    show OutingVibe;
 
 enum PriceLevel { free, budget, moderate, expensive, luxury }
 
-enum Weekday {
-  monday,
-  tuesday,
-  wednesday,
-  thursday,
-  friday,
-  saturday,
-  sunday,
-}
+enum Weekday { monday, tuesday, wednesday, thursday, friday, saturday, sunday }
 
 class DiscoverPlaceImage {
-  const DiscoverPlaceImage({
-    required this.imageUrl,
-    this.caption,
-  });
+  const DiscoverPlaceImage({required this.imageUrl, this.caption});
 
   final String imageUrl;
   final String? caption;
@@ -93,14 +83,14 @@ class SuggestedPlace {
   String get imageUrl => coverImageUrl;
 
   Place toOutingPlace() => Place(
-        id: id,
-        name: name,
-        area: area,
-        latitude: latitude,
-        longitude: longitude,
-        imageUrl: coverImageUrl,
-        vibe: vibe,
-      );
+    id: id,
+    name: name,
+    area: area,
+    latitude: latitude,
+    longitude: longitude,
+    imageUrl: coverImageUrl,
+    vibe: vibe,
+  );
 
   /// Display helpers — values come from the API, not local seed maps.
   String localizedName(L10n l10n) => name;

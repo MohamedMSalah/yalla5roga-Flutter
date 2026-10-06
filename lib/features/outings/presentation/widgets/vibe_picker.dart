@@ -35,10 +35,14 @@ class VibePicker extends StatelessWidget {
                   duration: const Duration(milliseconds: 180),
                   padding: EdgeInsets.symmetric(vertical: 12.h),
                   decoration: BoxDecoration(
-                    color: i == index ? context.palette.brandSoft : context.palette.surface,
+                    color: i == index
+                        ? context.palette.brandSoft
+                        : context.palette.surface,
                     borderRadius: BorderRadius.circular(Responsive.radiusMd),
                     border: Border.all(
-                      color: i == index ? AppColors.brand500 : context.palette.border,
+                      color: i == index
+                          ? AppColors.brand500
+                          : context.palette.border,
                       width: i == index ? 2.w : 1.w,
                     ),
                   ),
@@ -51,7 +55,9 @@ class VibePicker extends StatelessWidget {
                         style: TextStyle(
                           fontSize: Responsive.fontXs,
                           fontWeight: FontWeight.w800,
-                          color: i == index ? context.palette.brandStrong : context.palette.textSecondary,
+                          color: i == index
+                              ? context.palette.brandStrong
+                              : context.palette.textSecondary,
                         ),
                       ),
                     ],

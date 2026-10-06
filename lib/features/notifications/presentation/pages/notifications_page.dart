@@ -3,16 +3,14 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
-import 'package:yalla_5roga/core/widgets/app_card.dart';
-import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/segmented_tabs.dart';
 import 'package:yalla_5roga/features/groups/presentation/pages/group_details_page.dart';
 import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
+import 'package:yalla_5roga/features/notifications/presentation/widgets/lists/notifications_list.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
-import 'package:yalla_5roga/features/notifications/presentation/widgets/notification_card.dart';
 import 'package:yalla_5roga/features/notifications/presentation/widgets/notifications_skeleton.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/event_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
@@ -92,7 +90,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.brand600,
-          onRefresh: notifications.refresh,
+          onRefresh: () => notifications.refresh(forceRefresh: true),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: Responsive.pagePadding(),
@@ -131,99 +129,36 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ],
               ),
               Responsive.spaceMd.gapH,
-              if (notifications.isInitialLoading ||
-                  (notifications.isLoading && notifications.items.isEmpty))
-                const NotificationsSkeleton()
-              else
-                SegmentedTabs(
-                  labels: [l10n.all, l10n.unread],
-                  index: notifications.filter,
-                  onChanged: notifications.setFilter,
-                  badges: {1: l10n.n(unreadCount)},
-                  children: [
-                    _feed(notifications.items, unreadOnly: false),
-                    _feed(unread, unreadOnly: true),
-                  ],
-                ),
+              SegmentedTabs(
+                labels: [l10n.all, l10n.unread],
+                index: notifications.filter,
+                onChanged: notifications.setFilter,
+                badges: {1: l10n.n(unreadCount)},
+                children: [
+                  if (notifications.isInitialLoading ||
+                      (notifications.isLoading && notifications.items.isEmpty))
+                    const NotificationsSkeleton()
+                  else
+                    NotificationsList(
+                      items: notifications.items,
+                      unreadOnly: false,
+                      onOpen: _open,
+                    ),
+                  if (notifications.isInitialLoading ||
+                      (notifications.isLoading && notifications.items.isEmpty))
+                    const NotificationsSkeleton()
+                  else
+                    NotificationsList(
+                      items: unread,
+                      unreadOnly: true,
+                      onOpen: _open,
+                    ),
+                ],
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _feed(List<NotificationItem> items, {required bool unreadOnly}) {
-    final l10n = context.l10n;
-    if (items.isEmpty) {
-      return AppEmptyState(
-        icon: unreadOnly
-            ? Icons.mark_email_read_outlined
-            : Icons.notifications_none_outlined,
-        message: unreadOnly ? l10n.noUnreadNotifications : l10n.noNotifications,
-        subtitle: unreadOnly
-            ? l10n.noUnreadNotificationsHint
-            : l10n.noNotificationsHint,
-        compact: true,
-      );
-    }
-    final today = NotificationsProvider.todayFrom(items);
-    final earlier = NotificationsProvider.earlierFrom(items);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (today.isNotEmpty) ...[
-          Text(
-            l10n.today.toUpperCase(),
-            style: TextStyle(
-              color: context.palette.textMuted,
-              fontSize: Responsive.fontCaption,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.4,
-            ),
-          ),
-          Responsive.spaceSm.gapH,
-          ListCard(
-            children: [
-              for (final item in today)
-                NotificationCard(
-                  body: item.body,
-                  time: item.time,
-                  unread: item.unread,
-                  image: item.image,
-                  actionLabel: item.action ? l10n.voteNow : null,
-                  onAction: () => _open(item),
-                  onTap: () => _open(item),
-                ),
-            ],
-          ),
-        ],
-        if (earlier.isNotEmpty) ...[
-          Responsive.spaceLg.gapH,
-          Text(
-            l10n.earlier.toUpperCase(),
-            style: TextStyle(
-              color: context.palette.textMuted,
-              fontSize: Responsive.fontCaption,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.4,
-            ),
-          ),
-          Responsive.spaceSm.gapH,
-          ListCard(
-            children: [
-              for (final item in earlier)
-                NotificationCard(
-                  body: item.body,
-                  time: item.time,
-                  unread: item.unread,
-                  image: item.image,
-                  onTap: () => _open(item),
-                ),
-            ],
-          ),
-        ],
-      ],
     );
   }
 }

@@ -2,14 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
 import 'package:yalla_5roga/features/notifications/domain/repositories/notifications_repository.dart';
-import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
-import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
 
 class NotificationsProvider extends ChangeNotifier {
-  NotificationsProvider({required this.repository, required this.unreadCounts});
+  NotificationsProvider({required this.repository});
 
   final NotificationsRepository repository;
-  final UnreadCountsRepository unreadCounts;
 
   var _items = <NotificationItem>[];
   int _unreadCount = 0;
@@ -61,38 +58,16 @@ class NotificationsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void applyCounts(UnreadCounts counts) {
-    _unreadCount = counts.unreadNotificationCount;
-    _errorMessage = null;
-    notifyListeners();
-  }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool forceRefresh = false}) async {
     final token = ++_epoch;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    final countsResult = await unreadCounts.fetchCounts();
-    if (token != _epoch) {
-      _finishInitialLoad();
-      return;
-    }
-    countsResult.fold<void>(
-      (failure) {
-        _errorMessage = failure.message;
-        AppErrorFeedback.report(
-          failure,
-          kind: AppErrorKind.load,
-          context: 'notificationsCounts',
-        );
-      },
-      (counts) {
-        _unreadCount = counts.unreadNotificationCount;
-      },
+    final feedResult = await repository.getNotifications(
+      forceRefresh: forceRefresh,
     );
-
-    final feedResult = await repository.getNotifications();
     if (token != _epoch) {
       _finishInitialLoad();
       return;

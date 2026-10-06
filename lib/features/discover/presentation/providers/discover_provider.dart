@@ -71,8 +71,10 @@ class DiscoverProvider extends ChangeNotifier {
               ));
   }
 
-  Future<void> load() async {
-    final featured = await repository.getFeaturedPlaces();
+  Future<void> load({bool forceRefresh = false}) async {
+    final featured = await repository.getFeaturedPlaces(
+      forceRefresh: forceRefresh,
+    );
     featured.fold((failure) {
       _errorMessage = failure.message;
       AppErrorFeedback.report(
@@ -81,8 +83,17 @@ class DiscoverProvider extends ChangeNotifier {
         context: 'discoverFeatured',
       );
     }, (items) => _featuredAll = List.of(items));
-    await _reloadPlaces(notify: false);
+    await _reloadPlaces(notify: false, forceRefresh: forceRefresh);
     _hasLoaded = true;
+    notifyListeners();
+  }
+
+  void clear() {
+    _filter = 0;
+    _places = [];
+    _featuredAll = [];
+    _hasLoaded = false;
+    _errorMessage = null;
     notifyListeners();
   }
 
@@ -92,8 +103,14 @@ class DiscoverProvider extends ChangeNotifier {
     await _reloadPlaces();
   }
 
-  Future<void> _reloadPlaces({bool notify = true}) async {
-    final result = await repository.getPlaces(vibe: vibe);
+  Future<void> _reloadPlaces({
+    bool notify = true,
+    bool forceRefresh = false,
+  }) async {
+    final result = await repository.getPlaces(
+      vibe: vibe,
+      forceRefresh: forceRefresh,
+    );
     result.fold(
       (failure) {
         _errorMessage = failure.message;

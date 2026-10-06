@@ -24,6 +24,7 @@ class OutingsProvider extends ChangeNotifier {
   int _filter = 0;
   int _featuredIndex = 0;
   var _hasLoaded = false;
+  var _isCreating = false;
   String? _errorMessage;
 
   static const maxVotePlaces = 5;
@@ -35,6 +36,8 @@ class OutingsProvider extends ChangeNotifier {
   List<GroupPlaceSuggestion> get suggestions => List.unmodifiable(_suggestions);
 
   bool get hasLoaded => _hasLoaded;
+
+  bool get isCreating => _isCreating;
 
   String? get errorMessage => _errorMessage;
 
@@ -76,8 +79,8 @@ class OutingsProvider extends ChangeNotifier {
 
   int get featuredIndex => _featuredIndex;
 
-  Future<void> load() async {
-    final result = await repository.load();
+  Future<void> load({bool forceRefresh = false}) async {
+    final result = await repository.load(forceRefresh: forceRefresh);
     result.fold((failure) {
       _errorMessage = failure.message;
       AppErrorFeedback.report(
@@ -116,10 +119,26 @@ class OutingsProvider extends ChangeNotifier {
     return List.unmodifiable(_votesByOuting[outingId]?.options ?? const []);
   }
 
-  int? voteIndexFor(String outingId) => _votesByOuting[outingId]?.myOptionIndex;
+  int? voteIndexFor(String outingId) =>
+      _votesByOuting[outingId]?.cuserOptionIndex;
 
-  bool hasVoted(String outingId) =>
-      _votesByOuting[outingId]?.myOptionId != null;
+  Set<int> voteIndexesFor(String outingId) =>
+      Set<int>.from(_votesByOuting[outingId]?.cuserOptionIndexes ?? const {});
+
+  bool hasVoted(String outingId) => _votesByOuting[outingId]?.hasVoted ?? false;
+
+  bool isVoteFinalized(String outingId) =>
+      _votesByOuting[outingId]?.finalized ?? false;
+
+  /// Locked after the user confirms I'm In + at least one place.
+  bool isParticipationLocked(String outingId) => isVoteFinalized(outingId);
+
+  bool canSelectPlaces(String outingId, String? userId) {
+    if (!canVote(outingId)) return false;
+    if (isVoteFinalized(outingId)) return false;
+    // Not In blocks place voting; I'm In / still deciding can pick places.
+    return cuserAttendance(outingId, userId) != AttendanceStatus.notGoing;
+  }
 
   DateTime? voteEndsAt(String outingId) => _votesByOuting[outingId]?.endsAt;
 
@@ -173,7 +192,7 @@ class OutingsProvider extends ChangeNotifier {
         AttendanceStatus.notVoted;
   }
 
-  AttendanceStatus myAttendance(String outingId, String? memberId) {
+  AttendanceStatus cuserAttendance(String outingId, String? memberId) {
     if (memberId == null || memberId.isEmpty) return AttendanceStatus.notVoted;
     return attendanceFor(outingId, memberId);
   }
@@ -192,10 +211,11 @@ class OutingsProvider extends ChangeNotifier {
     return repository.membersForOuting(outing);
   }
 
-  bool canChangeAttendance(String outingId) {
+  bool canChangeAttendance(String outingId, {String? userId}) {
     final outing = findById(outingId);
     if (outing == null) return false;
     if (outing.isPastOuting || outing.status == OutingStatus.past) return false;
+    if (isVoteFinalized(outingId)) return false;
     return true;
   }
 
@@ -204,6 +224,7 @@ class OutingsProvider extends ChangeNotifier {
     String memberId,
     AttendanceStatus status,
   ) async {
+    if (isVoteFinalized(outingId)) return false;
     final result = await repository.setAttendance(
       outingId: outingId,
       memberId: memberId,
@@ -240,9 +261,10 @@ class OutingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> selectVoteFor(String outingId, int value) async {
+  Future<bool> selectVoteFor(String outingId, int value) async {
+    if (isVoteFinalized(outingId) || isVoteExpired(outingId)) return false;
     final result = await repository.selectVote(outingId, value);
-    result.fold(
+    return result.fold(
       (failure) {
         _errorMessage = failure.message;
         AppErrorFeedback.report(
@@ -250,16 +272,46 @@ class OutingsProvider extends ChangeNotifier {
           kind: AppErrorKind.send,
           context: 'submitVote',
         );
+        notifyListeners();
+        return false;
       },
       (snapshot) {
         _applySnapshot(snapshot);
         AnalyticsService.instance.submitVote();
+        notifyListeners();
+        return true;
       },
     );
-    notifyListeners();
   }
 
-  Future<void> add(Outing outing, {String? creatorId}) async {
+  Future<bool> finalizeVoteFor(String outingId) async {
+    if (!hasVoted(outingId) || isVoteFinalized(outingId)) return false;
+    final result = await repository.finalizeVote(outingId);
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        AppErrorFeedback.report(
+          failure,
+          kind: AppErrorKind.send,
+          context: 'finalizeVote',
+        );
+        notifyListeners();
+        return false;
+      },
+      (snapshot) {
+        _applySnapshot(snapshot);
+        notifyListeners();
+        return true;
+      },
+    );
+  }
+
+  Future<bool> add(Outing outing, {String? creatorId}) async {
+    if (_isCreating) return false;
+    _isCreating = true;
+    notifyListeners();
+
+    var ok = false;
     final result = await repository.add(outing, creatorId: creatorId);
     result.fold(
       (failure) {
@@ -273,12 +325,15 @@ class OutingsProvider extends ChangeNotifier {
       (snapshot) {
         _applySnapshot(snapshot);
         AnalyticsService.instance.createOuting(source: 'form');
+        ok = true;
       },
     );
+    _isCreating = false;
     notifyListeners();
+    return ok;
   }
 
-  Future<Outing> suggestPlaces({
+  Future<Outing?> suggestPlaces({
     required String groupId,
     required String title,
     required List<Place> places,
@@ -288,6 +343,10 @@ class OutingsProvider extends ChangeNotifier {
     String? image,
     DateTime? scheduledAt,
   }) async {
+    if (_isCreating) return null;
+    _isCreating = true;
+    notifyListeners();
+
     final result = await repository.suggestPlaces(
       groupId: groupId,
       title: title,
@@ -314,22 +373,22 @@ class OutingsProvider extends ChangeNotifier {
         AnalyticsService.instance.createOuting(source: 'suggest');
       },
     );
+    _isCreating = false;
     notifyListeners();
-    return created ??
-        Outing(
-          id: 'outing-${DateTime.now().millisecondsSinceEpoch}',
-          image: image ?? '',
-          title: title,
-          meta: '',
-          date: '',
-          groupId: groupId,
-          status: OutingStatus.voting,
-          votePlaces: places,
-          voteDeadlineHours: deadlineHours,
-          suggestedBy: createdBy,
-          createdById: createdById,
-          scheduledAt: scheduledAt,
-        );
+    return created;
+  }
+
+  void clear() {
+    _outings = [];
+    _suggestions = [];
+    _votesByOuting = {};
+    _attendanceByOuting = {};
+    _filter = 0;
+    _featuredIndex = 0;
+    _hasLoaded = false;
+    _isCreating = false;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   Future<bool> refreshLifecycle() async {

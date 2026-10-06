@@ -17,7 +17,7 @@ import 'package:yalla_5roga/features/discover/presentation/providers/discover_pr
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/fcm_provider.dart';
 import 'package:yalla_5roga/features/notifications/presentation/providers/notifications_provider.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outing_chat_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
@@ -53,7 +53,7 @@ class App extends StatelessWidget {
         ChangeNotifierProvider<GroupsProvider>.value(value: deps.groups),
         ChangeNotifierProvider<DiscoverProvider>.value(value: deps.discover),
         ChangeNotifierProvider<SettingsProvider>.value(value: deps.settings),
-        Provider<GeocodingRepository>.value(value: deps.geocoding),
+        Provider<LocationRepository>.value(value: deps.geocoding),
         Provider<SharedPreferences>.value(value: deps.prefs),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(

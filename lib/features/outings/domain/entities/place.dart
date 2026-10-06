@@ -31,11 +31,11 @@ class Place {
   bool get hasCoordinates => latitude != null && longitude != null;
 
   PlaceLocation toLocation() => PlaceLocation(
-        name: name,
-        area: area,
-        latitude: latitude,
-        longitude: longitude,
-      );
+    name: name,
+    area: area,
+    latitude: latitude,
+    longitude: longitude,
+  );
 
   Place copyWith({
     String? id,
@@ -58,14 +58,14 @@ class Place {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': placeId,
-        'name': name,
-        'area': area,
-        'latitude': latitude,
-        'longitude': longitude,
-        'imageUrl': imageUrl,
-        'vibe': vibe.name,
-      };
+    'id': placeId,
+    'name': name,
+    'area': area,
+    'latitude': latitude,
+    'longitude': longitude,
+    'imageUrl': imageUrl,
+    'vibe': vibe.name,
+  };
 
   factory Place.fromJson(Map<String, dynamic> json) {
     return Place(
@@ -74,7 +74,8 @@ class Place {
       area: json['area'] as String? ?? '',
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      imageUrl: json['imageUrl'] as String? ?? json['coverImageUrl'] as String? ?? '',
+      imageUrl:
+          json['imageUrl'] as String? ?? json['coverImageUrl'] as String? ?? '',
       vibe: OutingVibe.values.firstWhere(
         (item) => item.name == json['vibe'],
         orElse: () => OutingVibe.food,
@@ -84,7 +85,9 @@ class Place {
 
   static String slugForName(String name) {
     final lower = name.toLowerCase().trim();
-    return lower.replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
+    return lower
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
   }
 
   @override

@@ -32,9 +32,7 @@ class FcmMessagingService {
   Stream<String?> get tokenStream => _tokenController.stream;
   bool get isInitialized => _initialized;
 
-  Future<void> initialize({
-    required PushMessageCallback onOpened,
-  }) async {
+  Future<void> initialize({required PushMessageCallback onOpened}) async {
     if (_initialized) return;
     onOpenedFromNotification = onOpened;
 
@@ -53,9 +51,7 @@ class FcmMessagingService {
       _subscriptions.add(
         FirebaseMessaging.onMessageOpenedApp.listen(_onMessageOpenedApp),
       );
-      _subscriptions.add(
-        _messaging.onTokenRefresh.listen(_onTokenRefresh),
-      );
+      _subscriptions.add(_messaging.onTokenRefresh.listen(_onTokenRefresh));
 
       _token = _prefs.getString(AppConstants.fcmTokenKey);
       if (_token != null) {
@@ -114,7 +110,9 @@ class FcmMessagingService {
 
   Future<void> _onForegroundMessage(RemoteMessage message) async {
     if (kDebugMode) {
-      debugPrint('[FCM][foreground] id=${message.messageId} data=${message.data}');
+      debugPrint(
+        '[FCM][foreground] id=${message.messageId} data=${message.data}',
+      );
     }
     final payload = PushNotificationPayload.fromRemoteMessage(message);
     await _localNotifications.showFromPayload(payload);

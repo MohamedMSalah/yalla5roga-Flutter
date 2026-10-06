@@ -49,10 +49,7 @@ class NotificationItem {
 }
 
 class NotificationsFeed {
-  const NotificationsFeed({
-    required this.unreadCount,
-    required this.items,
-  });
+  const NotificationsFeed({required this.unreadCount, required this.items});
 
   final int unreadCount;
   final List<NotificationItem> items;

@@ -175,6 +175,12 @@ class L10n {
   String get nameTooLong => digits(
     _t('Name must be at most 30 characters', 'يجب ألا يزيد الاسم عن 30 حرفاً'),
   );
+  String get outingNameTooLong => digits(
+    _t(
+      'Outing name must be at most 20 characters',
+      'يجب ألا يزيد اسم الخروجة عن 20 حرفاً',
+    ),
+  );
   String get passwordRequirements => digits(
     _t(
       'Use at least 8 characters with 1 uppercase, 1 lowercase, 1 number, and 1 symbol',
@@ -607,7 +613,20 @@ class L10n {
 
   String get voteEnded => _t('Voting ended', 'انتهى التصويت');
   String get pickFavoritePlace =>
-      _t('Pick your favorite place', 'اختر مكانك المفضل');
+      _t('Pick one or more places', 'اختر مكاناً أو أكثر');
+  String suggestedForVibe(String vibe) =>
+      _t('Suggested for $vibe', 'مقترحات لـ $vibe');
+  String get confirmVote => _t('Confirm vote', 'تأكيد التصويت');
+  String get voteLocked => _t(
+    'Your vote is locked and can no longer be changed',
+    'تم قفل تصويتك ولا يمكن تغييره',
+  );
+  String get pickImInToVote =>
+      _t("Pick I'm In to choose places", 'اختر "أنا مشارك" لاختيار الأماكن');
+  String get notInCannotVotePlaces => _t(
+    'Not In — place voting is disabled',
+    'لن أحضر — تصويت الأماكن غير متاح',
+  );
   String votesPercent(int votes, int percent) {
     final v = n(votes);
     final p = n(percent);
@@ -856,6 +875,8 @@ class L10n {
   String get chooseLocationNext =>
       _t('Great! Let’s choose the location', 'رائع! لنختار المكان الآن');
   String get outingChat => _t('Outing chat', 'محادثة الخروجة');
+  String get comingSoonFeature =>
+      _t('Coming Soon feature', 'ميزة قادمة قريباً');
   String get writeMessage => _t('Write a message', 'اكتب رسالة');
   String get mentionSomeone => _t('Mention someone', 'أشّر على شخص');
   String get mentionAll => _t('Mention all', 'أشّر على الجميع');

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/app_launcher.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_badge.dart';
+import 'package:yalla_5roga/core/widgets/app_card.dart';
 import 'package:yalla_5roga/core/widgets/app_icon_button.dart';
 import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
@@ -14,10 +14,8 @@ import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
-import 'package:yalla_5roga/features/outings/presentation/pages/outing_chat_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/saved_outings_provider.dart';
-import 'package:yalla_5roga/features/outings/presentation/widgets/outing_attendance_widget.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_going_sheet.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_vote_widget.dart';
 
@@ -48,7 +46,7 @@ class _EventPageState extends State<EventPage> {
     final live = outings.findById(widget.event.id) ?? widget.event;
     final saved = context.watch<SavedOutingsProvider>().isSaved(live.id);
     final userId = context.watch<AuthProvider>().user?.id;
-    final attendance = outings.myAttendance(live.id, userId);
+    final attendance = outings.cuserAttendance(live.id, userId);
     final going = outings.goingCountFor(live.id);
     final goingAvatars = [
       for (final member in outings.membersForOuting(live))
@@ -161,54 +159,46 @@ class _EventPageState extends State<EventPage> {
             Responsive.spaceMd.gapH,
             OutingVoteWidget(outing: live),
             Responsive.spaceMd.gapH,
-            OutingAttendanceWidget(outing: live),
-            Responsive.spaceMd.gapH,
-            GestureDetector(
+            AppCard(
               onTap: () => OutingGoingSheet.show(live),
-              child: Container(
-                padding: EdgeInsets.all(14.w),
-                decoration: BoxDecoration(
-                  color: palette.surface,
-                  borderRadius: BorderRadius.circular(18.r),
-                  border: Border.all(color: palette.border),
-                ),
-                child: Row(
-                  children: [
-                    if (going > 0) ...[
-                      AvatarStack(
-                        urls: goingAvatarUrls,
-                        extra: (going - goingAvatarUrls.length).clamp(0, 99),
-                      ),
-                      12.gapW,
-                    ],
-                    Expanded(
-                      child: Text(
-                        l10n.goingCount(going),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: Responsive.fontSm,
-                        ),
-                      ),
+              radius: 18,
+              padding: EdgeInsets.all(14.w),
+              child: Row(
+                children: [
+                  if (going > 0) ...[
+                    AvatarStack(
+                      urls: goingAvatarUrls,
+                      extra: (going - goingAvatarUrls.length).clamp(0, 99),
                     ),
-                    AppBadge(
-                      label: switch (attendance) {
-                        AttendanceStatus.going => l10n.imIn,
-                        AttendanceStatus.notGoing => l10n.notIn,
-                        AttendanceStatus.notVoted => l10n.stillNotVoted,
-                      },
-                      color: switch (attendance) {
-                        AttendanceStatus.going => AppColors.emerald50,
-                        AttendanceStatus.notGoing => AppColors.rose50,
-                        AttendanceStatus.notVoted => palette.surfaceMuted,
-                      },
-                      textColor: switch (attendance) {
-                        AttendanceStatus.going => const Color(0xFF059669),
-                        AttendanceStatus.notGoing => AppColors.rose600,
-                        AttendanceStatus.notVoted => palette.textMuted,
-                      },
-                    ),
+                    12.gapW,
                   ],
-                ),
+                  Expanded(
+                    child: Text(
+                      l10n.goingCount(going),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: Responsive.fontSm,
+                      ),
+                    ),
+                  ),
+                  AppBadge(
+                    label: switch (attendance) {
+                      AttendanceStatus.going => l10n.imIn,
+                      AttendanceStatus.notGoing => l10n.notIn,
+                      AttendanceStatus.notVoted => l10n.stillNotVoted,
+                    },
+                    color: switch (attendance) {
+                      AttendanceStatus.going => AppColors.emerald50,
+                      AttendanceStatus.notGoing => AppColors.rose50,
+                      AttendanceStatus.notVoted => palette.surfaceMuted,
+                    },
+                    textColor: switch (attendance) {
+                      AttendanceStatus.going => const Color(0xFF059669),
+                      AttendanceStatus.notGoing => AppColors.rose600,
+                      AttendanceStatus.notVoted => palette.textMuted,
+                    },
+                  ),
+                ],
               ),
             ),
             Responsive.spaceLg.gapH,
@@ -220,7 +210,7 @@ class _EventPageState extends State<EventPage> {
               label: l10n.outingChat,
               icon: Icons.chat_bubble_outline,
               variant: AppButtonVariant.outlined,
-              onPressed: () => Get.to(() => OutingChatPage(event: live)),
+              onPressed: () => AppSnackBar.show(l10n.comingSoonFeature),
             ),
           ],
         ),

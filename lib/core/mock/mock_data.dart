@@ -2,21 +2,17 @@ import 'package:yalla_5roga/features/auth/domain/entities/user.dart';
 import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
-import 'package:yalla_5roga/features/groups/domain/entities/group_read_result.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_role.dart';
 import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
-import 'package:yalla_5roga/features/outings/domain/entities/chat_message.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/group_place_suggestion.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing.dart';
-import 'package:yalla_5roga/features/outings/domain/entities/outing_chat_read_result.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing_enums.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place_location.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/place_vote.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/saved_outing.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/outings_repository.dart';
-import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
 
 /// All mock seed data and in-memory mutable state for Mock Data Mode.
 ///
@@ -405,95 +401,62 @@ class MockData {
     Group(
       id: 'g_weekend',
       name: 'Weekend Squad',
-      members: 5,
       outings: 2,
-      preview: 'Omar: Should we do padél or dinner?',
       bio: 'Weekend plans, food runs, and spontaneous hangouts.',
-      avatars: [
-        me.avatar,
-        omar.avatar,
-        nadia.avatar,
-        karim.avatar,
-        youssef.avatar,
-      ],
       image:
           'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800',
-      people: [
+      members: [
         me.copyWith(role: GroupRole.owner),
         omar,
         nadia,
         karim,
         youssef,
       ],
-      lastMessage: 'Should we do padél or dinner?',
-      unread: 2,
-      featured: true,
-      decision: 'Voting on Saturday plans',
-      myRole: GroupRole.owner,
+      cuserRole: GroupRole.owner,
     ),
     Group(
       id: 'g_foodies',
       name: 'Palm Foodies',
-      members: 4,
       outings: 1,
-      preview: 'Layla: Lotus Kitchen at 8 works for me',
       bio: 'Chasing the best plates around New Cairo.',
-      avatars: [me.avatar, layla.avatar, mona.avatar, hassan.avatar],
       image:
           'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800',
-      people: [
+      members: [
         me.copyWith(role: GroupRole.member),
         layla.copyWith(role: GroupRole.owner),
         mona,
         hassan,
       ],
-      lastMessage: 'Lotus Kitchen at 8 works for me',
-      unread: 1,
-      featured: false,
-      decision: 'Dinner confirmed at Lotus Kitchen',
-      myRole: GroupRole.member,
+      cuserRole: GroupRole.member,
     ),
     Group(
       id: 'g_cinema',
       name: 'Cinema Club',
-      members: 4,
       outings: 1,
-      preview: 'Karim: Starlight or Neon this week?',
       bio: 'Movies first, snacks always.',
-      avatars: [me.avatar, karim.avatar, nadia.avatar, omar.avatar],
       image:
           'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800',
-      people: [
+      members: [
         me.copyWith(role: GroupRole.member),
         karim.copyWith(role: GroupRole.owner),
         nadia,
         omar,
       ],
-      lastMessage: 'Starlight or Neon this week?',
-      unread: 0,
-      featured: true,
-      decision: 'Pick a cinema',
-      myRole: GroupRole.member,
+      cuserRole: GroupRole.member,
     ),
     Group(
       id: 'g_outdoors',
       name: 'River Outdoors',
-      members: 3,
       outings: 1,
-      preview: 'You: Sunset sail was perfect',
       bio: 'Walks, sails, and fresh air by the Nile.',
-      avatars: [me.avatar, youssef.avatar, layla.avatar],
       image:
           'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-      people: [
+      members: [
         me.copyWith(role: GroupRole.owner),
         youssef,
         layla.copyWith(role: GroupRole.member),
       ],
-      lastMessage: 'Sunset sail was perfect',
-      unread: 0,
-      featured: false,
-      myRole: GroupRole.owner,
+      cuserRole: GroupRole.owner,
     ),
   ];
 
@@ -505,7 +468,7 @@ class MockData {
     Outing(
       id: 'o_padel_vote',
       image: catalogPlaces[5].imageUrl,
-      title: 'Saturday Padél + Smoothies',
+      title: 'Saturday Padél ',
       meta: 'Green Belt · Voting',
       date: _fmtDate(_now.add(const Duration(days: 2))),
       time: '5:00 PM',
@@ -597,7 +560,7 @@ class MockData {
     GroupPlaceSuggestion(
       id: 's_padel',
       groupId: 'g_weekend',
-      title: 'Saturday Padél + Smoothies',
+      title: 'Saturday Padél ',
       places: [catalogPlaces[5], catalogPlaces[6]],
       deadlineHours: 24,
       createdBy: 'Omar Farouk',
@@ -622,7 +585,6 @@ class MockData {
         VoteOption('p_peak', 'Peak Indoor Walls', 1, 33),
       ],
       endsAt: _now.add(const Duration(hours: 18)),
-      myOptionId: null,
       suggestedById: omar.id,
     ),
     'o_cinema_vote': PlaceVote(
@@ -632,8 +594,9 @@ class MockData {
         VoteOption('p_neon', 'Neon Screen House', 1, 50),
       ],
       endsAt: _now.add(const Duration(hours: 40)),
-      myOptionId: 'p_starlight',
+      cuserOptionIds: const ['p_starlight'],
       suggestedById: karim.id,
+      finalized: true,
     ),
   };
 
@@ -671,189 +634,12 @@ class MockData {
     },
   };
 
-  // ─── Chat ───────────────────────────────────────────────────────────────
-
-  static Map<String, List<ChatMessage>> messagesByOuting = {
-    'o_zooba': [
-      ChatMessage(
-        id: 'm1',
-        outingId: 'o_zooba',
-        sender: 'Layla Mansour',
-        senderId: layla.id,
-        text: 'Can we book a table for 4 around 8?',
-        time: '2:14 PM',
-        isMine: false,
-        avatar: layla.avatar,
-        sentAt: _now.subtract(const Duration(hours: 5)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-      ChatMessage(
-        id: 'm2',
-        outingId: 'o_zooba',
-        sender: 'Sara Hassan',
-        senderId: currentUser.id,
-        text: 'Already reserved — outdoor seats if the weather stays nice.',
-        time: '2:18 PM',
-        isMine: true,
-        avatar: currentUser.imageUrl,
-        sentAt: _now.subtract(const Duration(hours: 5)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-      ChatMessage(
-        id: 'm3',
-        outingId: 'o_zooba',
-        sender: 'Mona Khalil',
-        senderId: mona.id,
-        text: 'Perfect. I will bring the dessert to share!',
-        time: '2:22 PM',
-        isMine: false,
-        avatar: mona.avatar,
-        sentAt: _now.subtract(const Duration(hours: 4, minutes: 50)),
-        deliveryStatus: MessageDeliveryStatus.delivered,
-      ),
-    ],
-    'o_padel_vote': [
-      ChatMessage(
-        id: 'm4',
-        outingId: 'o_padel_vote',
-        sender: 'Omar Farouk',
-        senderId: omar.id,
-        text: 'Vote is open — Rally Court or Peak Walls?',
-        time: '11:02 AM',
-        isMine: false,
-        avatar: omar.avatar,
-        sentAt: _now.subtract(const Duration(hours: 2)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-      ChatMessage(
-        id: 'm5',
-        outingId: 'o_padel_vote',
-        sender: 'Nadia Elmasry',
-        senderId: nadia.id,
-        text: 'Padél for me. Who is free after 5?',
-        time: '11:10 AM',
-        isMine: false,
-        avatar: nadia.avatar,
-        sentAt: _now.subtract(const Duration(hours: 1, minutes: 50)),
-        deliveryStatus: MessageDeliveryStatus.delivered,
-      ),
-      ChatMessage(
-        id: 'm5b',
-        outingId: 'o_padel_vote',
-        sender: 'Karim Nabil',
-        senderId: karim.id,
-        text: '@Omar Farouk I am in for padél — book the court?',
-        time: '11:18 AM',
-        isMine: false,
-        avatar: karim.avatar,
-        sentAt: _now.subtract(const Duration(hours: 1, minutes: 40)),
-        deliveryStatus: MessageDeliveryStatus.delivered,
-      ),
-    ],
-    'o_cinema_vote': [
-      ChatMessage(
-        id: 'm_cinema_1',
-        outingId: 'o_cinema_vote',
-        sender: 'Karim Nabil',
-        senderId: karim.id,
-        text: 'Vote between Starlight and Neon — which screen do you prefer?',
-        time: '9:40 AM',
-        isMine: false,
-        avatar: karim.avatar,
-        sentAt: _now.subtract(const Duration(hours: 8)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-      ChatMessage(
-        id: 'm_cinema_2',
-        outingId: 'o_cinema_vote',
-        sender: 'Sara Hassan',
-        senderId: currentUser.id,
-        text: '@Nadia Elmasry Starlight is closer to you, right?',
-        time: '10:05 AM',
-        isMine: true,
-        avatar: currentUser.imageUrl,
-        sentAt: _now.subtract(const Duration(hours: 7)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-      ChatMessage(
-        id: 'm_cinema_3',
-        outingId: 'o_cinema_vote',
-        sender: 'Omar Farouk',
-        senderId: omar.id,
-        text: 'I already voted Starlight. @Karim Nabil can you grab snacks?',
-        time: '10:20 AM',
-        isMine: false,
-        avatar: omar.avatar,
-        sentAt: _now.subtract(const Duration(hours: 6, minutes: 40)),
-        deliveryStatus: MessageDeliveryStatus.delivered,
-      ),
-    ],
-    'o_brunch': [
-      ChatMessage(
-        id: 'm6',
-        outingId: 'o_brunch',
-        sender: 'Nadia Elmasry',
-        senderId: nadia.id,
-        text: 'Riverview Table at noon — window seats if we arrive early.',
-        time: 'Yesterday',
-        isMine: false,
-        avatar: nadia.avatar,
-        sentAt: _now.subtract(const Duration(days: 1, hours: 3)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-      ChatMessage(
-        id: 'm6b',
-        outingId: 'o_brunch',
-        sender: 'Sara Hassan',
-        senderId: currentUser.id,
-        text: '@Youssef Adel are you joining brunch or only the padél outing?',
-        time: 'Yesterday',
-        isMine: true,
-        avatar: currentUser.imageUrl,
-        sentAt: _now.subtract(const Duration(days: 1, hours: 2)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-    ],
-    'o_felucca_past': [
-      ChatMessage(
-        id: 'm7',
-        outingId: 'o_felucca_past',
-        sender: 'Youssef Adel',
-        senderId: youssef.id,
-        text: 'That sunset was unreal. Same again next month?',
-        time: '5d ago',
-        isMine: false,
-        avatar: youssef.avatar,
-        sentAt: _now.subtract(const Duration(days: 4)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-      ChatMessage(
-        id: 'm8',
-        outingId: 'o_felucca_past',
-        sender: 'Sara Hassan',
-        senderId: currentUser.id,
-        text: 'Absolutely. I will start a new outing soon.',
-        time: '5d ago',
-        isMine: true,
-        avatar: currentUser.imageUrl,
-        sentAt: _now.subtract(const Duration(days: 4)),
-        deliveryStatus: MessageDeliveryStatus.seen,
-      ),
-    ],
-  };
-
-  static Map<String, int> chatUnreadByOutingId = {
-    'o_padel_vote': 2,
-    'o_zooba': 1,
-    'o_cinema_vote': 1,
-  };
-
   // ─── Notifications ──────────────────────────────────────────────────────
 
   static List<NotificationItem> notifications = [
     NotificationItem(
       id: 'n1',
-      body: 'Omar invited you to vote on Saturday Padél + Smoothies',
+      body: 'Omar invited you to vote on Saturday Padél ',
       time: '12m',
       unread: true,
       image: omar.avatar,
@@ -977,38 +763,38 @@ class MockData {
 
   // ─── Geocoding ──────────────────────────────────────────────────────────
 
-  static const List<GeocodingHit> geocodingHits = [
-    GeocodingHit(
+  static const List<LocationHit> geocodingHits = [
+    LocationHit(
       name: 'Palm District, Demo City',
       latitude: 30.1101,
       longitude: 31.3101,
     ),
-    GeocodingHit(
+    LocationHit(
       name: 'Maple Heights, Demo City',
       latitude: 29.9902,
       longitude: 31.2901,
     ),
-    GeocodingHit(
+    LocationHit(
       name: 'East Plaza, Demo City',
       latitude: 30.0405,
       longitude: 31.5202,
     ),
-    GeocodingHit(
+    LocationHit(
       name: 'Sunrise Avenue, Demo City',
       latitude: 30.1001,
       longitude: 31.3401,
     ),
-    GeocodingHit(
+    LocationHit(
       name: 'Green Belt, Demo City',
       latitude: 30.0701,
       longitude: 30.9901,
     ),
-    GeocodingHit(
+    LocationHit(
       name: 'Riverfront, Demo City',
       latitude: 30.0521,
       longitude: 31.2411,
     ),
-    GeocodingHit(
+    LocationHit(
       name: 'Olive Grove Gardens, Demo City',
       latitude: 30.0551,
       longitude: 31.2751,
@@ -1037,28 +823,12 @@ class MockData {
     );
   }
 
-  static UnreadCounts unreadCounts() {
-    final groupMap = <String, int>{
-      for (final g in groups)
-        if (g.unread > 0) g.id: g.unread,
-    };
-    final chatMap = Map<String, int>.from(chatUnreadByOutingId);
-    final notifUnread = notifications.where((n) => n.unread).length;
-    return UnreadCounts(
-      unreadNotificationCount: notifUnread,
-      unreadChatCount: chatMap.values.fold(0, (a, b) => a + b),
-      unreadGroupCount: groupMap.values.fold(0, (a, b) => a + b),
-      chatUnreadByOutingId: chatMap,
-      groupUnreadByGroupId: groupMap,
-    );
-  }
-
   static GroupMember? memberById(String id) {
     for (final m in allMembers) {
       if (m.id == id) return m;
     }
     for (final g in groups) {
-      for (final m in g.people) {
+      for (final m in g.members) {
         if (m.id == id) return m;
       }
     }
@@ -1076,7 +846,7 @@ class MockData {
 
   static String groupsForMember(String id) {
     return groups
-        .where((g) => g.people.any((m) => m.id == id))
+        .where((g) => g.members.any((m) => m.id == id))
         .map((g) => g.name)
         .join(', ');
   }
@@ -1099,7 +869,7 @@ class MockData {
       (g) => g?.id == groupId,
       orElse: () => null,
     );
-    return group?.people ?? const [];
+    return group?.members ?? const [];
   }
 
   static String specialEventImage(OutingOccasion occasion) {
@@ -1186,17 +956,26 @@ class MockData {
 
   static OutingSnapshot selectVote(String outingId, int optionIndex) {
     final vote = votesByOuting[outingId];
-    if (vote == null || optionIndex < 0 || optionIndex >= vote.options.length) {
+    if (vote == null ||
+        vote.finalized ||
+        optionIndex < 0 ||
+        optionIndex >= vote.options.length) {
       return outingSnapshot();
     }
     final chosen = vote.options[optionIndex];
-    final previous = vote.myOptionId;
+    final selected = List<String>.from(vote.cuserOptionIds);
+    final wasSelected = selected.contains(chosen.placeId);
+    if (wasSelected) {
+      selected.remove(chosen.placeId);
+    } else {
+      selected.add(chosen.placeId);
+    }
+
     final updated = <VoteOption>[];
     for (final option in vote.options) {
       var count = option.votes;
-      if (previous != chosen.placeId) {
-        if (option.placeId == previous) count = (count - 1).clamp(0, 999);
-        if (option.placeId == chosen.placeId) count += 1;
+      if (option.placeId == chosen.placeId) {
+        count = wasSelected ? (count - 1).clamp(0, 999) : count + 1;
       }
       updated.add(option.copyWith(votes: count));
     }
@@ -1207,8 +986,44 @@ class MockData {
     ];
     votesByOuting[outingId] = vote.copyWith(
       options: withPercent,
-      myOptionId: chosen.placeId,
+      cuserOptionIds: selected,
     );
+    return outingSnapshot();
+  }
+
+  static OutingSnapshot clearVotes(String outingId) {
+    final vote = votesByOuting[outingId];
+    if (vote == null || vote.finalized || vote.cuserOptionIds.isEmpty) {
+      return outingSnapshot();
+    }
+    final selected = vote.cuserOptionIds.toSet();
+    final updated = [
+      for (final option in vote.options)
+        option.copyWith(
+          votes: selected.contains(option.placeId)
+              ? (option.votes - 1).clamp(0, 999)
+              : option.votes,
+        ),
+    ];
+    final total = updated.fold<int>(0, (a, o) => a + o.votes);
+    votesByOuting[outingId] = vote.copyWith(
+      options: [
+        for (final o in updated)
+          o.copyWith(
+            percent: total == 0 ? 0 : ((o.votes / total) * 100).round(),
+          ),
+      ],
+      clearCuserOptions: true,
+    );
+    return outingSnapshot();
+  }
+
+  static OutingSnapshot finalizeVote(String outingId) {
+    final vote = votesByOuting[outingId];
+    if (vote == null || vote.cuserOptionIds.isEmpty) {
+      return outingSnapshot();
+    }
+    votesByOuting[outingId] = vote.copyWith(finalized: true);
     return outingSnapshot();
   }
 
@@ -1217,11 +1032,20 @@ class MockData {
     required String memberId,
     required AttendanceStatus status,
   }) {
+    final vote = votesByOuting[outingId];
+    if (vote != null && vote.finalized && memberId == currentUser.id) {
+      return outingSnapshot();
+    }
+
     final map = Map<String, AttendanceStatus>.from(
       attendanceByOuting[outingId] ?? {},
     );
     map[memberId] = status;
     attendanceByOuting[outingId] = map;
+
+    if (status == AttendanceStatus.notGoing && memberId == currentUser.id) {
+      clearVotes(outingId);
+    }
 
     final going = map.values.where((s) => s == AttendanceStatus.going).length;
     outings = [
@@ -1257,15 +1081,10 @@ class MockData {
     final index = groups.indexWhere((g) => g.id == groupId);
     if (index < 0) return null;
     final group = groups[index];
-    if (group.people.any((m) => m.id == member.id || m.phone == member.phone)) {
+    if (group.containsMember(id: member.id, phone: member.phone)) {
       return group;
     }
-    final people = [...group.people, member];
-    final updated = group.copyWith(
-      people: people,
-      members: people.length,
-      avatars: people.map((p) => p.avatar).toList(),
-    );
+    final updated = group.copyWith(members: [...group.members, member]);
     groups = [...groups]..[index] = updated;
     return updated;
   }
@@ -1274,11 +1093,11 @@ class MockData {
     final index = groups.indexWhere((g) => g.id == groupId);
     if (index < 0) return null;
     final group = groups[index];
-    final people = group.people.where((m) => m.id != memberId).toList();
     final updated = group.copyWith(
-      people: people,
-      members: people.length,
-      avatars: people.map((p) => p.avatar).toList(),
+      members: [
+        for (final member in group.members)
+          if (member.id != memberId) member,
+      ],
     );
     groups = [...groups]..[index] = updated;
     return updated;
@@ -1291,75 +1110,19 @@ class MockData {
     final index = groups.indexWhere((g) => g.id == groupId);
     if (index < 0) return false;
     final group = groups[index];
-    final people = group.people.where((m) => m.id != currentUser.id).toList();
-    if (people.isEmpty) {
+    final remaining = [
+      for (final member in group.members)
+        if (member.id != currentUser.id) member,
+    ];
+    if (remaining.isEmpty) {
       groups = [
         for (final g in groups)
           if (g.id != groupId) g,
       ];
       return true;
     }
-    groups = [...groups]
-      ..[index] = group.copyWith(
-        people: people,
-        members: people.length,
-        avatars: people.map((p) => p.avatar).toList(),
-      );
-    groups = [
-      for (final g in groups)
-        if (g.id != groupId) g,
-    ];
+    groups = [...groups]..[index] = group.copyWith(members: remaining);
     return true;
-  }
-
-  static GroupReadResult markGroupRead(String groupId) {
-    final index = groups.indexWhere((g) => g.id == groupId);
-    if (index >= 0) {
-      groups = [...groups]..[index] = groups[index].copyWith(unread: 0);
-    }
-    final counts = unreadCounts();
-    return GroupReadResult(
-      groupId: groupId,
-      unreadCount: 0,
-      unreadGroupCount: counts.unreadGroupCount,
-    );
-  }
-
-  static ChatMessage sendMessage({
-    required String outingId,
-    required String text,
-    required String senderId,
-    required String senderName,
-  }) {
-    final now = DateTime.now();
-    final resolvedId = senderId == 'me' || senderId.isEmpty
-        ? currentUser.id
-        : senderId;
-    final message = ChatMessage(
-      id: 'm_${now.millisecondsSinceEpoch}',
-      outingId: outingId,
-      sender: senderName,
-      senderId: resolvedId,
-      text: text,
-      time: _fmtTime(now),
-      isMine: resolvedId == currentUser.id,
-      avatar: memberById(resolvedId)?.avatar ?? currentUser.imageUrl,
-      sentAt: now,
-      deliveryStatus: MessageDeliveryStatus.sent,
-    );
-    final existing = messagesByOuting[outingId] ?? [];
-    messagesByOuting[outingId] = [...existing, message];
-    return message;
-  }
-
-  static OutingChatReadResult markChatRead(String outingId) {
-    chatUnreadByOutingId.remove(outingId);
-    final counts = unreadCounts();
-    return OutingChatReadResult(
-      outingId: outingId,
-      unreadCount: 0,
-      unreadChatCount: counts.unreadChatCount,
-    );
   }
 
   static int markNotificationRead(String id) {
@@ -1417,12 +1180,5 @@ class MockData {
   static String _weekday(int weekday) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return days[(weekday - 1).clamp(0, 6)];
-  }
-
-  static String _fmtTime(DateTime d) {
-    final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
-    final minute = d.minute.toString().padLeft(2, '0');
-    final suffix = d.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $suffix';
   }
 }

@@ -20,7 +20,10 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> cacheUser(UserModel user) async {
-    await _prefs.setString(AppConstants.userCacheKey, jsonEncode(user.toJson()));
+    await _prefs.setString(
+      AppConstants.userCacheKey,
+      jsonEncode(user.toJson()),
+    );
     if (user.token != null && user.token!.isNotEmpty) {
       await _prefs.setString(AppConstants.tokenKey, user.token!);
     } else {

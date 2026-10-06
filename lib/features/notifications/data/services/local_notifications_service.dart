@@ -5,13 +5,16 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/features/notifications/domain/entities/push_notification_payload.dart';
 
-typedef LocalNotificationTapCallback = void Function(PushNotificationPayload payload);
+typedef LocalNotificationTapCallback = void Function(
+  PushNotificationPayload payload,
+);
 
 /// Shows system notifications while the app is in the foreground.
 class LocalNotificationsService {
   LocalNotificationsService();
 
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   final Set<String> _shownMessageIds = <String>{};
   var _initialized = false;
   LocalNotificationTapCallback? onNotificationTap;
@@ -39,8 +42,10 @@ class LocalNotificationsService {
         return;
       }
 
-      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.createNotificationChannel(
         const AndroidNotificationChannel(
           AppConstants.fcmAndroidChannelId,
@@ -60,7 +65,8 @@ class LocalNotificationsService {
     if (!_initialized) return;
     if (!payload.hasDisplayContent) return;
 
-    final dedupeKey = payload.messageId ??
+    final dedupeKey =
+        payload.messageId ??
         '${payload.type.name}|${payload.title}|${payload.body}|${payload.outingId}|${payload.groupId}';
     if (_shownMessageIds.contains(dedupeKey)) return;
     _shownMessageIds.add(dedupeKey);

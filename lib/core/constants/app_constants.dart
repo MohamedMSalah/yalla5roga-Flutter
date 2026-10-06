@@ -24,4 +24,5 @@ class AppConstants {
   static const int minPasswordLength = 8;
   static const int minNameLength = 3;
   static const int maxNameLength = 30;
+  static const int maxOutingNameLength = 20;
 }

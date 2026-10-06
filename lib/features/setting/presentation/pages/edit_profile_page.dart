@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
-import 'package:yalla_5roga/core/constants/app_constants.dart';
-import 'package:yalla_5roga/core/theme/app_colors.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
-import 'package:yalla_5roga/core/utils/input_formatters.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
-import 'package:yalla_5roga/core/widgets/app_network_image.dart';
 import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
-import 'package:yalla_5roga/core/widgets/custom_textfield.dart';
 import 'package:yalla_5roga/core/widgets/image_source_sheet.dart';
-import 'package:yalla_5roga/core/widgets/otp_input.dart';
-import 'package:yalla_5roga/core/widgets/phone_text_field.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/edit_profile_avatar_section.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/edit_profile_fields_section.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/edit_profile_password_section.dart';
+import 'package:yalla_5roga/features/setting/presentation/widgets/edit_profile_phone_otp_section.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -289,8 +286,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final l10n = context.l10n;
     final auth = context.watch<AuthProvider>();
     final hasPassword = auth.hasPasswordProvider;
-    final avatar = 96.w;
-    final otpSent = auth.otpSent;
 
     return Scaffold(
       appBar: AppPageBar(title: l10n.editProfile),
@@ -299,231 +294,44 @@ class _EditProfilePageState extends State<EditProfilePage> {
         child: ListView(
           padding: Responsive.pagePadding(),
           children: [
-            Center(
-              child: Stack(
-                children: [
-                  Container(
-                    width: avatar,
-                    height: avatar,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28.r),
-                      border: Border.all(
-                        color: context.palette.border,
-                        width: 2.w,
-                      ),
-                    ),
-                    child: AppNetworkImage.avatar(
-                      url: _imagePath ?? '',
-                      width: avatar,
-                      height: avatar,
-                      radius: 26.r,
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: GestureDetector(
-                      onTap: auth.isLoading ? null : _pickImage,
-                      child: CircleAvatar(
-                        radius: 16.r,
-                        backgroundColor: AppColors.brand600,
-                        child: Icon(
-                          Icons.edit_outlined,
-                          size: 16.w,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            EditProfileAvatarSection(
+              imagePath: _imagePath,
+              onPickImage: _pickImage,
+              pickEnabled: !auth.isLoading,
             ),
             Responsive.spaceLg.gapH,
-            CustomTextField(
-              controller: _nameController,
-              label: l10n.name,
-              hint: l10n.nameHint,
-              prefixIcon: Icons.person_outline,
-              textInputAction: TextInputAction.next,
-              inputFormatters: [
-                InputFormatters.maxLength(AppConstants.maxNameLength),
-              ],
-              validator: (value) => Validators.name(value, l10n),
+            EditProfileFieldsSection(
+              nameController: _nameController,
+              emailController: _emailController,
+              phoneController: _phoneController,
+              hasPassword: hasPassword,
             ),
-            Responsive.spaceMd.gapH,
-            CustomTextField(
-              controller: _emailController,
-              label: l10n.email,
-              hint: l10n.emailHint,
-              prefixIcon: Icons.mail_outline,
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              inputFormatters: [
-                InputFormatters.noSpaces,
-                InputFormatters.email,
-              ],
-              validator: (value) => Validators.email(value, l10n),
+            EditProfilePhoneOtpSection(
+              phoneChanged: _phoneChanged,
+              otpSent: auth.otpSent,
+              isLoading: auth.isLoading,
+              otpController: _otpController,
+              onSendOtp: _sendPhoneOtp,
             ),
-            if (!hasPassword) ...[
-              Responsive.spaceSm.gapH,
-              Text(
-                l10n.socialAccountHint,
-                style: TextStyle(
-                  color: context.palette.textMuted,
-                  fontSize: Responsive.fontSm,
-                  height: 1.35,
-                ),
-              ),
-            ],
-            Responsive.spaceMd.gapH,
-            PhoneTextField(
-              controller: _phoneController,
-              textInputAction: TextInputAction.next,
-            ),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              alignment: Alignment.topCenter,
-              child: _phoneChanged
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Responsive.spaceMd.gapH,
-                        if (otpSent)
-                          OtpInput(
-                            controller: _otpController,
-                            label: l10n.otp,
-                            length: Validators.otpLength,
-                            validator: (value) => Validators.otp(value, l10n),
-                            action: TextButton(
-                              onPressed: auth.isLoading ? null : _sendPhoneOtp,
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                l10n.resendOtp,
-                                style: TextStyle(
-                                  color: AppColors.brand600,
-                                  fontSize: Responsive.fontSm,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          CustomButton(
-                            label: l10n.sendOtp,
-                            icon: Icons.sms_outlined,
-                            variant: AppButtonVariant.outlined,
-                            isLoading: auth.isLoading,
-                            onPressed: _sendPhoneOtp,
-                          ),
-                      ],
-                    )
-                  : const SizedBox(width: double.infinity),
-            ),
-            if (hasPassword) ...[
-              Responsive.spaceLg.gapH,
-              Text(
-                l10n.confirmWithPassword,
-                style: TextStyle(
-                  color: context.palette.textMuted,
-                  fontSize: Responsive.fontSm,
-                  height: 1.35,
-                ),
-              ),
-              Responsive.spaceMd.gapH,
-              CustomTextField(
-                controller: _currentPasswordController,
-                label: l10n.currentPassword,
-                obscureText: _obscureCurrent,
-                prefixIcon: Icons.lock_outline,
-                textInputAction: TextInputAction.next,
-                onToggleObscure: () =>
+            if (hasPassword)
+              EditProfilePasswordSection(
+                currentPasswordController: _currentPasswordController,
+                newPasswordController: _newPasswordController,
+                confirmPasswordController: _confirmPasswordController,
+                obscureCurrent: _obscureCurrent,
+                obscureNew: _obscureNew,
+                obscureConfirm: _obscureConfirm,
+                editingPassword: _editingPassword,
+                isLoading: auth.isLoading,
+                hasAnyChange: _hasAnyChange,
+                onToggleObscureCurrent: () =>
                     setState(() => _obscureCurrent = !_obscureCurrent),
-                validator: (value) {
-                  if (!_hasAnyChange) return null;
-                  return Validators.required(value, l10n);
-                },
+                onToggleObscureNew: () =>
+                    setState(() => _obscureNew = !_obscureNew),
+                onToggleObscureConfirm: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
+                onToggleEditPassword: _toggleEditPassword,
               ),
-              Responsive.spaceMd.gapH,
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: TextButton.icon(
-                  onPressed: auth.isLoading ? null : _toggleEditPassword,
-                  icon: Icon(
-                    _editingPassword ? Icons.close : Icons.lock_reset_outlined,
-                    size: 18.w,
-                    color: AppColors.brand600,
-                  ),
-                  label: Text(
-                    _editingPassword
-                        ? l10n.cancelEditPassword
-                        : l10n.editPassword,
-                    style: TextStyle(
-                      color: AppColors.brand600,
-                      fontWeight: FontWeight.w800,
-                      fontSize: Responsive.fontSm,
-                    ),
-                  ),
-                ),
-              ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
-                alignment: Alignment.topCenter,
-                child: _editingPassword
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Responsive.spaceMd.gapH,
-                          CustomTextField(
-                            controller: _newPasswordController,
-                            label: l10n.newPassword,
-                            hint: l10n.passwordHint,
-                            obscureText: _obscureNew,
-                            prefixIcon: Icons.lock_outline,
-                            textInputAction: TextInputAction.next,
-                            onToggleObscure: () =>
-                                setState(() => _obscureNew = !_obscureNew),
-                            validator: (value) {
-                              if (!_editingPassword) return null;
-                              if ((value ?? '').isEmpty &&
-                                  _confirmPasswordController.text.isEmpty) {
-                                return null;
-                              }
-                              return Validators.password(value, l10n);
-                            },
-                          ),
-                          Responsive.spaceMd.gapH,
-                          CustomTextField(
-                            controller: _confirmPasswordController,
-                            label: l10n.confirmNewPassword,
-                            obscureText: _obscureConfirm,
-                            prefixIcon: Icons.lock_outline,
-                            textInputAction: TextInputAction.done,
-                            onToggleObscure: () => setState(
-                              () => _obscureConfirm = !_obscureConfirm,
-                            ),
-                            validator: (value) {
-                              if (!_editingPassword) return null;
-                              if ((value ?? '').isEmpty &&
-                                  _newPasswordController.text.isEmpty) {
-                                return null;
-                              }
-                              if (value != _newPasswordController.text) {
-                                return l10n.passwordsDoNotMatch;
-                              }
-                              return Validators.password(value, l10n);
-                            },
-                          ),
-                        ],
-                      )
-                    : const SizedBox(width: double.infinity),
-              ),
-            ],
             Responsive.spaceLg.gapH,
             CustomButton(
               label: l10n.saveChanges,

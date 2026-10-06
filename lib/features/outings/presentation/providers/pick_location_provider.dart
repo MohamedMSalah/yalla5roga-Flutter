@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_5roga/core/constants/app_constants.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 
 class PickedPlace {
   const PickedPlace({
@@ -23,8 +23,11 @@ enum LocationPrompt { skip, ask }
 class PlaceSearchHit {
   const PlaceSearchHit({required this.name, required this.point});
 
-  factory PlaceSearchHit.fromGeocoding(GeocodingHit hit) {
-    return PlaceSearchHit(name: hit.name, point: LatLng(hit.latitude, hit.longitude));
+  factory PlaceSearchHit.fromGeocoding(LocationHit hit) {
+    return PlaceSearchHit(
+      name: hit.name,
+      point: LatLng(hit.latitude, hit.longitude),
+    );
   }
 
   final String name;
@@ -48,7 +51,7 @@ class PickLocationProvider extends ChangeNotifier {
 
   static const cairo = LatLng(30.0444, 31.2357);
 
-  final GeocodingRepository geocoding;
+  final LocationRepository geocoding;
   final SharedPreferences prefs;
 
   late final TextEditingController nameController;
@@ -65,7 +68,8 @@ class PickLocationProvider extends ChangeNotifier {
       return LocationPrompt.skip;
     }
     final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
       await prefs.setBool(AppConstants.locationPromptShownKey, true);
       return LocationPrompt.skip;
     }
@@ -81,7 +85,11 @@ class PickLocationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> dropPin(LatLng point, {String? name, String fallbackName = ''}) async {
+  Future<void> dropPin(
+    LatLng point, {
+    String? name,
+    String fallbackName = '',
+  }) async {
     final token = ++_lookupEpoch;
     pin = point;
     lookingUp = name == null;
@@ -104,7 +112,10 @@ class PickLocationProvider extends ChangeNotifier {
   }
 
   Future<String?> lookupName(LatLng point) {
-    return geocoding.reverseGeocode(latitude: point.latitude, longitude: point.longitude);
+    return geocoding.reverseGeocode(
+      latitude: point.latitude,
+      longitude: point.longitude,
+    );
   }
 
   Future<String?> useCurrentLocation(L10n l10n) async {
@@ -118,12 +129,16 @@ class PickLocationProvider extends ChangeNotifier {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         return l10n.locationPermissionDenied;
       }
       final position = await Geolocator.getCurrentPosition();
       if (_disposed) return null;
-      await dropPin(LatLng(position.latitude, position.longitude), fallbackName: l10n.customPlace);
+      await dropPin(
+        LatLng(position.latitude, position.longitude),
+        fallbackName: l10n.customPlace,
+      );
       return null;
     } catch (_) {
       return l10n.couldNotGetLocation;
@@ -136,8 +151,14 @@ class PickLocationProvider extends ChangeNotifier {
   PickedPlace? confirm(L10n l10n) {
     final current = pin;
     if (current == null || lookingUp) return null;
-    final name = nameController.text.trim().isEmpty ? l10n.customPlace : nameController.text.trim();
-    return PickedPlace(latitude: current.latitude, longitude: current.longitude, name: name);
+    final name = nameController.text.trim().isEmpty
+        ? l10n.customPlace
+        : nameController.text.trim();
+    return PickedPlace(
+      latitude: current.latitude,
+      longitude: current.longitude,
+      name: name,
+    );
   }
 
   @override
@@ -152,7 +173,7 @@ class PickLocationProvider extends ChangeNotifier {
 class PlaceSearchProvider extends ChangeNotifier {
   PlaceSearchProvider(this.geocoding);
 
-  final GeocodingRepository geocoding;
+  final LocationRepository geocoding;
   final queryController = TextEditingController();
   var results = const <PlaceSearchHit>[];
   var searching = false;

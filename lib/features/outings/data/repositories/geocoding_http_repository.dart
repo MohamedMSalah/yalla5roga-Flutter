@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:yalla_5roga/core/constants/app_constants.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 
 abstract class GeocodingRemoteDataSource {
   Future<String?> reverseGeocode({
@@ -10,15 +10,18 @@ abstract class GeocodingRemoteDataSource {
     required double longitude,
   });
 
-  Future<List<GeocodingHit>> search(String query);
+  Future<List<LocationHit>> search(String query);
 }
 
 class GeocodingHttpDataSource implements GeocodingRemoteDataSource {
-  GeocodingHttpDataSource({http.Client? client}) : _client = client ?? http.Client();
+  GeocodingHttpDataSource({http.Client? client})
+    : _client = client ?? http.Client();
 
   final http.Client _client;
 
-  Map<String, String> get _headers => {'User-Agent': AppConstants.nominatimUserAgent};
+  Map<String, String> get _headers => {
+    'User-Agent': AppConstants.nominatimUserAgent,
+  };
 
   @override
   Future<String?> reverseGeocode({
@@ -46,7 +49,7 @@ class GeocodingHttpDataSource implements GeocodingRemoteDataSource {
   }
 
   @override
-  Future<List<GeocodingHit>> search(String query) async {
+  Future<List<LocationHit>> search(String query) async {
     try {
       final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
         'format': 'jsonv2',
@@ -57,7 +60,7 @@ class GeocodingHttpDataSource implements GeocodingRemoteDataSource {
       if (response.statusCode != 200) return const [];
       final data = jsonDecode(response.body);
       if (data is! List) return const [];
-      final hits = <GeocodingHit>[];
+      final hits = <LocationHit>[];
       for (final item in data) {
         if (item is! Map) continue;
         final lat = double.tryParse('${item['lat']}');
@@ -67,8 +70,10 @@ class GeocodingHttpDataSource implements GeocodingRemoteDataSource {
         final display = (item['display_name'] as String?)?.trim();
         final label = (named != null && named.isNotEmpty)
             ? named
-            : (display == null || display.isEmpty ? query : display.split(',').first.trim());
-        hits.add(GeocodingHit(name: label, latitude: lat, longitude: lon));
+            : (display == null || display.isEmpty
+                  ? query
+                  : display.split(',').first.trim());
+        hits.add(LocationHit(name: label, latitude: lat, longitude: lon));
       }
       return hits;
     } catch (_) {
@@ -77,9 +82,9 @@ class GeocodingHttpDataSource implements GeocodingRemoteDataSource {
   }
 }
 
-class GeocodingHttpRepository implements GeocodingRepository {
+class GeocodingHttpRepository implements LocationRepository {
   GeocodingHttpRepository({GeocodingRemoteDataSource? remote})
-      : _remote = remote ?? GeocodingHttpDataSource();
+    : _remote = remote ?? GeocodingHttpDataSource();
 
   final GeocodingRemoteDataSource _remote;
 
@@ -92,5 +97,5 @@ class GeocodingHttpRepository implements GeocodingRepository {
   }
 
   @override
-  Future<List<GeocodingHit>> search(String query) => _remote.search(query);
+  Future<List<LocationHit>> search(String query) => _remote.search(query);
 }

@@ -72,7 +72,7 @@ index.html       # design preview only
 | `auth` | data/domain/presentation | Firebase phone OTP behind `AuthRepository`; prefs session cache; optional REST login/register |
 | `shell` | presentation | 4-tab `MainShell` |
 | `home` | presentation | Dashboard |
-| `groups` | full stack | List/create/members via `GroupsRepository` (+ markRead) |
+| `groups` | full stack | List/create/members via `GroupsRepository` |
 | `outings` | full stack | CRUD, votes, attendance, chat, saved/drafts, geocoding |
 | `discover` | full stack | Places via `DiscoverRepository` |
 | `notifications` | full stack | Feed + read + local emit; FCM via `PushMessagingRepository` |
@@ -98,7 +98,7 @@ Widget → Provider → Repository → RemoteDataSource (ApiClient placeholders)
                               → LocalDataSource (prefs for saved/drafts)
 AuthRepository → AuthRemote + AuthLocal + FirebaseAuthDataSource
 PushMessagingRepository → FcmMessagingService
-GeocodingRepository → Nominatim HTTP
+LocationRepository → Nominatim HTTP
 ```
 
 ### Domain models (canonical)

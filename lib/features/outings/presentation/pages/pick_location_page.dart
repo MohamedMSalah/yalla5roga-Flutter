@@ -13,11 +13,12 @@ import 'package:yalla_5roga/core/widgets/app_page_bar.dart';
 import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
 import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/custom_textfield.dart';
-import 'package:yalla_5roga/features/outings/domain/repositories/geocoding_repository.dart';
+import 'package:yalla_5roga/features/outings/domain/repositories/location_repository.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/pick_location_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outing_chat_skeleton.dart';
 
-export 'package:yalla_5roga/features/outings/presentation/providers/pick_location_provider.dart' show PickedPlace;
+export 'package:yalla_5roga/features/outings/presentation/providers/pick_location_provider.dart'
+    show PickedPlace;
 
 class PickLocationPage extends StatelessWidget {
   const PickLocationPage({
@@ -35,7 +36,7 @@ class PickLocationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => PickLocationProvider(
-        geocoding: context.read<GeocodingRepository>(),
+        geocoding: context.read<LocationRepository>(),
         prefs: context.read<SharedPreferences>(),
         initialLatitude: initialLatitude,
         initialLongitude: initialLongitude,
@@ -90,7 +91,11 @@ class _PickLocationViewState extends State<_PickLocationView> {
   Future<void> _dropPin(LatLng point, {String? name}) async {
     final map = context.read<PickLocationProvider>();
     _moveTo(point);
-    await map.dropPin(point, name: name, fallbackName: context.l10n.customPlace);
+    await map.dropPin(
+      point,
+      name: name,
+      fallbackName: context.l10n.customPlace,
+    );
   }
 
   Future<void> _useCurrentLocation() async {
@@ -113,7 +118,7 @@ class _PickLocationViewState extends State<_PickLocationView> {
   Future<void> _openSearch() async {
     final hit = await Get.bottomSheet<PlaceSearchHit>(
       ChangeNotifierProvider(
-        create: (_) => PlaceSearchProvider(context.read<GeocodingRepository>()),
+        create: (_) => PlaceSearchProvider(context.read<LocationRepository>()),
         child: const _PlaceSearchSheet(),
       ),
       isScrollControlled: true,
@@ -139,7 +144,9 @@ class _PickLocationViewState extends State<_PickLocationView> {
       // AppPageBar — pick location + search
       appBar: AppPageBar(
         title: l10n.pickLocation,
-        subtitle: map.nameController.text.trim().isEmpty ? null : map.nameController.text.trim(),
+        subtitle: map.nameController.text.trim().isEmpty
+            ? null
+            : map.nameController.text.trim(),
         trailingIcon: Icons.search,
         onTrailingTap: _openSearch,
       ),
@@ -157,7 +164,8 @@ class _PickLocationViewState extends State<_PickLocationView> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.yalla_5roga',
                     ),
                     if (pin != null)
@@ -168,7 +176,11 @@ class _PickLocationViewState extends State<_PickLocationView> {
                             width: 40,
                             height: 40,
                             alignment: Alignment.bottomCenter,
-                            child: const Icon(Icons.location_on, color: AppColors.brand600, size: 40),
+                            child: const Icon(
+                              Icons.location_on,
+                              color: AppColors.brand600,
+                              size: 40,
+                            ),
                           ),
                         ],
                       ),
@@ -215,7 +227,10 @@ class _PickLocationViewState extends State<_PickLocationView> {
                   Text(
                     map.lookingUp ? l10n.lookingUpLocation : l10n.tapToPin,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: context.palette.textMuted, fontSize: Responsive.fontSm),
+                    style: TextStyle(
+                      color: context.palette.textMuted,
+                      fontSize: Responsive.fontSm,
+                    ),
                   ),
                   Responsive.spaceSm.gapH,
                   CustomButton(
@@ -254,7 +269,13 @@ class _PlaceSearchSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(l10n.searchPlace, style: TextStyle(fontWeight: FontWeight.w800, fontSize: Responsive.fontMd)),
+            Text(
+              l10n.searchPlace,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: Responsive.fontMd,
+              ),
+            ),
             Responsive.spaceMd.gapH,
             CustomTextField(
               controller: search.queryController,
@@ -275,27 +296,41 @@ class _PlaceSearchSheet extends StatelessWidget {
               child: search.searching
                   ? const PlaceSearchSkeleton()
                   : !search.searched
-                      ? const SizedBox.shrink()
-                      : search.results.isEmpty
-                          ? AppEmptyState(
-                              icon: Icons.search_off_outlined,
-                              message: l10n.noPlaceResults,
-                              subtitle: l10n.noPlaceResultsHint,
-                              compact: true,
-                            )
-                          : ListView.separated(
-                              itemCount: search.results.length,
-                              separatorBuilder: (_, _) => 8.gapH,
-                              itemBuilder: (context, index) {
-                                final hit = search.results[index];
-                                return ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: const Icon(Icons.place_outlined, color: AppColors.brand600),
-                                  title: Text(hit.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  onTap: () => Get.back(result: hit),
-                                );
-                              },
+                  ? const SizedBox.shrink()
+                  : search.results.isEmpty
+                  ? AppEmptyState(
+                      icon: Icons.search_off_outlined,
+                      message: l10n.noPlaceResults,
+                      subtitle: l10n.noPlaceResultsHint,
+                      compact: true,
+                    )
+                  : ListView.builder(
+                      itemCount: search.results.length,
+                      itemBuilder: (context, index) {
+                        final hit = search.results[index];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == search.results.length - 1
+                                ? 0
+                                : 8.h,
+                          ),
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(
+                              Icons.place_outlined,
+                              color: AppColors.brand600,
                             ),
+                            title: Text(
+                              hit.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            onTap: () => Get.back(result: hit),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),

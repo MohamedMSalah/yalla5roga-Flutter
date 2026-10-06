@@ -1,22 +1,28 @@
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:yalla_5roga/core/config/app_config.dart';
 import 'package:yalla_5roga/core/error/app_error_feedback.dart';
 import 'package:yalla_5roga/core/localization/l10n.dart';
 import 'package:yalla_5roga/core/mock/mock_data.dart';
 import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
+import 'package:yalla_5roga/core/utils/extensions.dart';
+import 'package:yalla_5roga/core/utils/member_display_name.dart';
 import 'package:yalla_5roga/core/utils/validators.dart';
+import 'package:yalla_5roga/core/widgets/app_alert.dart';
+import 'package:yalla_5roga/core/widgets/app_snackbar.dart';
+import 'package:yalla_5roga/core/widgets/image_source_sheet.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_role.dart';
 import 'package:yalla_5roga/features/groups/domain/repositories/groups_repository.dart';
-import 'package:yalla_5roga/features/unread/domain/entities/unread_counts.dart';
-import 'package:yalla_5roga/features/unread/domain/repositories/unread_counts_repository.dart';
+import 'package:yalla_5roga/features/groups/presentation/widgets/add_member_phone_sheet.dart';
+import 'package:yalla_5roga/features/shell/presentation/providers/shell_provider.dart';
 
 class GroupsProvider extends ChangeNotifier {
-  GroupsProvider({required this.repository, required this.unreadCounts});
+  GroupsProvider({required this.repository, required this.shell});
 
   final GroupsRepository repository;
-  final UnreadCountsRepository unreadCounts;
+  final ShellProvider shell;
 
   var _groups = <Group>[];
   int _unreadGroupCount = 0;
@@ -26,7 +32,8 @@ class GroupsProvider extends ChangeNotifier {
   String? _createImage;
   final _createPhones = <String>[];
   var _isLoading = false;
-  var _isUpdating = false;
+  var _isLeaving = false;
+  var _isCreating = false;
   var _hasLoaded = false;
   String? _errorMessage;
   var _epoch = 0;
@@ -37,7 +44,9 @@ class GroupsProvider extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
 
-  bool get isUpdating => _isUpdating;
+  bool get isLeaving => _isLeaving;
+
+  bool get isCreating => _isCreating;
 
   bool get hasLoaded => _hasLoaded;
 
@@ -67,7 +76,7 @@ class GroupsProvider extends ChangeNotifier {
     final needle = _query.trim().toLowerCase();
     return [
       for (final group in _groups)
-        if ((_filter != 1 || group.featured || group.unread > 0) &&
+        if ((_filter != 1) &&
             (needle.isEmpty || group.name.toLowerCase().contains(needle)))
           group,
     ];
@@ -84,20 +93,11 @@ class GroupsProvider extends ChangeNotifier {
       findById(id) ?? (_groups.isNotEmpty ? _groups.first : _emptyGroup(id));
 
   static Group _emptyGroup(String id) {
-    return Group(
-      id: id,
-      name: '',
-      members: 0,
-      outings: 0,
-      preview: '',
-      avatars: const [],
-      image: '',
-      people: const [],
-    );
+    return Group(id: id, name: '', outings: 0, image: '', members: const []);
   }
 
-  Future<void> loadGroups() async {
-    final result = await repository.getGroups();
+  Future<void> loadGroups({bool forceRefresh = false}) async {
+    final result = await repository.getGroups(forceRefresh: forceRefresh);
     result.fold(
       (failure) {
         _errorMessage = failure.message;
@@ -109,7 +109,6 @@ class GroupsProvider extends ChangeNotifier {
       },
       (groups) {
         _groups = List.of(groups);
-        _unreadGroupCount = _groups.fold(0, (sum, group) => sum + group.unread);
         _errorMessage = null;
       },
     );
@@ -175,7 +174,7 @@ class GroupsProvider extends ChangeNotifier {
     };
   }
 
-  bool canManage(Group group) => group.myRole == GroupRole.owner;
+  bool canManage(Group group) => group.cuserRole == GroupRole.owner;
 
   Future<Group?> createGroup(
     String name, {
@@ -183,12 +182,16 @@ class GroupsProvider extends ChangeNotifier {
     String? ownerAvatar,
     String bio = '',
   }) async {
-    if (name.trim().isEmpty) return null;
+    if (_isCreating || name.trim().isEmpty) return null;
     final coverImage =
         _createImage ??
         (AppConfig.useMockData ? MockData.defaultCoverImage : null);
     if (coverImage == null) return null;
-    final people = [
+
+    _isCreating = true;
+    notifyListeners();
+
+    final members = [
       GroupMember(
         id: 'me',
         name: ownerName,
@@ -200,14 +203,11 @@ class GroupsProvider extends ChangeNotifier {
     final group = Group(
       id: 'new-${DateTime.now().millisecondsSinceEpoch}',
       name: name.trim(),
-      members: people.length,
       outings: 0,
-      preview: '',
       bio: bio.trim(),
-      avatars: people.map((person) => person.avatar).toList(),
       image: coverImage,
-      people: people,
-      myRole: GroupRole.owner,
+      members: members,
+      cuserRole: GroupRole.owner,
     );
     final result = await repository.createGroup(group);
     Group? created;
@@ -227,14 +227,97 @@ class GroupsProvider extends ChangeNotifier {
       },
     );
     resetCreate(notify: false);
+    _isCreating = false;
     notifyListeners();
     return created;
   }
 
-  Future<void> updateImage(String groupId, String url) async {
+  L10n? get _l10n {
+    final context = Get.context;
+    return context == null ? null : context.l10n;
+  }
+
+  Future<void> changeImage(String groupId) async {
+    final l10n = _l10n;
+    if (l10n == null) return;
+
+    final url = await ImageSourceSheet.pick(title: l10n.changeGroupImage);
+    if (url == null) return;
+
+    final ok = await updateImage(groupId, url);
+    if (ok) {
+      AppSnackBar.show(l10n.groupImageUpdated);
+    } else if (_errorMessage != null) {
+      AppSnackBar.show(_errorMessage!);
+    }
+  }
+
+  Future<void> promptAddMember(String groupId) async {
+    final l10n = _l10n;
+    if (l10n == null) return;
+
+    final added = await AddMemberPhoneSheet.show();
+    if (added == null) return;
+
+    final error = await addMember(groupId, added, l10n);
+    if (error != null) {
+      AppSnackBar.show(error);
+      return;
+    }
+    final display = l10n.digits(MemberDisplayName.resolvePhone(added));
+    AppSnackBar.show(l10n.memberAdded(display));
+  }
+
+  Future<void> confirmRemoveMember(String groupId, GroupMember person) async {
+    final l10n = _l10n;
+    if (l10n == null) return;
+
+    final name = l10n.digits(MemberDisplayName.resolve(person));
+    final confirmed = await AppAlert.confirm(
+      title: l10n.removeMemberTitle,
+      message: l10n.removeMemberMessage(name),
+      confirmText: l10n.removeMember,
+      cancelText: l10n.cancel,
+      destructive: true,
+    );
+    if (!confirmed) return;
+
+    final ok = await removeMember(groupId, person);
+    if (ok) {
+      AppSnackBar.show(l10n.memberRemoved(name));
+    } else if (_errorMessage != null) {
+      AppSnackBar.show(_errorMessage!);
+    }
+  }
+
+  Future<void> confirmLeaveGroup(String groupId) async {
+    final l10n = _l10n;
+    if (l10n == null) return;
+
+    final confirmed = await AppAlert.confirm(
+      title: l10n.leaveGroupTitle,
+      message: l10n.leaveGroupMessage,
+      confirmText: l10n.leaveGroup,
+      cancelText: l10n.cancel,
+      destructive: true,
+    );
+    if (!confirmed) return;
+
+    final ok = await leaveGroup(groupId);
+    if (!ok) {
+      if (_errorMessage != null) AppSnackBar.show(_errorMessage!);
+      return;
+    }
+
+    AppSnackBar.show(l10n.leftGroup);
+    shell.setIndex(1);
+    Get.until((route) => route.isFirst);
+  }
+
+  Future<bool> updateImage(String groupId, String url) async {
     final current = byId(groupId);
     final result = await repository.updateGroup(current.copyWith(image: url));
-    result.fold(
+    final ok = result.fold(
       (failure) {
         _errorMessage = failure.message;
         AppErrorFeedback.report(
@@ -242,30 +325,30 @@ class GroupsProvider extends ChangeNotifier {
           kind: AppErrorKind.send,
           context: 'updateGroupImage',
         );
+        return false;
       },
       (group) {
+        _errorMessage = null;
         _groups = [
           for (final item in _groups)
             if (item.id == group.id) group else item,
         ];
+        return true;
       },
     );
     notifyListeners();
+    return ok;
   }
 
+  /// Returns a localized validation/API error, or `null` on success.
   Future<String?> addMember(String groupId, String phone, L10n l10n) async {
     final group = byId(groupId);
-    if (group.people.any((person) {
-      final personPhone = person.phone;
-      return person.id == phone ||
-          person.name == phone ||
-          (personPhone != null && personPhone == phone);
-    })) {
+    if (group.containsMember(id: phone, phone: phone)) {
       return l10n.phoneAlreadyAdded;
     }
     final member = _memberFromPhone(phone);
     final result = await repository.addMember(groupId, member);
-    result.fold(
+    final error = result.fold<String?>(
       (failure) {
         _errorMessage = failure.message;
         AppErrorFeedback.report(
@@ -273,23 +356,26 @@ class GroupsProvider extends ChangeNotifier {
           kind: AppErrorKind.send,
           context: 'addMember',
         );
+        return failure.message;
       },
       (updated) {
+        _errorMessage = null;
         _groups = [
           for (final item in _groups)
             if (item.id == updated.id) updated else item,
         ];
         AnalyticsService.instance.joinGroup();
+        return null;
       },
     );
     notifyListeners();
-    return null;
+    return error;
   }
 
-  Future<void> removeMember(String groupId, GroupMember person) async {
-    if (person.role == GroupRole.owner) return;
+  Future<bool> removeMember(String groupId, GroupMember person) async {
+    if (person.role == GroupRole.owner) return false;
     final result = await repository.removeMember(groupId, person.id);
-    result.fold(
+    final ok = result.fold(
       (failure) {
         _errorMessage = failure.message;
         AppErrorFeedback.report(
@@ -297,21 +383,30 @@ class GroupsProvider extends ChangeNotifier {
           kind: AppErrorKind.send,
           context: 'removeMember',
         );
+        return false;
       },
       (updated) {
+        _errorMessage = null;
         _groups = [
           for (final item in _groups)
             if (item.id == updated.id) updated else item,
         ];
+        return true;
       },
     );
     notifyListeners();
+    return ok;
   }
 
   /// Leaves the group. Backend decides ownership transfer if the owner leaves.
   Future<bool> leaveGroup(String groupId) async {
+    if (_isLeaving) return false;
+    _isLeaving = true;
+    _errorMessage = null;
+    notifyListeners();
+
     final result = await repository.leaveGroup(groupId);
-    return result.fold(
+    final ok = result.fold(
       (failure) {
         _errorMessage = failure.message;
         AppErrorFeedback.report(
@@ -319,7 +414,6 @@ class GroupsProvider extends ChangeNotifier {
           kind: AppErrorKind.send,
           context: 'leaveGroup',
         );
-        notifyListeners();
         return false;
       },
       (_) {
@@ -327,43 +421,26 @@ class GroupsProvider extends ChangeNotifier {
           for (final item in _groups)
             if (item.id != groupId) item,
         ];
-        _unreadGroupCount = _groups.fold(0, (sum, group) => sum + group.unread);
-        notifyListeners();
         return true;
       },
     );
-  }
 
-  void applyCounts(UnreadCounts counts) {
-    _unreadGroupCount = counts.unreadGroupCount;
-    _groups = [
-      for (final group in _groups)
-        group.copyWith(unread: counts.groupUnreadByGroupId[group.id] ?? 0),
-    ];
-    _errorMessage = null;
+    _isLeaving = false;
     notifyListeners();
+    return ok;
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({bool forceRefresh = false}) async {
     final token = ++_epoch;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    await loadGroups();
-    final result = await unreadCounts.fetchCounts();
+    await loadGroups(forceRefresh: forceRefresh);
     if (token != _epoch) {
       _finishInitialLoad();
       return;
     }
-    result.fold<void>((failure) {
-      _errorMessage = failure.message;
-      AppErrorFeedback.report(
-        failure,
-        kind: AppErrorKind.load,
-        context: 'groupsRefresh',
-      );
-    }, applyCounts);
 
     _finishInitialLoad();
   }
@@ -374,48 +451,13 @@ class GroupsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> markRead(String groupId) async {
-    final token = ++_epoch;
-    _isUpdating = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    final result = await repository.markRead(groupId);
-    if (token != _epoch) return false;
-    final success = result.fold(
-      (failure) {
-        _errorMessage = failure.message;
-        AppErrorFeedback.report(
-          failure,
-          kind: AppErrorKind.send,
-          context: 'groupMarkRead',
-        );
-        return false;
-      },
-      (read) {
-        _unreadGroupCount = read.unreadGroupCount;
-        _groups = [
-          for (final group in _groups)
-            if (group.id == read.groupId)
-              group.copyWith(unread: read.unreadCount)
-            else
-              group,
-        ];
-        return true;
-      },
-    );
-
-    _isUpdating = false;
-    notifyListeners();
-    return success;
-  }
-
   void clear() {
     _epoch++;
     _unreadGroupCount = 0;
     _groups = [for (final group in _groups) group.copyWith(unread: 0)];
     _isLoading = false;
-    _isUpdating = false;
+    _isLeaving = false;
+    _isCreating = false;
     _hasLoaded = false;
     _errorMessage = null;
     notifyListeners();

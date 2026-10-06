@@ -128,6 +128,17 @@ class CreateOutingProvider extends ChangeNotifier {
 
   List<Place> get catalogPlaces => List.unmodifiable(_catalogPlaces);
 
+  /// Places matching the selected vibe (all places for special events).
+  List<Place> get suggestedPlaces {
+    if (_specialEvent) return catalogPlaces;
+    final selectedVibe =
+        OutingVibe.values[_vibe.clamp(0, OutingVibe.values.length - 1)];
+    return [
+      for (final place in _catalogPlaces)
+        if (place.vibe == selectedVibe) place,
+    ];
+  }
+
   double? get customLatitude => _customLatitude;
 
   double? get customLongitude => _customLongitude;
@@ -155,6 +166,9 @@ class CreateOutingProvider extends ChangeNotifier {
 
   DateTime get maxDate {
     final now = DateTime.now();
+    if (_specialEvent) {
+      return DateTime(now.year + 1, now.month, now.day);
+    }
     return DateTime(now.year, now.month + 1, now.day);
   }
 
@@ -267,7 +281,7 @@ class CreateOutingProvider extends ChangeNotifier {
 
   String? validateStep(L10n l10n) {
     if (_step == 0) {
-      final nameError = Validators.name(nameController.text, l10n);
+      final nameError = Validators.outingName(nameController.text, l10n);
       if (nameError != null) return nameError;
       if (!AppConfig.useMockData && !_specialEvent && _image == null) {
         return l10n.photoRequired;
@@ -303,7 +317,7 @@ class CreateOutingProvider extends ChangeNotifier {
   }
 
   String? draftError(L10n l10n) {
-    final nameError = Validators.name(nameController.text, l10n);
+    final nameError = Validators.outingName(nameController.text, l10n);
     if (nameError != null) return nameError;
     if (!AppConfig.useMockData && !_specialEvent && _image == null) {
       return l10n.photoRequired;
@@ -326,6 +340,12 @@ class CreateOutingProvider extends ChangeNotifier {
 
   void setVibe(int value) {
     _vibe = value;
+    final selectedVibe =
+        OutingVibe.values[_vibe.clamp(0, OutingVibe.values.length - 1)];
+    _selectedPlaces.removeWhere((place) => place.vibe != selectedVibe);
+    if (_place != null && _place!.vibe != selectedVibe) {
+      _place = null;
+    }
     notifyListeners();
   }
 
@@ -475,7 +495,7 @@ class CreateOutingProvider extends ChangeNotifier {
           : '$locationLabel · $formattedTime',
       date: formattedDate,
       time: formattedTime,
-      going: _specialEvent ? guests.length : _group!.people.length,
+      going: _specialEvent ? guests.length : _group!.memberCount,
       groupId: _specialEvent ? null : _group!.id,
       location: voting ? null : selectedLocation,
       occasion: _occasion,

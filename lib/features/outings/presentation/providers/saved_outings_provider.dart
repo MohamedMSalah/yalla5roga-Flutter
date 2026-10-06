@@ -20,9 +20,9 @@ class SavedOutingsProvider extends ChangeNotifier {
   List<OutingDraft> get drafts => List.unmodifiable(_drafts);
 
   List<SavedItem> get items => [
-        for (final draft in _drafts) SavedItem.draft(draft),
-        for (final outing in _saved) SavedItem.bookmark(outing),
-      ];
+    for (final draft in _drafts) SavedItem.draft(draft),
+    for (final outing in _saved) SavedItem.bookmark(outing),
+  ];
 
   List<SavedItem> get visible => showingDrafts
       ? [for (final draft in _drafts) SavedItem.draft(draft)]
@@ -42,6 +42,14 @@ class SavedOutingsProvider extends ChangeNotifier {
     final draftResult = await repository.getDrafts();
     draftResult.fold((_) {}, (items) => _drafts = List.of(items));
     _hasLoaded = true;
+    notifyListeners();
+  }
+
+  void clear() {
+    _saved = [];
+    _drafts = [];
+    _tab = 0;
+    _hasLoaded = false;
     notifyListeners();
   }
 

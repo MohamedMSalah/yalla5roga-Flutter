@@ -36,6 +36,20 @@ class Validators {
     return null;
   }
 
+  /// Outing / special-event title: 3–20 characters after trim.
+  static String? outingName(String? value, L10n l10n) {
+    final requiredError = required(value, l10n);
+    if (requiredError != null) return requiredError;
+    final trimmed = value!.trim();
+    if (trimmed.length < AppConstants.minNameLength) {
+      return l10n.nameTooShort;
+    }
+    if (trimmed.length > AppConstants.maxOutingNameLength) {
+      return l10n.outingNameTooLong;
+    }
+    return null;
+  }
+
   static String? phone(String? value, L10n l10n) {
     final requiredError = required(value, l10n);
     if (requiredError != null) return requiredError;

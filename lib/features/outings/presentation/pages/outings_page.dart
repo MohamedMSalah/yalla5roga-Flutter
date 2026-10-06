@@ -6,10 +6,10 @@ import 'package:yalla_5roga/core/widgets/custom_button.dart';
 import 'package:yalla_5roga/core/widgets/notification_button.dart';
 import 'package:yalla_5roga/core/widgets/section_header.dart';
 import 'package:yalla_5roga/core/widgets/segmented_tabs.dart';
-import 'package:yalla_5roga/features/discover/presentation/widgets/discover_section.dart';
+import 'package:yalla_5roga/features/discover/presentation/widgets/lists/discover_section.dart';
+import 'package:yalla_5roga/features/outings/presentation/widgets/lists/weekend_outings_list.dart';
 import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
-import 'package:yalla_5roga/features/outings/presentation/widgets/outing_items.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outings_skeleton.dart';
 import 'package:yalla_5roga/features/shell/presentation/widgets/shell_loading.dart';
 
@@ -70,17 +70,7 @@ class _OutingsPageState extends State<OutingsPage> {
           Responsive.spaceLg.gapH,
           const DiscoverSection(limit: 4),
           Responsive.spaceLg.gapH,
-          Text(
-            l10n.thisWeekend.toUpperCase(),
-            style: TextStyle(
-              color: context.palette.textMuted,
-              fontSize: Responsive.fontCaption,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.4,
-            ),
-          ),
-          Responsive.spaceSm.gapH,
-          const OutingItems(filtered: true),
+          const WeekendOutingsList(),
         ],
       ),
     );

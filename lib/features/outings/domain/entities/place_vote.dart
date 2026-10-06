@@ -8,7 +8,12 @@ class VoteOption {
   final int votes;
   final int percent;
 
-  VoteOption copyWith({String? placeId, String? label, int? votes, int? percent}) {
+  VoteOption copyWith({
+    String? placeId,
+    String? label,
+    int? votes,
+    int? percent,
+  }) {
     return VoteOption(
       placeId ?? this.placeId,
       label ?? this.label,
@@ -18,11 +23,11 @@ class VoteOption {
   }
 
   Map<String, dynamic> toJson() => {
-        'placeId': placeId,
-        'label': label,
-        'votes': votes,
-        'percent': percent,
-      };
+    'placeId': placeId,
+    'label': label,
+    'votes': votes,
+    'percent': percent,
+  };
 
   factory VoteOption.fromJson(Map<String, dynamic> json) {
     return VoteOption(
@@ -39,35 +44,57 @@ class PlaceVote {
     required this.outingId,
     required this.options,
     this.endsAt,
-    this.myOptionId,
+    this.cuserOptionIds = const [],
     this.suggestedById,
+    this.finalized = false,
   });
 
   final String outingId;
   final List<VoteOption> options;
   final DateTime? endsAt;
-  final String? myOptionId;
+  final List<String> cuserOptionIds;
   final String? suggestedById;
+  final bool finalized;
 
-  int? get myOptionIndex {
-    final id = myOptionId;
+  /// First selected option (legacy single-select helpers).
+  String? get cuserOptionId => cuserOptionIds.isEmpty ? null : cuserOptionIds.first;
+
+  int? get cuserOptionIndex {
+    final id = cuserOptionId;
     if (id == null) return null;
     final index = options.indexWhere((option) => option.placeId == id);
     return index < 0 ? null : index;
   }
 
+  Set<int> get cuserOptionIndexes {
+    final indexes = <int>{};
+    for (final id in cuserOptionIds) {
+      final index = options.indexWhere((option) => option.placeId == id);
+      if (index >= 0) indexes.add(index);
+    }
+    return indexes;
+  }
+
+  bool isOptionSelected(int index) => cuserOptionIndexes.contains(index);
+
+  bool get hasVoted => cuserOptionIds.isNotEmpty;
+
   PlaceVote copyWith({
     List<VoteOption>? options,
     DateTime? endsAt,
-    String? myOptionId,
-    bool clearMyOption = false,
+    List<String>? cuserOptionIds,
+    bool clearCuserOptions = false,
+    bool? finalized,
   }) {
     return PlaceVote(
       outingId: outingId,
       options: options ?? this.options,
       endsAt: endsAt ?? this.endsAt,
-      myOptionId: clearMyOption ? null : (myOptionId ?? this.myOptionId),
+      cuserOptionIds: clearCuserOptions
+          ? const []
+          : (cuserOptionIds ?? this.cuserOptionIds),
       suggestedById: suggestedById,
+      finalized: finalized ?? this.finalized,
     );
   }
 }
@@ -84,10 +111,10 @@ class Attendance {
   final AttendanceStatus status;
 
   Map<String, dynamic> toJson() => {
-        'outingId': outingId,
-        'userId': userId,
-        'status': status.name,
-      };
+    'outingId': outingId,
+    'userId': userId,
+    'status': status.name,
+  };
 
   factory Attendance.fromJson(Map<String, dynamic> json) {
     return Attendance(

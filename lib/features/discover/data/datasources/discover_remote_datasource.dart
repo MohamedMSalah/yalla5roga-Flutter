@@ -40,13 +40,18 @@ class DiscoverRemoteDataSource implements DiscoverDataSource {
   @override
   Future<List<SuggestedPlace>> getFeaturedPlaces() async {
     final places = await getPlaces();
-    return [for (final place in places) if (place.featured) place];
+    return [
+      for (final place in places)
+        if (place.featured) place,
+    ];
   }
 
   @override
   Future<SuggestedPlace> getPlace(String placeId) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>(ApiConstants.place(placeId));
+      final response = await _client.get<Map<String, dynamic>>(
+        ApiConstants.place(placeId),
+      );
       return _fromJson(apiPayload(response.data));
     } on DioException catch (error) {
       throw _unwrap(error);
@@ -65,8 +70,12 @@ class DiscoverRemoteDataSource implements DiscoverDataSource {
         (item) => item.name == json['vibe'],
         orElse: () => OutingVibe.food,
       ),
-      coverImageUrl: apiString(json['coverImageUrl']) ?? apiString(json['imageUrl']) ?? '',
-      description: apiString(json['description']) ?? apiString(json['descriptionKey']) ?? '',
+      coverImageUrl:
+          apiString(json['coverImageUrl']) ?? apiString(json['imageUrl']) ?? '',
+      description:
+          apiString(json['description']) ??
+          apiString(json['descriptionKey']) ??
+          '',
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       featured: apiBool(json['featured']),
