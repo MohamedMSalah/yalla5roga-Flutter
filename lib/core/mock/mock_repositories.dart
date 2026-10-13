@@ -1,15 +1,15 @@
 import 'package:dartz/dartz.dart';
+import 'package:mockito/mockito.dart';
 import 'package:yalla_5roga/core/error/failures.dart';
+import 'package:yalla_5roga/core/mock/demo_mocks.mocks.dart';
 import 'package:yalla_5roga/core/mock/mock_data.dart';
 import 'package:yalla_5roga/features/auth/domain/entities/phone_verification.dart';
 import 'package:yalla_5roga/features/auth/domain/entities/user.dart';
 import 'package:yalla_5roga/features/auth/domain/repositories/auth_repository.dart';
-import 'package:yalla_5roga/features/discover/domain/entities/suggested_place.dart';
 import 'package:yalla_5roga/features/discover/domain/repositories/discover_repository.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group.dart';
 import 'package:yalla_5roga/features/groups/domain/entities/group_member.dart';
 import 'package:yalla_5roga/features/groups/domain/repositories/groups_repository.dart';
-import 'package:yalla_5roga/features/notifications/domain/entities/notification_item.dart';
 import 'package:yalla_5roga/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/chat_message.dart';
 import 'package:yalla_5roga/features/outings/domain/entities/outing.dart';
@@ -22,208 +22,261 @@ import 'package:yalla_5roga/features/outings/domain/repositories/outing_chat_rep
 import 'package:yalla_5roga/features/outings/domain/repositories/outings_repository.dart';
 import 'package:yalla_5roga/features/outings/domain/repositories/saved_outings_repository.dart';
 
-// Temporary mock repositories for AppConfig.useMockData.
+// Temporary Mockito stubs for AppConfig.useMockData.
 // Delete this file with lib/core/mock/ when demos are done.
 
-class MockAuthRepository implements AuthRepository {
-  @override
-  bool get hasFirebaseSession => MockData.sessionActive;
+/// Stubbed demo repositories. Built once so every screen shares the same fakes.
+class DemoMocks {
+  const DemoMocks({
+    required this.auth,
+    required this.groups,
+    required this.outings,
+    required this.outingChat,
+    required this.discover,
+    required this.notifications,
+    required this.savedOutings,
+    required this.location,
+  });
 
-  @override
-  bool get hasPasswordProvider => true;
+  final AuthRepository auth;
+  final GroupsRepository groups;
+  final OutingsRepository outings;
+  final OutingChatRepository outingChat;
+  final DiscoverRepository discover;
+  final NotificationsRepository notifications;
+  final SavedOutingsRepository savedOutings;
+  final LocationRepository location;
+}
 
-  @override
-  Future<Either<Failure, User>> getCachedUser() async {
+DemoMocks? _demoMocks;
+
+DemoMocks createDemoMocks() => _demoMocks ??= _buildDemoMocks();
+
+DemoMocks _buildDemoMocks() {
+  final auth = MockAuthRepository();
+  final groups = MockGroupsRepository();
+  final outings = MockOutingsRepository();
+  final outingChat = MockOutingChatRepository();
+  final discover = MockDiscoverRepository();
+  final notifications = MockNotificationsRepository();
+  final savedOutings = MockSavedOutingsRepository();
+  final location = MockLocationRepository();
+
+  _stubAuth(auth);
+  _stubGroups(groups);
+  _stubOutings(outings);
+  _stubOutingChat(outingChat);
+  _stubDiscover(discover);
+  _stubNotifications(notifications);
+  _stubSavedOutings(savedOutings);
+  _stubLocation(location);
+
+  return DemoMocks(
+    auth: auth,
+    groups: groups,
+    outings: outings,
+    outingChat: outingChat,
+    discover: discover,
+    notifications: notifications,
+    savedOutings: savedOutings,
+    location: location,
+  );
+}
+
+void _stubAuth(MockAuthRepository auth) {
+  when(auth.hasFirebaseSession).thenAnswer((_) => MockData.sessionActive);
+  when(auth.hasPasswordProvider).thenReturn(true);
+
+  when(auth.getCachedUser()).thenAnswer((_) async {
     if (!MockData.sessionActive) {
       return const Left(CacheFailure('No mock session'));
     }
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> saveUser(User user) async {
+  when(auth.saveUser(any)).thenAnswer((invocation) async {
+    final user = _arg<User>(invocation, 0);
     MockData.currentUser = user;
     MockData.sessionActive = true;
     return Right(user);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> login({
-    required String email,
-    required String password,
-  }) async {
-    MockData.sessionActive = true;
-    MockData.updateCurrentUser(email: email);
-    return Right(MockData.currentUser);
-  }
+  when(auth.login(email: anyNamed('email'), password: anyNamed('password')))
+      .thenAnswer((invocation) async {
+        MockData.sessionActive = true;
+        MockData.updateCurrentUser(email: _named<String>(invocation, #email));
+        return Right(MockData.currentUser);
+      });
 
-  @override
-  Future<Either<Failure, User>> register({
-    required String name,
-    required String email,
-    required String password,
-    required String phone,
-    required String verificationId,
-    required String smsCode,
-  }) async {
+  when(
+    auth.register(
+      name: anyNamed('name'),
+      email: anyNamed('email'),
+      password: anyNamed('password'),
+      phone: anyNamed('phone'),
+      verificationId: anyNamed('verificationId'),
+      smsCode: anyNamed('smsCode'),
+    ),
+  ).thenAnswer((invocation) async {
     MockData.sessionActive = true;
     MockData.currentUser = User(
       id: MockData.currentUser.id,
-      name: name,
-      phone: phone,
-      email: email,
+      name: _named<String>(invocation, #name),
+      phone: _named<String>(invocation, #phone),
+      email: _named<String>(invocation, #email),
       token: 'mock-demo-token',
       imageUrl: MockData.currentUser.imageUrl,
     );
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> signInWithGoogle() async {
+  when(auth.signInWithGoogle()).thenAnswer((_) async {
     MockData.sessionActive = true;
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> signInWithApple() async {
+  when(auth.signInWithApple()).thenAnswer((_) async {
     MockData.sessionActive = true;
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> updateProfileData({
-    String? name,
-    String? imageUrl,
-  }) async {
-    MockData.updateCurrentUser(name: name, imageUrl: imageUrl);
+  when(
+    auth.updateProfileData(
+      name: anyNamed('name'),
+      imageUrl: anyNamed('imageUrl'),
+    ),
+  ).thenAnswer((invocation) async {
+    MockData.updateCurrentUser(
+      name: _named<String?>(invocation, #name),
+      imageUrl: _named<String?>(invocation, #imageUrl),
+    );
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, void>> confirmPassword({
-    required String password,
-  }) async {
+  when(auth.confirmPassword(password: anyNamed('password'))).thenAnswer((
+    invocation,
+  ) async {
+    final password = _named<String>(invocation, #password);
     if (password.trim().isEmpty) {
       return const Left(AuthFailure('Incorrect password', 'wrong-password'));
     }
     return const Right(null);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> syncProfileToBackend({
-    String? name,
-    String? email,
-    String? phone,
-    String? imageUrl,
-  }) async {
+  when(
+    auth.syncProfileToBackend(
+      name: anyNamed('name'),
+      email: anyNamed('email'),
+      phone: anyNamed('phone'),
+      imageUrl: anyNamed('imageUrl'),
+    ),
+  ).thenAnswer((invocation) async {
     MockData.updateCurrentUser(
-      name: name,
-      email: email,
-      phone: phone,
-      imageUrl: imageUrl,
+      name: _named<String?>(invocation, #name),
+      email: _named<String?>(invocation, #email),
+      phone: _named<String?>(invocation, #phone),
+      imageUrl: _named<String?>(invocation, #imageUrl),
     );
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, void>> requestEmailChange({
-    required String newEmail,
-    required String currentPassword,
-  }) async {
-    MockData.updateCurrentUser(email: newEmail);
+  when(
+    auth.requestEmailChange(
+      newEmail: anyNamed('newEmail'),
+      currentPassword: anyNamed('currentPassword'),
+    ),
+  ).thenAnswer((invocation) async {
+    MockData.updateCurrentUser(email: _named<String>(invocation, #newEmail));
     return const Right(null);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> updatePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
+  when(
+    auth.updatePassword(
+      currentPassword: anyNamed('currentPassword'),
+      newPassword: anyNamed('newPassword'),
+    ),
+  ).thenAnswer((_) async => Right(MockData.currentUser));
+
+  when(
+    auth.updatePhoneNumber(
+      verificationId: anyNamed('verificationId'),
+      smsCode: anyNamed('smsCode'),
+      phone: anyNamed('phone'),
+    ),
+  ).thenAnswer((invocation) async {
+    MockData.updateCurrentUser(phone: _named<String>(invocation, #phone));
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, User>> updatePhoneNumber({
-    required String verificationId,
-    required String smsCode,
-    required String phone,
-  }) async {
-    MockData.updateCurrentUser(phone: phone);
-    return Right(MockData.currentUser);
-  }
-
-  @override
-  Future<Either<Failure, void>> logout() async {
+  when(auth.logout()).thenAnswer((_) async {
     MockData.sessionActive = false;
     return const Right(null);
-  }
+  });
 
-  @override
-  Future<Either<Failure, PhoneVerification>> sendOtp({
-    required String phone,
-    int? forceResendingToken,
-  }) async {
-    return const Right(
+  when(
+    auth.sendOtp(
+      phone: anyNamed('phone'),
+      forceResendingToken: anyNamed('forceResendingToken'),
+      updateCurrentUser: anyNamed('updateCurrentUser'),
+    ),
+  ).thenAnswer(
+    (_) async => const Right(
       PhoneVerification(verificationId: 'mock-verification-id', resendToken: 1),
-    );
-  }
+    ),
+  );
 
-  @override
-  Future<Either<Failure, User>> verifyOtpAndCache({
-    required String verificationId,
-    required String smsCode,
-    required String phone,
-    String? name,
-  }) async {
+  when(
+    auth.verifyOtpAndCache(
+      verificationId: anyNamed('verificationId'),
+      smsCode: anyNamed('smsCode'),
+      phone: anyNamed('phone'),
+      name: anyNamed('name'),
+    ),
+  ).thenAnswer((invocation) async {
     MockData.sessionActive = true;
-    MockData.updateCurrentUser(phone: phone, name: name);
+    MockData.updateCurrentUser(
+      phone: _named<String>(invocation, #phone),
+      name: _named<String?>(invocation, #name),
+    );
     return Right(MockData.currentUser);
-  }
+  });
 
-  @override
-  Future<Either<Failure, String?>> idToken({bool forceRefresh = false}) async {
-    return Right(MockData.currentUser.token);
-  }
+  when(auth.idToken(forceRefresh: anyNamed('forceRefresh')))
+      .thenAnswer((_) async => Right(MockData.currentUser.token));
 
-  @override
-  Future<Either<Failure, void>> signOutFirebase() async {
+  when(auth.debugPrintSwaggerIdToken()).thenAnswer((_) async {});
+
+  when(auth.signOutFirebase()).thenAnswer((_) async {
     MockData.sessionActive = false;
     return const Right(null);
-  }
+  });
 }
 
-class MockGroupsRepository implements GroupsRepository {
-  @override
-  Future<Either<Failure, List<Group>>> getGroups({
-    bool forceRefresh = false,
-  }) async {
-    return Right(List<Group>.from(MockData.groups));
-  }
+void _stubGroups(MockGroupsRepository groups) {
+  when(groups.getGroups(forceRefresh: anyNamed('forceRefresh')))
+      .thenAnswer((_) async => Right(List<Group>.from(MockData.groups)));
 
-  @override
-  Future<Either<Failure, Group>> getGroup(
-    String groupId, {
-    bool forceRefresh = false,
-  }) async {
-    final group = MockData.groups.cast<Group?>().firstWhere(
-      (g) => g?.id == groupId,
-      orElse: () => null,
-    );
-    if (group == null) {
-      return const Left(ServerFailure('Group not found'));
-    }
-    return Right(group);
-  }
+  when(groups.getGroup(any, forceRefresh: anyNamed('forceRefresh')))
+      .thenAnswer((invocation) async {
+        final groupId = _arg<String>(invocation, 0);
+        final group = MockData.groups.cast<Group?>().firstWhere(
+          (item) => item?.id == groupId,
+          orElse: () => null,
+        );
+        if (group == null) {
+          return const Left(ServerFailure('Group not found'));
+        }
+        return Right(group);
+      });
 
-  @override
-  Future<Either<Failure, Group>> createGroup(Group group) async {
+  when(groups.createGroup(any)).thenAnswer((invocation) async {
+    final group = _arg<Group>(invocation, 0);
     final id = group.id.isEmpty
         ? 'g_${DateTime.now().millisecondsSinceEpoch}'
         : group.id;
     final created = group.copyWith(
       image: group.image.isEmpty ? MockData.defaultCoverImage : group.image,
     );
-    // Group has no id in copyWith — rebuild with id if needed.
     final withId = Group(
       id: id,
       name: created.name,
@@ -231,179 +284,172 @@ class MockGroupsRepository implements GroupsRepository {
       bio: created.bio,
       image: created.image,
       members: created.members,
-
       cuserRole: created.cuserRole,
     );
     return Right(MockData.upsertGroup(withId));
-  }
+  });
 
-  @override
-  Future<Either<Failure, Group>> updateGroup(Group group) async {
-    return Right(MockData.upsertGroup(group));
-  }
+  when(groups.updateGroup(any)).thenAnswer((invocation) async {
+    return Right(MockData.upsertGroup(_arg<Group>(invocation, 0)));
+  });
 
-  @override
-  Future<Either<Failure, Group>> addMember(
-    String groupId,
-    GroupMember member,
-  ) async {
-    final updated = MockData.addMember(groupId, member);
+  when(groups.addMember(any, any)).thenAnswer((invocation) async {
+    final updated = MockData.addMember(
+      _arg<String>(invocation, 0),
+      _arg<GroupMember>(invocation, 1),
+    );
     if (updated == null) {
       return const Left(ServerFailure('Group not found'));
     }
     return Right(updated);
-  }
+  });
 
-  @override
-  Future<Either<Failure, Group>> removeMember(
-    String groupId,
-    String memberId,
-  ) async {
-    final updated = MockData.removeMember(groupId, memberId);
+  when(groups.removeMember(any, any)).thenAnswer((invocation) async {
+    final updated = MockData.removeMember(
+      _arg<String>(invocation, 0),
+      _arg<String>(invocation, 1),
+    );
     if (updated == null) {
       return const Left(ServerFailure('Group not found'));
     }
     return Right(updated);
-  }
+  });
 
-  @override
-  Future<Either<Failure, void>> leaveGroup(String groupId) async {
-    final ok = MockData.leaveGroup(groupId);
+  when(groups.leaveGroup(any)).thenAnswer((invocation) async {
+    final ok = MockData.leaveGroup(_arg<String>(invocation, 0));
     if (!ok) {
       return const Left(ServerFailure('Group not found'));
     }
     return const Right(null);
-  }
+  });
 
-  @override
-  GroupMember? memberById(String id) => MockData.memberById(id);
+  when(groups.memberById(any)).thenAnswer(
+    (invocation) => MockData.memberById(_arg<String>(invocation, 0)),
+  );
 
-  @override
-  GroupMember? memberByPhone(String phone) => MockData.memberByPhone(phone);
+  when(groups.memberByPhone(any)).thenAnswer(
+    (invocation) => MockData.memberByPhone(_arg<String>(invocation, 0)),
+  );
 
-  @override
-  String groupsForMember(String id) => MockData.groupsForMember(id);
+  when(groups.groupsForMember(any)).thenAnswer(
+    (invocation) => MockData.groupsForMember(_arg<String>(invocation, 0)),
+  );
 
-  @override
-  List<GroupMember> get contacts => MockData.contacts;
+  when(groups.contacts).thenAnswer((_) => MockData.contacts);
 }
 
-class MockOutingsRepository implements OutingsRepository {
-  @override
-  List<Place> get catalogPlaces => MockData.catalogPlaces;
+void _stubOutings(MockOutingsRepository outings) {
+  when(outings.catalogPlaces).thenAnswer((_) => MockData.catalogPlaces);
 
-  @override
-  List<GroupMember> membersForOuting(Outing outing) =>
-      MockData.membersForOuting(outing);
+  when(outings.membersForOuting(any)).thenAnswer(
+    (invocation) => MockData.membersForOuting(_arg<Outing>(invocation, 0)),
+  );
 
-  @override
-  String specialEventImage(OutingOccasion occasion) =>
-      MockData.specialEventImage(occasion);
+  when(outings.specialEventImage(any)).thenAnswer(
+    (invocation) =>
+        MockData.specialEventImage(_arg<OutingOccasion>(invocation, 0)),
+  );
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> load({
-    bool forceRefresh = false,
-  }) async {
-    return Right(MockData.outingSnapshot());
-  }
+  when(outings.load(forceRefresh: anyNamed('forceRefresh')))
+      .thenAnswer((_) async => Right(MockData.outingSnapshot()));
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> add(
-    Outing outing, {
-    String? creatorId,
-  }) async {
-    return Right(MockData.addOuting(outing, creatorId: creatorId));
-  }
+  when(outings.add(any, creatorId: anyNamed('creatorId')))
+      .thenAnswer((invocation) async {
+        return Right(
+          MockData.addOuting(
+            _arg<Outing>(invocation, 0),
+            creatorId: _named<String?>(invocation, #creatorId),
+          ),
+        );
+      });
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> suggestPlaces({
-    required String groupId,
-    required String title,
-    required List<Place> places,
-    required int deadlineHours,
-    required String createdBy,
-    String? createdById,
-    String? image,
-    DateTime? scheduledAt,
-  }) async {
+  when(
+    outings.suggestPlaces(
+      groupId: anyNamed('groupId'),
+      title: anyNamed('title'),
+      places: anyNamed('places'),
+      deadlineHours: anyNamed('deadlineHours'),
+      createdBy: anyNamed('createdBy'),
+      createdById: anyNamed('createdById'),
+      image: anyNamed('image'),
+      scheduledAt: anyNamed('scheduledAt'),
+    ),
+  ).thenAnswer((invocation) async {
     return Right(
       MockData.suggestPlaces(
-        groupId: groupId,
-        title: title,
-        places: places,
-        deadlineHours: deadlineHours,
-        createdBy: createdBy,
-        createdById: createdById,
-        image: image,
-        scheduledAt: scheduledAt,
+        groupId: _named<String>(invocation, #groupId),
+        title: _named<String>(invocation, #title),
+        places: _named<List<Place>>(invocation, #places),
+        deadlineHours: _named<int>(invocation, #deadlineHours),
+        createdBy: _named<String>(invocation, #createdBy),
+        createdById: _named<String?>(invocation, #createdById),
+        image: _named<String?>(invocation, #image),
+        scheduledAt: _named<DateTime?>(invocation, #scheduledAt),
       ),
     );
-  }
+  });
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> selectVote(
-    String outingId,
-    int optionIndex,
-  ) async {
-    return Right(MockData.selectVote(outingId, optionIndex));
-  }
+  when(outings.selectVote(any, any)).thenAnswer((invocation) async {
+    return Right(
+      MockData.selectVote(
+        _arg<String>(invocation, 0),
+        _arg<int>(invocation, 1),
+      ),
+    );
+  });
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> finalizeVote(String outingId) async {
-    return Right(MockData.finalizeVote(outingId));
-  }
+  when(outings.finalizeVote(any)).thenAnswer((invocation) async {
+    return Right(MockData.finalizeVote(_arg<String>(invocation, 0)));
+  });
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> clearVotes(String outingId) async {
-    return Right(MockData.clearVotes(outingId));
-  }
+  when(outings.clearVotes(any)).thenAnswer((invocation) async {
+    return Right(MockData.clearVotes(_arg<String>(invocation, 0)));
+  });
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> setAttendance({
-    required String outingId,
-    required String memberId,
-    required AttendanceStatus status,
-  }) async {
+  when(
+    outings.setAttendance(
+      outingId: anyNamed('outingId'),
+      memberId: anyNamed('memberId'),
+      status: anyNamed('status'),
+    ),
+  ).thenAnswer((invocation) async {
     return Right(
       MockData.setAttendance(
-        outingId: outingId,
-        memberId: memberId,
-        status: status,
+        outingId: _named<String>(invocation, #outingId),
+        memberId: _named<String>(invocation, #memberId),
+        status: _named<AttendanceStatus>(invocation, #status),
       ),
     );
-  }
+  });
 
-  @override
-  Future<Either<Failure, OutingSnapshot>> refreshLifecycle() async {
-    return Right(MockData.refreshLifecycle());
-  }
+  when(outings.refreshLifecycle())
+      .thenAnswer((_) async => Right(MockData.refreshLifecycle()));
 }
 
-class MockOutingChatRepository implements OutingChatRepository {
-  @override
-  Future<Either<Failure, ChatMessage>> sendMessage({
-    required String outingId,
-    required String text,
-    required String senderId,
-    required String senderName,
-  }) async {
+void _stubOutingChat(MockOutingChatRepository outingChat) {
+  when(
+    outingChat.sendMessage(
+      outingId: anyNamed('outingId'),
+      text: anyNamed('text'),
+      senderId: anyNamed('senderId'),
+      senderName: anyNamed('senderName'),
+    ),
+  ).thenAnswer((invocation) async {
     return Right(
       ChatMessage(
         id: 'fixed_send',
-        outingId: outingId,
-        sender: senderName,
-        senderId: senderId,
-        text: text,
+        outingId: _named<String>(invocation, #outingId),
+        sender: _named<String>(invocation, #senderName),
+        senderId: _named<String>(invocation, #senderId),
+        text: _named<String>(invocation, #text),
         time: '',
         isMine: true,
       ),
     );
-  }
+  });
 
-  @override
-  Future<Either<Failure, OutingChatReadResult>> markRead(
-    String outingId,
-  ) async {
+  when(outingChat.markRead(any)).thenAnswer((invocation) async {
+    final outingId = _arg<String>(invocation, 0);
     return Right(
       OutingChatReadResult(
         outingId: outingId,
@@ -411,124 +457,112 @@ class MockOutingChatRepository implements OutingChatRepository {
         unreadChatCount: 0,
       ),
     );
-  }
+  });
 }
 
-class MockDiscoverRepository implements DiscoverRepository {
-  @override
-  Future<Either<Failure, List<SuggestedPlace>>> getPlaces({
-    OutingVibe? vibe,
-    bool forceRefresh = false,
-  }) async {
+void _stubDiscover(MockDiscoverRepository discover) {
+  when(
+    discover.getPlaces(
+      vibe: anyNamed('vibe'),
+      forceRefresh: anyNamed('forceRefresh'),
+    ),
+  ).thenAnswer((invocation) async {
     final all = MockData.suggestedPlaces;
-    if (vibe == null) return Right(List<SuggestedPlace>.from(all));
-    return Right(all.where((p) => p.vibe == vibe).toList());
-  }
+    final vibe = _named<OutingVibe?>(invocation, #vibe);
+    if (vibe == null) return Right(List.of(all));
+    return Right(all.where((place) => place.vibe == vibe).toList());
+  });
 
-  @override
-  Future<Either<Failure, List<SuggestedPlace>>> getFeaturedPlaces({
-    bool forceRefresh = false,
-  }) async {
-    return Right(MockData.suggestedPlaces.where((p) => p.featured).toList());
-  }
+  when(discover.getFeaturedPlaces(forceRefresh: anyNamed('forceRefresh')))
+      .thenAnswer(
+        (_) async => Right(
+          MockData.suggestedPlaces.where((place) => place.featured).toList(),
+        ),
+      );
 
-  @override
-  Future<Either<Failure, SuggestedPlace>> getPlace(
-    String placeId, {
-    bool forceRefresh = false,
-  }) async {
-    final place = MockData.suggestedPlaces.cast<SuggestedPlace?>().firstWhere(
-      (p) => p?.id == placeId,
-      orElse: () => null,
-    );
-    if (place == null) {
-      return const Left(ServerFailure('Place not found'));
-    }
-    return Right(place);
-  }
+  when(discover.getPlace(any, forceRefresh: anyNamed('forceRefresh')))
+      .thenAnswer((invocation) async {
+        final placeId = _arg<String>(invocation, 0);
+        final place = MockData.suggestedPlaces.cast<dynamic>().firstWhere(
+          (item) => item.id == placeId,
+          orElse: () => null,
+        );
+        if (place == null) {
+          return const Left(ServerFailure('Place not found'));
+        }
+        return Right(place);
+      });
 
-  @override
-  List<Place> catalogPlaces() => MockData.catalogPlaces;
+  when(discover.catalogPlaces()).thenAnswer((_) => MockData.catalogPlaces);
 }
 
-class MockNotificationsRepository implements NotificationsRepository {
-  @override
-  Future<Either<Failure, NotificationsFeed>> getNotifications({
-    bool forceRefresh = false,
-  }) async {
-    return Right(MockData.notificationsFeed());
-  }
+void _stubNotifications(MockNotificationsRepository notifications) {
+  when(notifications.getNotifications(forceRefresh: anyNamed('forceRefresh')))
+      .thenAnswer((_) async => Right(MockData.notificationsFeed()));
 
-  @override
-  Future<Either<Failure, int>> markAllRead() async {
-    return Right(MockData.markAllNotificationsRead());
-  }
+  when(notifications.markAllRead())
+      .thenAnswer((_) async => Right(MockData.markAllNotificationsRead()));
 
-  @override
-  Future<Either<Failure, int>> markRead(String id) async {
-    return Right(MockData.markNotificationRead(id));
-  }
+  when(notifications.markRead(any)).thenAnswer((invocation) async {
+    return Right(MockData.markNotificationRead(_arg<String>(invocation, 0)));
+  });
 }
 
-class MockSavedOutingsRepository implements SavedOutingsRepository {
-  @override
-  Future<Either<Failure, List<SavedOuting>>> getSaved() async {
-    return Right(List<SavedOuting>.from(MockData.savedOutings));
-  }
+void _stubSavedOutings(MockSavedOutingsRepository savedOutings) {
+  when(savedOutings.getSaved()).thenAnswer(
+    (_) async => Right(List<SavedOuting>.from(MockData.savedOutings)),
+  );
 
-  @override
-  Future<Either<Failure, List<OutingDraft>>> getDrafts() async {
-    return Right(List<OutingDraft>.from(MockData.drafts));
-  }
+  when(savedOutings.getDrafts())
+      .thenAnswer((_) async => Right(List<OutingDraft>.from(MockData.drafts)));
 
-  @override
-  Future<Either<Failure, List<SavedOuting>>> saveOuting(
-    SavedOuting outing,
-  ) async {
+  when(savedOutings.saveOuting(any)).thenAnswer((invocation) async {
+    final outing = _arg<SavedOuting>(invocation, 0);
     MockData.savedOutings = [
       outing,
       ...MockData.savedOutings.where((item) => item.id != outing.id),
     ];
     return Right(List<SavedOuting>.from(MockData.savedOutings));
-  }
+  });
 
-  @override
-  Future<Either<Failure, List<SavedOuting>>> removeSaved(String id) async {
+  when(savedOutings.removeSaved(any)).thenAnswer((invocation) async {
+    final id = _arg<String>(invocation, 0);
     MockData.savedOutings = MockData.savedOutings
         .where((item) => item.id != id)
         .toList();
     return Right(List<SavedOuting>.from(MockData.savedOutings));
-  }
+  });
 
-  @override
-  Future<Either<Failure, List<OutingDraft>>> saveDraft(
-    OutingDraft draft,
-  ) async {
+  when(savedOutings.saveDraft(any)).thenAnswer((invocation) async {
+    final draft = _arg<OutingDraft>(invocation, 0);
     MockData.drafts = [
       draft,
       ...MockData.drafts.where((item) => item.id != draft.id),
     ];
     return Right(List<OutingDraft>.from(MockData.drafts));
-  }
+  });
 
-  @override
-  Future<Either<Failure, List<OutingDraft>>> removeDraft(String id) async {
+  when(savedOutings.removeDraft(any)).thenAnswer((invocation) async {
+    final id = _arg<String>(invocation, 0);
     MockData.drafts = MockData.drafts.where((item) => item.id != id).toList();
     return Right(List<OutingDraft>.from(MockData.drafts));
-  }
+  });
 
-  @override
-  Future<Either<Failure, bool>> isSaved(String id) async {
+  when(savedOutings.isSaved(any)).thenAnswer((invocation) async {
+    final id = _arg<String>(invocation, 0);
     return Right(MockData.savedOutings.any((item) => item.id == id));
-  }
+  });
 }
 
-class MockLocationRepository implements LocationRepository {
-  @override
-  Future<String?> reverseGeocode({
-    required double latitude,
-    required double longitude,
-  }) async {
+void _stubLocation(MockLocationRepository location) {
+  when(
+    location.reverseGeocode(
+      latitude: anyNamed('latitude'),
+      longitude: anyNamed('longitude'),
+    ),
+  ).thenAnswer((invocation) async {
+    final latitude = _named<double>(invocation, #latitude);
+    final longitude = _named<double>(invocation, #longitude);
     LocationHit? best;
     var bestDistance = double.infinity;
     for (final hit in MockData.geocodingHits) {
@@ -541,14 +575,19 @@ class MockLocationRepository implements LocationRepository {
       }
     }
     return best?.name ?? 'Demo City';
-  }
+  });
 
-  @override
-  Future<List<LocationHit>> search(String query) async {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return const [];
+  when(location.search(any)).thenAnswer((invocation) async {
+    final query = _arg<String>(invocation, 0).trim().toLowerCase();
+    if (query.isEmpty) return const [];
     return MockData.geocodingHits
-        .where((hit) => hit.name.toLowerCase().contains(q))
+        .where((hit) => hit.name.toLowerCase().contains(query))
         .toList();
-  }
+  });
 }
+
+T _arg<T>(Invocation invocation, int index) =>
+    invocation.positionalArguments[index] as T;
+
+T _named<T>(Invocation invocation, Symbol name) =>
+    invocation.namedArguments[name] as T;

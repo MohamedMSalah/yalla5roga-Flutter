@@ -25,6 +25,7 @@ class FirebaseAuthService {
   Future<PhoneVerification> sendOtp({
     required String phone,
     int? forceResendingToken,
+    bool updateCurrentUser = false,
   }) async {
     final e164 = Validators.normalizePhone(phone);
     if (!Validators.isValidEgyptianPhone(e164)) {
@@ -48,6 +49,10 @@ class FirebaseAuthService {
         phoneNumber: e164,
         forceResendingToken: forceResendingToken,
         verificationCompleted: (credential) {
+          if (updateCurrentUser) {
+            unawaited(_applyPhoneUpdate(credential, completer));
+            return;
+          }
           if (!completer.isCompleted) {
             completer.complete(const PhoneVerification(verificationId: ''));
           }
@@ -94,6 +99,44 @@ class FirebaseAuthService {
     } catch (error) {
       if (error is AuthException) rethrow;
       throw AuthException(error.toString(), AuthErrorCodes.verificationFailed);
+    }
+  }
+
+  Future<void> _applyPhoneUpdate(
+    fb.PhoneAuthCredential credential,
+    Completer<PhoneVerification> completer,
+  ) async {
+    if (completer.isCompleted) return;
+    final user = _auth.currentUser;
+    if (user == null) {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          const AuthException(
+            'Phone verification failed',
+            AuthErrorCodes.verificationFailed,
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      await user.updatePhoneNumber(credential);
+      await user.reload();
+      if (!completer.isCompleted) {
+        completer.complete(
+          const PhoneVerification(verificationId: 'auto', autoVerified: true),
+        );
+      }
+    } on fb.FirebaseAuthException catch (error) {
+      if (!completer.isCompleted) {
+        completer.completeError(_mapFirebaseAuthException(error));
+      }
+    } catch (error) {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          AuthException(error.toString(), AuthErrorCodes.verificationFailed),
+        );
+      }
     }
   }
 
@@ -291,6 +334,33 @@ class FirebaseAuthService {
       return await _auth.currentUser?.getIdToken(forceRefresh);
     } on fb.FirebaseAuthException catch (error) {
       throw _mapFirebaseAuthException(error);
+    }
+  }
+
+  /// Temporary Swagger helper. Prints a force-refreshed ID token in debug only.
+  Future<void> debugPrintSwaggerIdToken() async {
+    if (!kDebugMode) return;
+
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        debugPrint('Firebase ID token (Swagger Bearer): no signed-in user');
+        return;
+      }
+
+      final token = await user.getIdToken(true);
+      if (token == null || token.isEmpty) {
+        debugPrint('Firebase ID token (Swagger Bearer): token was empty');
+        return;
+      }
+
+      final segments = token.split('.').length;
+      debugPrint(
+        'Firebase ID token (Swagger Bearer): length=${token.length} segments=$segments',
+      );
+      debugPrint('Firebase ID token (Swagger Bearer): $token', wrapWidth: 8192);
+    } catch (_) {
+      debugPrint('Firebase ID token (Swagger Bearer): refresh failed');
     }
   }
 

@@ -24,6 +24,7 @@ class AuthProvider extends ChangeNotifier {
   String? _errorCode;
   bool _isLogin = true;
   bool _otpSent = false;
+  bool _phoneAutoVerified = false;
   bool _agreeTerms = false;
   String? _verificationId;
   int? _resendToken;
@@ -36,6 +37,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _user != null;
   bool get isLogin => _isLogin;
   bool get otpSent => _otpSent;
+  bool get phoneAutoVerified => _phoneAutoVerified;
   bool get agreeTerms => _agreeTerms;
   String? get pendingPhone => _pendingPhone;
 
@@ -53,6 +55,7 @@ class AuthProvider extends ChangeNotifier {
 
   void resetOtp() {
     _otpSent = false;
+    _phoneAutoVerified = false;
     _verificationId = null;
     _pendingPhone = null;
     _resendToken = null;
@@ -62,6 +65,7 @@ class AuthProvider extends ChangeNotifier {
   void resetAuthForm({bool toLogin = true}) {
     if (toLogin) _isLogin = true;
     _otpSent = false;
+    _phoneAutoVerified = false;
     _verificationId = null;
     _resendToken = null;
     _pendingPhone = null;
@@ -89,12 +93,13 @@ class AuthProvider extends ChangeNotifier {
           return;
         }
         _user = user;
+        unawaited(repository.debugPrintSwaggerIdToken());
       },
     );
     notifyListeners();
   }
 
-  Future<bool> sendOtp(String phone) async {
+  Future<bool> sendOtp(String phone, {bool updateCurrentUser = false}) async {
     if (_isLoading) return false;
 
     final e164 = Validators.normalizePhone(phone);
@@ -114,9 +119,10 @@ class AuthProvider extends ChangeNotifier {
     final result = await repository.sendOtp(
       phone: e164,
       forceResendingToken: samePhone ? _resendToken : null,
+      updateCurrentUser: updateCurrentUser,
     );
 
-    return result.fold(
+    final sent = result.fold(
       (failure) {
         _isLoading = false;
         _errorCode = failure is AuthFailure
@@ -132,6 +138,15 @@ class AuthProvider extends ChangeNotifier {
         return false;
       },
       (verification) {
+        if (verification.autoVerified) {
+          _phoneAutoVerified = true;
+          _otpSent = true;
+          _verificationId = null;
+          _pendingPhone = e164;
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
         if (verification.verificationId.isEmpty) {
           _isLoading = false;
           _errorCode = AuthErrorCodes.verificationFailed;
@@ -149,11 +164,20 @@ class AuthProvider extends ChangeNotifier {
             verification.resendToken ?? (samePhone ? _resendToken : null);
         _pendingPhone = e164;
         _otpSent = true;
+        _phoneAutoVerified = false;
         _isLoading = false;
         notifyListeners();
         return true;
       },
     );
+    if (sent && _phoneAutoVerified) {
+      final cached = await repository.getCachedUser();
+      cached.fold((_) {}, (user) {
+        _user = user;
+        notifyListeners();
+      });
+    }
+    return sent;
   }
 
   Future<bool> resendOtp(String phone) => sendOtp(phone);
@@ -491,6 +515,7 @@ class AuthProvider extends ChangeNotifier {
       (user) {
         _user = user;
         _otpSent = false;
+        _phoneAutoVerified = false;
         _verificationId = null;
         _resendToken = null;
         _pendingPhone = null;
@@ -563,6 +588,7 @@ class AuthProvider extends ChangeNotifier {
         await CrashlyticsService.instance.setUserId(_user!.id);
         await AnalyticsService.instance.setUserId(_user!.id);
         unawaited(AnalyticsService.instance.loginSuccess());
+        unawaited(repository.debugPrintSwaggerIdToken());
       }
       return success;
     } catch (error, stack) {

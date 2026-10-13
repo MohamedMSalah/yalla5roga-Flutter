@@ -12,7 +12,6 @@ import 'package:yalla_5roga/features/groups/presentation/widgets/lists/groups_li
 import 'package:yalla_5roga/features/groups/presentation/pages/create_group_page.dart';
 import 'package:yalla_5roga/features/groups/presentation/providers/groups_provider.dart';
 import 'package:yalla_5roga/features/groups/presentation/widgets/groups_skeleton.dart';
-import 'package:yalla_5roga/features/shell/presentation/widgets/shell_loading.dart';
 
 class GroupsPage extends StatefulWidget {
   const GroupsPage({super.key});
@@ -47,11 +46,11 @@ class _GroupsPageState extends State<GroupsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (shellIsLoading(context)) return const GroupsSkeleton();
+    final groups = context.watch<GroupsProvider>();
+    if (groups.isInitialLoading) return const GroupsSkeleton();
 
     final l10n = context.l10n;
     final palette = context.palette;
-    final groups = context.watch<GroupsProvider>();
 
     return SafeArea(
       child: CustomScrollView(

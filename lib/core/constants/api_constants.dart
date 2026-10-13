@@ -3,7 +3,7 @@ class ApiConstants {
 
   static const String baseUrl = String.fromEnvironment(
     'http://10.0.2.2:3000',
-    defaultValue: 'https://api.yalla5roga.com',
+    defaultValue: 'http://10.0.2.2:3000',
   );
 
   static const Duration connectTimeout = Duration(seconds: 30);

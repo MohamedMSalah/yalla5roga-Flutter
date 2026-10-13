@@ -70,6 +70,7 @@ abstract class AuthRepository {
   Future<Either<Failure, PhoneVerification>> sendOtp({
     required String phone,
     int? forceResendingToken,
+    bool updateCurrentUser = false,
   });
 
   /// Verifies SMS OTP, optionally updates display name, caches [User], returns it.
@@ -81,6 +82,9 @@ abstract class AuthRepository {
   });
 
   Future<Either<Failure, String?>> idToken({bool forceRefresh = false});
+
+  /// Debug-only Swagger helper. Implementations must not log the token in release.
+  Future<void> debugPrintSwaggerIdToken();
 
   Future<Either<Failure, void>> signOutFirebase();
 }

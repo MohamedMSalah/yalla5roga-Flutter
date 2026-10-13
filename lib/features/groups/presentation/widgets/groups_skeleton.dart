@@ -64,11 +64,8 @@ class GroupsSkeleton extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 2,
-                separatorBuilder: (_, _) => Responsive.spaceSm.gapW,
-                itemBuilder: (_, _) => SizedBox(
-                  width: Responsive.voteCardWidth,
-                  child: const ShimmerVoteCard(),
-                ),
+                separatorBuilder: (_, _) => Responsive.spaceMd.gapW,
+                itemBuilder: (_, _) => const ShimmerVoteCard(),
               ),
             ),
           ),

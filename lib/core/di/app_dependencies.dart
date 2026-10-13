@@ -9,8 +9,6 @@ import 'package:yalla_5roga/core/network/dio_interceptors.dart';
 import 'package:yalla_5roga/core/network/network_info.dart';
 import 'package:yalla_5roga/core/network/performance_interceptor.dart';
 import 'package:yalla_5roga/core/theme/theme_provider.dart';
-import 'package:yalla_5roga/core/monitoring/analytics_service.dart';
-import 'package:yalla_5roga/core/monitoring/crashlytics_service.dart';
 import 'package:yalla_5roga/core/utils/member_display_name.dart';
 import 'package:yalla_5roga/features/auth/data/datasources/firebase_auth_service.dart';
 import 'package:yalla_5roga/features/auth/presentation/providers/auth_provider.dart';
@@ -104,8 +102,6 @@ class AppDependencies {
 
     final auth = AuthProvider(repository: authRepository);
     await auth.restoreSession();
-    await CrashlyticsService.instance.setUserId(auth.user?.id);
-    await AnalyticsService.instance.setUserId(auth.user?.id);
 
     MemberDisplayName.memberByPhoneLookup = groupsRepository.memberByPhone;
 
@@ -115,8 +111,8 @@ class AppDependencies {
       localNotifications: localNotifications,
     );
     final pushMessaging = PushMessagingRepositoryImpl(messaging: fcmMessaging);
+    // FCM (local notifications + getToken) is deferred until after first frame.
     final fcm = FcmProvider(messaging: pushMessaging);
-    await fcm.initialize();
 
     // Feature data loads when MainShell mounts — not during splash/auth boot.
     final outings = OutingsProvider(repository: outingsRepository);

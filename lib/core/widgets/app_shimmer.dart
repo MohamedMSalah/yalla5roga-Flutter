@@ -559,37 +559,63 @@ class ShimmerFeaturedGroup extends StatelessWidget {
   }
 }
 
+/// Placeholder for the Groups active-vote carousel card.
 class ShimmerVoteCard extends StatelessWidget {
   const ShimmerVoteCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        children: [
-          Row(
-            children: [
-              ShimmerBone(width: 44.w, height: 44.w, radius: 14),
-              12.gapW,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ShimmerLine(width: 130.w, height: 13.h),
-                    Responsive.spaceXs.gapH,
-                    ShimmerLine(width: 110.w, height: 9.h),
-                  ],
+    return SizedBox(
+      width: Responsive.voteCardWidth,
+      height: double.infinity,
+      child: AppCard(
+        padding: Responsive.padding(all: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShimmerLine(width: 72.w, height: Responsive.fontSm),
+            Responsive.spaceXs.gapH,
+            Row(
+              children: [
+                ShimmerBone(width: 36.w, height: 36.w, radius: 14),
+                Responsive.spaceSm.gapW,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerLine(
+                        width: double.infinity,
+                        height: Responsive.fontBody,
+                      ),
+                      ShimmerLine(width: 64.w, height: Responsive.fontCaption),
+                    ],
+                  ),
                 ),
-              ),
-              ShimmerBone(width: 52.w, height: 22.h, radius: 999),
-            ],
-          ),
-          12.gapH,
-          for (var i = 0; i < 3; i++) ...[
-            if (i > 0) Responsive.spaceSm.gapH,
-            ShimmerBone(width: double.infinity, height: 44.h, radius: 12),
+              ],
+            ),
+            Responsive.spaceXs.gapH,
+            ShimmerLine(width: 110.w, height: Responsive.fontCaption),
+            Responsive.spaceXs.gapH,
+            Row(
+              children: [
+                ShimmerBone(
+                  width: 64.w,
+                  height: Responsive.fontCaption + 10.h,
+                  radius: 999,
+                ),
+                Responsive.spaceXs.gapW,
+                Expanded(
+                  child: ShimmerLine(
+                    width: double.infinity,
+                    height: Responsive.fontCaption,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            ShimmerBone(width: double.infinity, height: 40.h, radius: 12),
           ],
-        ],
+        ),
       ),
     );
   }

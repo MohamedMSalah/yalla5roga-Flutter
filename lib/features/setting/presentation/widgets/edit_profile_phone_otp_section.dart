@@ -10,6 +10,7 @@ class EditProfilePhoneOtpSection extends StatelessWidget {
     super.key,
     required this.phoneChanged,
     required this.otpSent,
+    required this.phoneAutoVerified,
     required this.isLoading,
     required this.otpController,
     required this.onSendOtp,
@@ -17,6 +18,7 @@ class EditProfilePhoneOtpSection extends StatelessWidget {
 
   final bool phoneChanged;
   final bool otpSent;
+  final bool phoneAutoVerified;
   final bool isLoading;
   final TextEditingController otpController;
   final VoidCallback onSendOtp;
@@ -34,7 +36,16 @@ class EditProfilePhoneOtpSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Responsive.spaceMd.gapH,
-                if (otpSent)
+                if (phoneAutoVerified)
+                  Text(
+                    l10n.phoneVerified,
+                    style: TextStyle(
+                      color: AppColors.brand700,
+                      fontWeight: FontWeight.w800,
+                      fontSize: Responsive.fontSm,
+                    ),
+                  )
+                else if (otpSent)
                   OtpInput(
                     controller: otpController,
                     label: l10n.otp,

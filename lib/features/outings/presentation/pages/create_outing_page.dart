@@ -149,55 +149,72 @@ class _CreateOutingView extends StatelessWidget {
           builder: (context) {
             final palette = context.palette;
             final l10n = context.l10n;
-            return Container(
-              padding: Responsive.padding(all: 20),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.chooseGroup,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: Responsive.fontMd,
-                    ),
+            final maxHeight = MediaQuery.sizeOf(context).height * 0.7;
+            return Material(
+              color: palette.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+              clipBehavior: Clip.antiAlias,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: Padding(
+                  padding: Responsive.padding(all: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.chooseGroup,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: Responsive.fontMd,
+                        ),
+                      ),
+                      Responsive.spaceMd.gapH,
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: form.groups.length,
+                          itemBuilder: (context, index) {
+                            final group = form.groups[index];
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: AppNetworkImage(
+                                url: group.image,
+                                width: 40.w,
+                                height: 40.w,
+                                radius: 12.r,
+                              ),
+                              title: Text(
+                                group.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: Text(
+                                l10n.membersWillBeInvited(group.memberCount),
+                              ),
+                              trailing: form.group?.id == group.id
+                                  ? Icon(
+                                      Icons.check_circle,
+                                      color: AppColors.brand600,
+                                      size: 22.w,
+                                    )
+                                  : null,
+                              onTap: () => Get.back(result: group),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  Responsive.spaceMd.gapH,
-                  for (final group in form.groups)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: AppNetworkImage(
-                        url: group.image,
-                        width: 40.w,
-                        height: 40.w,
-                        radius: 12.r,
-                      ),
-                      title: Text(
-                        group.name,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      subtitle: Text(
-                        l10n.membersWillBeInvited(group.memberCount),
-                      ),
-                      trailing: form.group?.id == group.id
-                          ? Icon(
-                              Icons.check_circle,
-                              color: AppColors.brand600,
-                              size: 22.w,
-                            )
-                          : null,
-                      onTap: () => Get.back(result: group),
-                    ),
-                ],
+                ),
               ),
             );
           },
         ),
       ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
     );
     if (selected == null) return;
     form.setGroup(selected);

@@ -1,9 +1,16 @@
 /// Result of phone OTP dispatch (SMS or test-number path).
 class PhoneVerification {
-  const PhoneVerification({required this.verificationId, this.resendToken});
+  const PhoneVerification({
+    required this.verificationId,
+    this.resendToken,
+    this.autoVerified = false,
+  });
 
   final String verificationId;
   final int? resendToken;
+
+  /// Instant verification already applied the number to the signed-in user.
+  final bool autoVerified;
 }
 
 /// Stable error codes surfaced to [AuthProvider] / UI (match Firebase where possible).
