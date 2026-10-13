@@ -1031,6 +1031,8 @@ class L10n {
     'تحقق من بريدك الجديد وأكّد التغيير',
   );
   String get passwordUpdated => _t('Password updated', 'تم تحديث كلمة المرور');
+  String get phoneVerified =>
+      _t('Phone number verified', 'تم التحقق من رقم الهاتف');
   String get phoneUpdated => _t('Phone number updated', 'تم تحديث رقم الهاتف');
   String get socialAccountHint => _t(
     'Signed in with Google or Apple — email and password are managed by that provider.',

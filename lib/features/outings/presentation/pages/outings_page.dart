@@ -11,7 +11,6 @@ import 'package:yalla_5roga/features/outings/presentation/widgets/lists/weekend_
 import 'package:yalla_5roga/features/outings/presentation/pages/create_outing_page.dart';
 import 'package:yalla_5roga/features/outings/presentation/providers/outings_provider.dart';
 import 'package:yalla_5roga/features/outings/presentation/widgets/outings_skeleton.dart';
-import 'package:yalla_5roga/features/shell/presentation/widgets/shell_loading.dart';
 
 class OutingsPage extends StatefulWidget {
   const OutingsPage({super.key});
@@ -32,10 +31,10 @@ class _OutingsPageState extends State<OutingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (shellIsLoading(context)) return const OutingsSkeleton();
+    final outings = context.watch<OutingsProvider>();
+    if (!outings.hasLoaded) return const OutingsSkeleton();
 
     final l10n = context.l10n;
-    final outings = context.watch<OutingsProvider>();
 
     return SafeArea(
       child: ListView(

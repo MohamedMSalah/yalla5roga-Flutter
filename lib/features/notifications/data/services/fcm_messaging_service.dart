@@ -59,7 +59,6 @@ class FcmMessagingService {
       }
 
       _initialized = true;
-      await refreshToken();
     } catch (error, stack) {
       debugPrint('[FCM] initialize failed: $error\n$stack');
     }
@@ -140,9 +139,8 @@ class FcmMessagingService {
     if (!_tokenController.isClosed) {
       _tokenController.add(token);
     }
-    if (kDebugMode && token != null) {
-      final previewLen = token.length < 12 ? token.length : 12;
-      debugPrint('[FCM] token=${token.substring(0, previewLen)}…');
+    if (token != null && token.isNotEmpty) {
+      debugPrint('Firebase token is : "$token"');
     }
   }
 

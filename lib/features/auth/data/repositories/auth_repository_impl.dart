@@ -22,12 +22,24 @@ mixin _AuthFirebaseMixin on AuthRepository {
   Future<Either<Failure, PhoneVerification>> sendOtp({
     required String phone,
     int? forceResendingToken,
+    bool updateCurrentUser = false,
   }) async {
     try {
       final result = await firebaseAuth.sendOtp(
         phone: phone,
         forceResendingToken: forceResendingToken,
+        updateCurrentUser: updateCurrentUser,
       );
+      if (result.autoVerified) {
+        final user = firebaseAuth.currentUser;
+        if (user != null) {
+          await user.reload();
+          await _cacheFirebaseUser(
+            firebaseAuth.currentUser ?? user,
+            fallbackPhone: phone,
+          );
+        }
+      }
       return Right(result);
     } on AuthException catch (error) {
       return Left(AuthFailure(error.message, error.code));
@@ -80,6 +92,11 @@ mixin _AuthFirebaseMixin on AuthRepository {
     } catch (_) {
       return const Left(AuthFailure('Unable to refresh token'));
     }
+  }
+
+  @override
+  Future<void> debugPrintSwaggerIdToken() {
+    return firebaseAuth.debugPrintSwaggerIdToken();
   }
 
   @override

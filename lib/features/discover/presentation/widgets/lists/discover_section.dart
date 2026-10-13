@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:yalla_5roga/core/utils/extensions.dart';
 import 'package:yalla_5roga/core/widgets/app_empty_state.dart';
+import 'package:yalla_5roga/core/widgets/app_shimmer.dart';
 import 'package:yalla_5roga/core/widgets/section_header.dart';
 import 'package:yalla_5roga/features/discover/presentation/widgets/lists/featured_places_list.dart';
 import 'package:yalla_5roga/features/discover/presentation/widgets/lists/nearby_places_list.dart';
@@ -38,7 +39,15 @@ class DiscoverSection extends StatelessWidget {
           onAction: () => Get.to(() => const DiscoverPage()),
         ),
         12.gapH,
-        if (featured.isEmpty)
+        if (!discover.hasLoaded)
+          AppShimmer(
+            child: ShimmerBone(
+              width: double.infinity,
+              height: 120.h,
+              radius: 24.r,
+            ),
+          )
+        else if (featured.isEmpty)
           AppEmptyState(
             icon: Icons.travel_explore_outlined,
             message: l10n.noPlaces,
@@ -51,7 +60,7 @@ class DiscoverSection extends StatelessWidget {
             compact: compact,
             showPriceLevel: false,
           ),
-        if (showPlaces) ...[
+        if (showPlaces && discover.hasLoaded) ...[
           Responsive.spaceMd.gapH,
           NearbyPlacesList(
             places: discover.places.take(3).toList(),

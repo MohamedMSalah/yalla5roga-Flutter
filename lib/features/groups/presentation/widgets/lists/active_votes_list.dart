@@ -34,17 +34,13 @@ class ActiveVotesList extends StatelessWidget {
         else
           SizedBox(
             height: Responsive.voteCardHeight,
-            child: ListView.builder(
+            child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: votes.length,
+              separatorBuilder: (_, _) => Responsive.spaceMd.gapW,
               itemBuilder: (context, index) {
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index == votes.length - 1 ? 0 : Responsive.spaceSm,
-                  ),
-                  child: ActiveVoteCard(outing: votes[index]),
-                );
+                return ActiveVoteCard(outing: votes[index]);
               },
             ),
           ),

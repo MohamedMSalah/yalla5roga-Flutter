@@ -30,7 +30,7 @@ import 'package:yalla_5roga/features/outings/domain/repositories/outings_reposit
 import 'package:yalla_5roga/features/outings/domain/repositories/saved_outings_repository.dart';
 
 /// Builds API-backed repositories (plus local prefs for saved/drafts).
-/// When [AppConfig.useMockData] is true, returns temporary in-memory mocks.
+/// When [AppConfig.useMockData] is true, returns Mockito stubs over the demo fixtures.
 class RepositoryFactory {
   const RepositoryFactory({
     required this.apiClient,
@@ -45,7 +45,7 @@ class RepositoryFactory {
   final FirebaseAuthService firebaseAuth;
 
   AuthRepository auth() {
-    if (AppConfig.useMockData) return MockAuthRepository();
+    if (AppConfig.useMockData) return createDemoMocks().auth;
     return AuthRepositoryImpl(
       remote: AuthRemoteDataSourceImpl(apiClient),
       local: AuthLocalDataSourceImpl(prefs),
@@ -55,7 +55,7 @@ class RepositoryFactory {
   }
 
   NotificationsRepository notifications() {
-    if (AppConfig.useMockData) return MockNotificationsRepository();
+    if (AppConfig.useMockData) return createDemoMocks().notifications;
     return NotificationsRepositoryImpl(
       remote: NotificationsRemoteDataSourceImpl(apiClient),
       networkInfo: networkInfo,
@@ -63,7 +63,7 @@ class RepositoryFactory {
   }
 
   GroupsRepository groups() {
-    if (AppConfig.useMockData) return MockGroupsRepository();
+    if (AppConfig.useMockData) return createDemoMocks().groups;
     return GroupsRepositoryImpl(
       remote: GroupsRemoteDataSource(apiClient),
       networkInfo: networkInfo,
@@ -71,7 +71,7 @@ class RepositoryFactory {
   }
 
   OutingChatRepository outingChat() {
-    if (AppConfig.useMockData) return MockOutingChatRepository();
+    if (AppConfig.useMockData) return createDemoMocks().outingChat;
     return OutingChatRepositoryImpl(
       remote: OutingChatRemoteDataSourceImpl(apiClient),
       networkInfo: networkInfo,
@@ -79,7 +79,7 @@ class RepositoryFactory {
   }
 
   OutingsRepository outings() {
-    if (AppConfig.useMockData) return MockOutingsRepository();
+    if (AppConfig.useMockData) return createDemoMocks().outings;
     return OutingsRepositoryImpl(
       remote: OutingsRemoteDataSource(apiClient),
       networkInfo: networkInfo,
@@ -87,7 +87,7 @@ class RepositoryFactory {
   }
 
   DiscoverRepository discover() {
-    if (AppConfig.useMockData) return MockDiscoverRepository();
+    if (AppConfig.useMockData) return createDemoMocks().discover;
     return DiscoverRepositoryImpl(
       remote: DiscoverRemoteDataSource(apiClient),
       networkInfo: networkInfo,
@@ -95,14 +95,14 @@ class RepositoryFactory {
   }
 
   SavedOutingsRepository savedOutings() {
-    if (AppConfig.useMockData) return MockSavedOutingsRepository();
+    if (AppConfig.useMockData) return createDemoMocks().savedOutings;
     return SavedOutingsRepositoryImpl(
       local: SavedOutingsLocalDataSourceImpl(prefs),
     );
   }
 
   LocationRepository geocoding() {
-    if (AppConfig.useMockData) return MockLocationRepository();
+    if (AppConfig.useMockData) return createDemoMocks().location;
     return GeocodingHttpRepository();
   }
 }

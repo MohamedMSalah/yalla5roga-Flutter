@@ -140,17 +140,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _sendPhoneOtp() async {
-    if (!_formKey.currentState!.validate()) return;
+    final l10n = context.l10n;
+    final phoneError = Validators.phone(_phoneController.text, l10n);
+    if (phoneError != null) {
+      AppSnackBar.showError(phoneError);
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final phone = Validators.normalizePhone(_phoneController.text);
     _otpController.clear();
-    final ok = await auth.sendOtp(phone);
+    final ok = await auth.sendOtp(phone, updateCurrentUser: true);
     if (!mounted) return;
     if (!ok) {
       AppSnackBar.showError(_authError(auth));
       return;
     }
-    AppSnackBar.show(context.l10n.otpSent(context.l10n.digits(phone)));
+    AppSnackBar.show(
+      auth.phoneAutoVerified
+          ? l10n.phoneVerified
+          : l10n.otpSent(l10n.digits(phone)),
+    );
   }
 
   Future<void> _save() async {
@@ -164,7 +173,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return;
     }
 
-    if (_phoneChanged && !auth.otpSent) {
+    if (_phoneChanged && !auth.otpSent && !auth.phoneAutoVerified) {
       AppSnackBar.showError(l10n.verifyPhoneFirst);
       return;
     }
@@ -241,7 +250,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       changedSomething = true;
     }
 
-    if (_phoneChanged && auth.otpSent) {
+    if (_phoneChanged && auth.phoneAutoVerified) {
+      syncedPhone = Validators.normalizePhone(_phoneController.text);
+      changedSomething = true;
+    } else if (_phoneChanged && auth.otpSent) {
       final phone = Validators.normalizePhone(_phoneController.text);
       final ok = await auth.changePhoneNumber(
         phone: phone,
@@ -309,6 +321,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             EditProfilePhoneOtpSection(
               phoneChanged: _phoneChanged,
               otpSent: auth.otpSent,
+              phoneAutoVerified: auth.phoneAutoVerified,
               isLoading: auth.isLoading,
               otpController: _otpController,
               onSendOtp: _sendPhoneOtp,

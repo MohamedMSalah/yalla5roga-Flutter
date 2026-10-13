@@ -105,7 +105,9 @@ class App extends StatelessWidget {
   }
 }
 
-/// Asks for notification permission once, then flushes any cold-start FCM tap.
+/// Wires push listeners after the first frame and opens a cold-start tap.
+///
+/// Notification permission is requested later, once the home feed is visible.
 class _PushBootstrap extends StatefulWidget {
   const _PushBootstrap({required this.child});
 
@@ -121,13 +123,17 @@ class _PushBootstrapState extends State<_PushBootstrap> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      // Mock/demo mode skips native push setup entirely.
       if (AppConfig.useMockData) return;
-      await AppPermissions.promptNotificationsOnLaunch(context.l10n);
-      if (!mounted) return;
+
       final fcm = context.read<FcmProvider>();
-      await fcm.afterPermissionPrompt();
+      // Listeners and local notifications run after the first frame.
+      // getToken waits until notification permission is settled.
+      await fcm.initialize();
       if (!mounted) return;
       fcm.flushPendingNavigation();
+      if (!await AppPermissions.isNotificationGranted || !mounted) return;
+      await fcm.refreshToken();
     });
   }
 
